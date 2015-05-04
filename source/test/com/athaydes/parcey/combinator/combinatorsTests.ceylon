@@ -10,7 +10,9 @@ import com.athaydes.parcey {
     oneOf,
     anyChar,
     ParseError,
-    char
+    char,
+    string,
+    space
 }
 import com.athaydes.parcey.combinator {
     either,
@@ -35,6 +37,34 @@ test shared void canParseNonStableStream() {
     }
 }
 
+test shared void eitherCombinatorCanParseAllAlternatives() {
+    value parser = either(char('a'), string("hi"), space);
+    
+    value result1 = parser.parse("a");
+    if (is ParseResult<{String*}> result1) {
+        assertEquals(result1.result.sequence(), ["a"]);
+        assertEquals(result1.parsedIndex, 1);
+    } else {
+        fail("Result was ``result1``");
+    }
+    
+    value result2 = parser.parse("hi");
+    if (is ParseResult<String> result2) {
+        assertEquals(result2.result, "hi");
+        assertEquals(result2.parsedIndex, 2);
+    } else {
+        fail("Result was ``result2``");
+    }
+    
+    value result3 = parser.parse(" ");
+    if (is ParseResult<{String*}> result3) {
+        assertEquals(result3.result.sequence(), [" "]);
+        assertEquals(result3.parsedIndex, 1);
+    } else {
+        fail("Result was ``result3``");
+    }
+}
+
 test shared void eitherCombinatorCanBacktrackOnce() {
     value parser = either(oneOf('a'), oneOf('b'));
     
@@ -56,6 +86,21 @@ test shared void eitherCombinatorCanBacktrackTwice() {
     if (is ParseResult<{String*}> result) {
         assertEquals(result.result.sequence(), ["c"]);
         assertEquals(result.parsedIndex, 1);
+    } else {
+        fail("Result was ``result``");
+    }
+}
+
+test shared void eitherCombinatorCanBacktrackSeveralCharacters() {
+    value parser = either(string("hello world"), string("hello john"));
+    
+    value result = parser.parse("hello john");
+    
+    if (is ParseResult<String> result) {
+        assertEquals(result.result, "hello john");
+        assertEquals(result.parsedIndex, 10);
+        assertEquals(result.consumedOk, "hello john".sequence());
+        assertEquals(result.consumedFailed, []);
     } else {
         fail("Result was ``result``");
     }
