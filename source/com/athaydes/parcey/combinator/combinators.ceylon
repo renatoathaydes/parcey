@@ -51,9 +51,11 @@ shared Parser<{Item*}> either<Item>(Parser<{Item*}>+ parsers) {
     };
 }
 
-"Creates a Parser that applies the given parser as many times as possible without failing.
+"Creates a Parser that applies the given parser as many times as possible without failing,
+ returning all results of each application.
  
  For this Parser to succeed, the given parser must succeed at least 'minOcurrences' times."
+see (`function skipMany`)
 shared Parser<{Item*}> many<Item>(Parser<{Item*}> parser, Integer minOccurrences = 0) {
     value parsers = [parser].cycled;
     return object satisfies Parser<{Item*}> {
@@ -76,6 +78,42 @@ shared Parser<{Item*}> many<Item>(Parser<{Item*}> parser, Integer minOccurrences
                     result = append(result, current, true);
                     if (current.consumedOk.empty) { // did not consume anything
                         return result;
+                    }
+                }
+            }
+            throw; // parsers is an infinite stream, so this will never be reached
+        }
+    };
+}
+
+"Creates a Parser that applies the given parser as many times as possible without failing,
+ but discards the results.
+ 
+ For this Parser to succeed, the given parser must succeed at least 'minOcurrences' times."
+see (`function many`)
+shared Parser<{Item*}> skipMany<Item>(Parser<{Item*}> parser, Integer minOccurrences = 0) {
+    value parsers = [parser].cycled;
+    return object satisfies Parser<{Item*}> {
+        shared actual ParseResult<{Item*}>|ParseError doParse(Iterator<Character> input, Integer parsedIndex) {
+            variable ParseResult<{Item*}> result = ParseResult({}, parsedIndex, []);
+            for (parser in parsers) {
+                value current = parser.doParse(input, result.parsedIndex);
+                switch (current)
+                case (is ParseError) {
+                    if (result.result.size >= minOccurrences) {
+                        return ParseResult([],
+                            result.parsedIndex,
+                            result.consumedOk.append(current.consumedOk),
+                            result.consumedFailed.append(current.consumedFailed));
+                    } else {
+                        return current;
+                    }
+                }
+                case (is ParseResult<{Item*}>) {
+                    result = append(result, current, true);
+                    if (current.consumedOk.empty) {
+                        // did not consume anything, stop or there will be an infinite loop
+                        return ParseResult([], result.parsedIndex, result.consumedOk, result.consumedFailed);
                     }
                 }
             }
