@@ -43,10 +43,10 @@ shared class ParseResult<out Result>(
 "A Parser which can parse a stream of Characters."
 shared interface Parser<out Parsed> {
     
-    doc("Parse the given input. The input is only traversed once by using its iterator.
-         The parsedIndex given is used only to keep track of how many characters have been parsed when using
-         a chain of parsers.")
-    see(`function parserChain`)
+    doc ("Parse the given input. The input is only traversed once by using its iterator.
+          The parsedIndex given is used only to keep track of how many characters have been parsed when using
+          a chain of parsers.")
+    see (`function parserChain`)
     shared default ParseResult<Parsed>|ParseError parse({Character*} input, Integer parsedIndex = 0)
             => doParse(input.iterator(), parsedIndex);
     
@@ -58,13 +58,13 @@ shared interface Parser<out Parsed> {
 "Parser that expects an empty stream.
  
  It only succeeds if the input is empty."
-shared object eof satisfies Parser<String[]> {
-    shared actual ParseResult<String[]>|ParseError doParse(Iterator<Character> input, Integer parsedIndex) {
+shared object eof satisfies Parser<Anything> {
+    shared actual ParseResult<Anything>|ParseError doParse(Iterator<Character> input, Integer parsedIndex) {
         value first = input.next();
         if (is Finished first) {
             return ParseResult([], parsedIndex, []);
         }
-        return ParseError("Expected EOF but found ``first`` at index ``parsedIndex``", []);
+        return ParseError("Expected '' but found ``first`` at index ``parsedIndex``", []);
     }
 }
 
@@ -105,7 +105,7 @@ shared Parser<String[]> oneOf(Character+ chars)
  
  It fails if the input is empty."
 shared Parser<String[]> char(Character char)
-        => oneOf(char); 
+        => oneOf(char);
 
 "Parser for none of the given characters. It fails if the input is one of the given characters.
  
@@ -115,8 +115,8 @@ shared Parser<String[]> noneOf(Character+ chars)
 
 "A String parser. A String is considered to be any possibly empty stream of Characters
  without any spaces between them."
-see(`value spaceChars`)
-shared Parser<String> string = object satisfies Parser<String> {
+see (`value spaceChars`)
+shared Parser<String> anyString = object satisfies Parser<String> {
     value delegate = many(noneOf(*spaceChars));
     shared actual ParseResult<String>|ParseError doParse(Iterator<Character> input, Integer parsedIndex) {
         value result = delegate.doParse(input, parsedIndex);
@@ -124,6 +124,29 @@ shared Parser<String> string = object satisfies Parser<String> {
             return ParseResult(result.result.fold("")(plus<String>), result.parsedIndex, result.consumedOk, result.consumedFailed);
         } else {
             return result;
+        }
+    }
+};
+
+"A String parser which parses only the given string."
+shared Parser<String> string(String str)
+        => object satisfies Parser<String> {
+    shared actual ParseResult<String>|ParseError doParse(Iterator<Character> input, Integer parsedIndex) {
+        if (str.empty) {
+            if (is Character next = input.next()) {
+                return ParseError("Expected '' but found '``next``' at index ``parsedIndex``", [next]);
+            } else {
+                return ParseResult("", parsedIndex, []);
+            }
+        } else {
+            value nextChars = (1..str.size).map((_) => input.next());
+            value actualChars = [ for (c in nextChars) if (is Character c) c ];
+            value actualStr = String(actualChars);
+            if (actualStr == str) {
+                return ParseResult(str, parsedIndex + str.size, actualChars, []);
+            } else {
+                return ParseError("Expected '``str``' but found '``actualStr``' at index ``parsedIndex``", actualChars);
+            }
         }
     }
 };

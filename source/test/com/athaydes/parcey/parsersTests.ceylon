@@ -15,6 +15,7 @@ import com.athaydes.parcey {
     eof,
     space,
     spaceChars,
+    anyString,
     string
 }
 import com.athaydes.parcey.combinator {
@@ -22,7 +23,7 @@ import com.athaydes.parcey.combinator {
 }
 
 test shared void testEof() {
-    assert(is ParseResult<{String*}> result1 = eof.parse(""));
+    assert(is ParseResult<Anything[]> result1 = eof.parse(""));
     assertEquals(result1.result.sequence(), []);
     assertEquals(result1.parsedIndex, 0);
     assertEquals(result1.consumedOk, []);
@@ -93,24 +94,49 @@ test shared void testSpace() {
     assertEquals(result2.consumedFailed, ['x']);
 }
 
-test shared void testString() {
-    assert(is ParseResult<String> result1 = string.parse(""));
+test shared void testAnyString() {
+    assert(is ParseResult<String> result1 = anyString.parse(""));
     assertEquals(result1.result, "");
     assertEquals(result1.parsedIndex, 0);
     assertEquals(result1.consumedOk, []);
     assertEquals(result1.consumedFailed, []);
     
-    assert(is ParseResult<String> result2 = string.parse("a"));
+    assert(is ParseResult<String> result2 = anyString.parse("a"));
     assertEquals(result2.result, "a");
     assertEquals(result2.parsedIndex, 1);
     assertEquals(result2.consumedOk, ['a']);
     assertEquals(result2.consumedFailed, []);
     
-    assert(is ParseResult<String> result3 = string.parse("xyz abc"));
+    assert(is ParseResult<String> result3 = anyString.parse("xyz abc"));
     assertEquals(result3.result, "xyz");
     assertEquals(result3.parsedIndex, 3);
     assertEquals(result3.consumedOk, ['x', 'y', 'z']);
     assertEquals(result3.consumedFailed, [' ']);
+}
+
+test shared void testString() {
+    assert(is ParseResult<String> result1 = string("").parse(""));
+    assertEquals(result1.result, "");
+    assertEquals(result1.parsedIndex, 0);
+    assertEquals(result1.consumedOk, []);
+    assertEquals(result1.consumedFailed, []);
+    
+    assert(is ParseResult<String> result2 = string("a").parse("a"));
+    assertEquals(result2.result, "a");
+    assertEquals(result2.parsedIndex, 1);
+    assertEquals(result2.consumedOk, ['a']);
+    assertEquals(result2.consumedFailed, []);
+    
+    assert(is ParseResult<String> result3 = string("xyz").parse("xyz abc"));
+    assertEquals(result3.result, "xyz");
+    assertEquals(result3.parsedIndex, 3);
+    assertEquals(result3.consumedOk, ['x', 'y', 'z']);
+    assertEquals(result3.consumedFailed, []);
+    
+    assert(is ParseError result4 = string("xyz").parse("xya"));
+    assertFalse(result4.message.empty);
+    assertEquals(result4.consumedOk, []);
+    assertEquals(result4.consumedFailed, ['x', 'y', 'a']);
 }
 
 test shared void testOneOf() {
@@ -184,3 +210,4 @@ test shared void testNoneOf() {
         }
     }
 }
+
