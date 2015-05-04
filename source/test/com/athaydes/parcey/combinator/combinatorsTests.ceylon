@@ -8,7 +8,7 @@ import ceylon.test {
 import com.athaydes.parcey {
     ParseResult,
     oneOf,
-    char,
+    anyChar,
     ParseError
 }
 import com.athaydes.parcey.combinator {
@@ -18,7 +18,7 @@ import com.athaydes.parcey.combinator {
 }
 
 test shared void canParseNonStableStream() {
-    value parser = parserChain(char, oneOf(' '), char);
+    value parser = parserChain(anyChar, oneOf(' '), anyChar);
     
     value result = parser.parse(object satisfies Iterable<Character> {
         value data = {'a', ' ', 'b'}.iterator();

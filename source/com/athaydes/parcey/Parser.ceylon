@@ -71,7 +71,7 @@ shared object eof satisfies Parser<String[]> {
 "Parser for a single Character.
  
  It fails if the input is empty."
-shared object char satisfies Parser<String[]> {
+shared object anyChar satisfies Parser<String[]> {
     shared actual ParseResult<String[]>|ParseError doParse(Iterator<Character> input, Integer parsedIndex) {
         value first = input.next();
         if (is Character first) {
@@ -100,6 +100,12 @@ shared Parser<{String*}> letter = either(oneOf(*('A'..'Z')), oneOf(*('a'..'z')))
  It fails if the input is empty."
 shared Parser<String[]> oneOf(Character+ chars)
         => OneOf(true, *chars);
+
+"Parser for a single character.
+ 
+ It fails if the input is empty."
+shared Parser<String[]> char(Character char)
+        => oneOf(char); 
 
 "Parser for none of the given characters. It fails if the input is one of the given characters.
  

@@ -6,7 +6,7 @@ import ceylon.test {
 }
 
 import com.athaydes.parcey {
-    char,
+    anyChar,
     ParseResult,
     letter,
     ParseError,
@@ -34,20 +34,20 @@ test shared void testEof() {
     assertEquals(result2.consumedFailed, []);
 }
 
-test shared void testChar() {
-    assert(is ParseResult<{String*}> result1 = char.parse("a"));
+test shared void testAnyChar() {
+    assert(is ParseResult<{String*}> result1 = anyChar.parse("a"));
     assertEquals(result1.result.sequence(), ["a"]);
     assertEquals(result1.parsedIndex, 1);
     assertEquals(result1.consumedOk, ['a']);
     assertEquals(result1.consumedFailed, []);
     
-    assert(is ParseResult<{String*}> result2 = char.parse("xyz"));
+    assert(is ParseResult<{String*}> result2 = anyChar.parse("xyz"));
     assertEquals(result2.result.sequence(), ["x"]);
     assertEquals(result2.parsedIndex, 1);
     assertEquals(result2.consumedOk, ['x']);
     assertEquals(result2.consumedFailed, []);
     
-    assert(is ParseError result3 = char.parse(""));
+    assert(is ParseError result3 = anyChar.parse(""));
     assertFalse(result3.message.empty);
     assertEquals(result3.consumedOk, []);
     assertEquals(result3.consumedFailed, []);
