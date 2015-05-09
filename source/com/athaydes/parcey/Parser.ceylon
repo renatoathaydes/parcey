@@ -113,6 +113,12 @@ shared Parser<Character[]> char(Character char)
 shared Parser<Character[]> noneOf(Character+ chars)
         => OneOf(false, *chars);
 
+"Parser for a single digit (0..9).
+ 
+ It fails if the input is empty."
+shared Parser<Character[]> anyDigit
+        = OneOf(true, *('0'..'9'));
+
 "A String parser. A String is considered to be any possibly empty stream of Characters
  without any spaces between them."
 see (`value spaceChars`)

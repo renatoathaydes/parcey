@@ -17,7 +17,8 @@ import com.athaydes.parcey {
     spaceChars,
     anyString,
     string,
-    char
+    char,
+    anyDigit
 }
 import com.athaydes.parcey.combinator {
     ...
@@ -227,6 +228,26 @@ test shared void testNoneOf() {
             fail("Result was ``result``");
         }
     }
+}
+
+test shared void testAnyDigit() {
+    for (input in (0..9).map(Object.string)) {
+        assert(is ParseResult<Character[]> result = anyDigit.parse(input));
+        assertEquals(result.result, input.sequence());
+        assertEquals(result.parseLocation, [0, 1]);
+        assertEquals(result.consumed, input.sequence());
+        assertEquals(result.overConsumed, []);
+    }
+    
+    for (input in ["a", "b", "z", "#", "%", "~", "@", "hello", "#0", "!22"]) {
+        assert(is ParseError result = anyDigit.parse(input));
+        assertFalse(result.message.empty);
+        assertEquals(result.consumed, [input.first]);
+    }
+    
+    assert(is ParseError result = anyDigit.parse(""));
+    assertFalse(result.message.empty);
+    assertEquals(result.consumed, []);
 }
 
 test shared void combinationTest() {
