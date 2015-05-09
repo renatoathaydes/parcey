@@ -16,73 +16,74 @@ import com.athaydes.parcey {
     space,
     spaceChars,
     anyString,
-    string
+    string,
+    char
 }
 import com.athaydes.parcey.combinator {
     ...
 }
 
 test shared void testEof() {
-    assert(is ParseResult<Anything[]> result1 = eof.parse(""));
+    assert(is ParseResult<[]> result1 = eof.parse(""));
     assertEquals(result1.result.sequence(), []);
-    assertEquals(result1.parsedIndex, 0);
-    assertEquals(result1.consumedOk, []);
-    assertEquals(result1.consumedFailed, []);
+    assertEquals(result1.parseLocation, [0, 0]);
+    assertEquals(result1.consumed, []);
+    assertEquals(result1.overConsumed, []);
     
     assert(is ParseError result2 = eof.parse("a"));
     assertFalse(result2.message.empty);
-    assertEquals(result2.consumedOk, []);
-    assertEquals(result2.consumedFailed, []);
+    assertEquals(result2.consumed, ['a']);
 }
 
 test shared void testAnyChar() {
-    assert(is ParseResult<{String*}> result1 = anyChar.parse("a"));
-    assertEquals(result1.result.sequence(), ["a"]);
-    assertEquals(result1.parsedIndex, 1);
-    assertEquals(result1.consumedOk, ['a']);
-    assertEquals(result1.consumedFailed, []);
+    assert(is ParseResult<Character[]> result1 = anyChar.parse("a"));
+    assertEquals(result1.result, ['a']);
+    assertEquals(result1.parseLocation, [0, 1]);
+    assertEquals(result1.consumed, ['a']);
+    assertEquals(result1.overConsumed, []);
     
-    assert(is ParseResult<{String*}> result2 = anyChar.parse("xyz"));
-    assertEquals(result2.result.sequence(), ["x"]);
-    assertEquals(result2.parsedIndex, 1);
-    assertEquals(result2.consumedOk, ['x']);
-    assertEquals(result2.consumedFailed, []);
+    assert(is ParseResult<Character[]> result2 = anyChar.parse("xyz"));
+    assertEquals(result2.result, ['x']);
+    assertEquals(result2.parseLocation, [0, 1]);
+    assertEquals(result2.consumed, ['x']);
+    assertEquals(result2.overConsumed, []);
     
     assert(is ParseError result3 = anyChar.parse(""));
     assertFalse(result3.message.empty);
-    assertEquals(result3.consumedOk, []);
-    assertEquals(result3.consumedFailed, []);
+    assertEquals(result3.consumed, []);
 }
 
 test shared void testLetter() {
     for (item in ('a'..'z').append('A'..'Z')) {
-        assert(is ParseResult<{String*}> result = letter.parse({item}));
-        assertEquals(result.result.sequence(), [item.string]);
-        assertEquals(result.parsedIndex, 1);
-        assertEquals(result.consumedOk, [item]);
-        assertEquals(result.consumedFailed, []);
+        assert(is ParseResult<Character[]> result = letter.parse({item}));
+        assertEquals(result.result, [item]);
+        assertEquals(result.parseLocation, [0, 1]);
+        assertEquals(result.consumed, [item]);
+        assertEquals(result.overConsumed, []);
     }
     for (item in ['\t', ' ', '?', '!', '%', '^', '&', '*']) {
         assert(is ParseError result = letter.parse({item}));
         assertFalse(result.message.empty);
-        assertEquals(result.consumedFailed, [item]);
-        assertEquals(result.consumedOk, []);
+        assertEquals(result.consumed, [item]);
     }
 }
 
 test shared void testSpace() {
     assert(is ParseError result1 = space.parse(""));
     assertFalse(result1.message.empty);
-    assertEquals(result1.consumedOk, []);
-    assertEquals(result1.consumedFailed, []);
+    assertEquals(result1.consumed, []);
 
     for (item in spaceChars) {
         value result = space.parse({item});
-        if (is ParseResult<{String*}> result) {
-            assertEquals(result.result.sequence(), [item.string]);
-            assertEquals(result.parsedIndex, 1);
-            assertEquals(result.consumedOk, [item]);
-            assertEquals(result.consumedFailed, []);    
+        if (is ParseResult<Character[]> result) {
+            assertEquals(result.result, [item]);
+            if (item == '\n') {
+                assertEquals(result.parseLocation, [1, 0]);    
+            } else {
+                assertEquals(result.parseLocation, [0, 1]);
+            }
+            assertEquals(result.consumed, [item]);
+            assertEquals(result.overConsumed, []);
         } else {
             fail("Result was ```result``");
         }
@@ -90,53 +91,75 @@ test shared void testSpace() {
     
     assert(is ParseError result2 = space.parse("xy"));
     assertFalse(result2.message.empty);
-    assertEquals(result2.consumedOk, []);
-    assertEquals(result2.consumedFailed, ['x']);
+    assertEquals(result2.consumed, ['x']);
 }
 
 test shared void testAnyString() {
     assert(is ParseResult<String> result1 = anyString.parse(""));
     assertEquals(result1.result, "");
-    assertEquals(result1.parsedIndex, 0);
-    assertEquals(result1.consumedOk, []);
-    assertEquals(result1.consumedFailed, []);
+    assertEquals(result1.parseLocation, [0, 0]);
+    assertEquals(result1.consumed, []);
+    assertEquals(result1.overConsumed, []);
     
     assert(is ParseResult<String> result2 = anyString.parse("a"));
     assertEquals(result2.result, "a");
-    assertEquals(result2.parsedIndex, 1);
-    assertEquals(result2.consumedOk, ['a']);
-    assertEquals(result2.consumedFailed, []);
+    assertEquals(result2.parseLocation, [0, 1]);
+    assertEquals(result2.consumed, ['a']);
+    assertEquals(result2.overConsumed, []);
     
     assert(is ParseResult<String> result3 = anyString.parse("xyz abc"));
     assertEquals(result3.result, "xyz");
-    assertEquals(result3.parsedIndex, 3);
-    assertEquals(result3.consumedOk, ['x', 'y', 'z']);
-    assertEquals(result3.consumedFailed, [' ']);
+    assertEquals(result3.parseLocation, [0, 3]);
+    assertEquals(result3.consumed, ['x', 'y', 'z']);
+    assertEquals(result3.overConsumed, [' ']);
 }
 
 test shared void testString() {
-    assert(is ParseResult<String> result1 = string("").parse(""));
-    assertEquals(result1.result, "");
-    assertEquals(result1.parsedIndex, 0);
-    assertEquals(result1.consumedOk, []);
-    assertEquals(result1.consumedFailed, []);
+    value result1 = string("").parse("");
+    if (is ParseResult<String> result1) {
+        assertEquals(result1.result, "");
+        assertEquals(result1.parseLocation, [0, 0]);
+        assertEquals(result1.consumed, []);
+        assertEquals(result1.overConsumed, []);
+    } else {
+        fail("Result was ``result1``");
+    }
     
-    assert(is ParseResult<String> result2 = string("a").parse("a"));
-    assertEquals(result2.result, "a");
-    assertEquals(result2.parsedIndex, 1);
-    assertEquals(result2.consumedOk, ['a']);
-    assertEquals(result2.consumedFailed, []);
+    value result2 = string("a").parse("a");
+    if (is ParseResult<String> result2) {
+        assertEquals(result2.result, "a");
+        assertEquals(result2.parseLocation, [0, 1]);
+        assertEquals(result2.consumed, ['a']);
+        assertEquals(result2.overConsumed, []);
+    } else {
+        fail("Result was ``result2``");
+    }
     
-    assert(is ParseResult<String> result3 = string("xyz").parse("xyz abc"));
-    assertEquals(result3.result, "xyz");
-    assertEquals(result3.parsedIndex, 3);
-    assertEquals(result3.consumedOk, ['x', 'y', 'z']);
-    assertEquals(result3.consumedFailed, []);
+    value result3 = string("xyz").parse("xyz abc");
+    if (is ParseResult<String> result3) {
+        assertEquals(result3.result, "xyz");
+        assertEquals(result3.parseLocation, [0, 3]);
+        assertEquals(result3.consumed, ['x', 'y', 'z']);
+        assertEquals(result3.overConsumed, []);
+    } else {
+        fail("Result was ``result3``");
+    }
     
-    assert(is ParseError result4 = string("xyz").parse("xya"));
-    assertFalse(result4.message.empty);
-    assertEquals(result4.consumedOk, []);
-    assertEquals(result4.consumedFailed, ['x', 'y', 'a']);
+    value result4 = string("xyz").parse("xyab");
+    if (is ParseError result4) {
+        assertFalse(result4.message.empty);
+        assertEquals(result4.consumed, ['x', 'y', 'a']);
+    } else {
+        fail("Result was ``result4``");
+    }
+    
+    value result5 = string("xyz").parse("abcxyz");
+    if (is ParseError result5) {
+        assertFalse(result5.message.empty);
+        assertEquals(result5.consumed, ['a']);
+    } else {
+        fail("Result was ``result5``");
+    }
 }
 
 test shared void testOneOf() {
@@ -145,19 +168,18 @@ test shared void testOneOf() {
     value result1 = parser.parse("");
     if (is ParseError result1) {
         assertFalse(result1.message.empty);
-        assertEquals(result1.consumedFailed, []);
-        assertEquals(result1.consumedOk, []);
+        assertEquals(result1.consumed, []);
     } else {
         fail("Result was ``result1``");
     }
     
     for (item in ['x', 'a']) {
         value result = parser.parse({item});
-        if (is ParseResult<{String*}> result) {
-            assertEquals(result.result.sequence(), [item.string]);
-            assertEquals(result.parsedIndex, 1);
-            assertEquals(result.consumedOk, [item]);
-            assertEquals(result.consumedFailed, []);    
+        if (is ParseResult<Character[]> result) {
+            assertEquals(result.result, [item]);
+            assertEquals(result.parseLocation, [0, 1]);
+            assertEquals(result.consumed, [item]);
+            assertEquals(result.overConsumed, []);
         } else {
             fail("Result was ``result``");
         }
@@ -167,8 +189,7 @@ test shared void testOneOf() {
         value result = parser.parse({item});
         if (is ParseError result) {
             assertFalse(result.message.empty);
-            assertEquals(result.consumedFailed, [item]);
-            assertEquals(result.consumedOk, []);
+            assertEquals(result.consumed, [item]);
         } else {
             fail("Result was ``result``");
         }
@@ -179,11 +200,9 @@ test shared void testNoneOf() {
     value parser = noneOf('x', 'a');
     
     value result1 = parser.parse("");
-    if (is ParseResult<{String*}> result1) {
-        assertEquals(result1.result.sequence(), []);
-        assertEquals(result1.parsedIndex, 0);
-        assertEquals(result1.consumedOk, []);
-        assertEquals(result1.consumedFailed, []);    
+    if (is ParseError result1) {
+        assertFalse(result1.message.empty);
+        assertEquals(result1.consumed, []);
     } else {
         fail("Result was ``result1``");
     }
@@ -192,22 +211,46 @@ test shared void testNoneOf() {
         value result = parser.parse({item});
         if (is ParseError result) {
             assertFalse(result.message.empty);
-            assertEquals(result.consumedFailed, [item]);
-            assertEquals(result.consumedOk, []);
+            assertEquals(result.consumed, [item]);
         } else {
             fail("Result was ``result``");
         }
     }
     for (item in ('A'..'Z').append(['\t', ' ', '?', '!', '%', '^', '&', '*'])) {
         value result = parser.parse({item});
-        if (is ParseResult<{String*}> result) {
-            assertEquals(result.result.sequence(), [item.string]);
-            assertEquals(result.parsedIndex, 1);
-            assertEquals(result.consumedOk, [item]);
-            assertEquals(result.consumedFailed, []);    
+        if (is ParseResult<Character[]> result) {
+            assertEquals(result.result, [item]);
+            assertEquals(result.parseLocation, [0, 1]);
+            assertEquals(result.consumed, [item]);
+            assertEquals(result.overConsumed, []);
         } else {
             fail("Result was ``result``");
         }
     }
 }
 
+test shared void combinationTest() {
+    value capitalLetter     = oneOf(*('A'..'Z'));
+    value lowerCasedLetter  = oneOf(*('a'..'z'));
+    value spaces1           = skipMany(space, 1);
+    value identifier        = parserChain(lowerCasedLetter, many(letter));
+    value typeIdentifier    = parserChain(capitalLetter, many(letter));
+    value modifier          = identifier;
+    value argument          = parserChain(typeIdentifier, spaces1, identifier);
+    
+    value ceylonFunctionSignature = parserChain(
+        skipMany(space),
+        many(parserChain(modifier, spaces1)),
+        either(typeIdentifier, string("void")),
+        spaces1,
+        identifier,
+        skipMany(space),
+        char('('), many(argument), char(')'));
+    
+    value result = ceylonFunctionSignature.parse(" String hi()  ");
+    if (is ParseResult<{Character*}> result) {
+        assertEquals(result.result, ["String", "hi", "(", ")"]);
+    } else {
+        fail("Result was ``result``");
+    }
+}
