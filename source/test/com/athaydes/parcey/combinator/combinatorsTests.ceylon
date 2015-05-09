@@ -339,25 +339,35 @@ shared void skipMany3CombinatorDoesNotConsumeNextToken() {
 
 test shared void testOption() {
     value parser = option(char('a'));
-    if (is ParseResult<Character[]> result = parser.parse("")) {
-        assertEquals(result.result, []);
-        assertEquals(result.parseLocation, [0, 0]);
-        assertEquals(result.consumed, []);
-        assertEquals(result.overConsumed, []);
+    
+    value result1 = parser.parse("");
+    if (is ParseResult<{Character*}> result1) {
+        assertEquals(result1.result, []);
+        assertEquals(result1.parseLocation, [0, 0]);
+        assertEquals(result1.consumed, []);
+        assertEquals(result1.overConsumed, []);
+    } else {
+        fail("Result was ```result1``");
     }
     
-    if (is ParseResult<Character[]> result = parser.parse("a")) {
-        assertEquals(result.result, ['a']);
-        assertEquals(result.parseLocation, [0, 1]);
-        assertEquals(result.consumed, ['a']);
-        assertEquals(result.overConsumed, []);
+    value result2 = parser.parse("a");
+    if (is ParseResult<{Character*}> result2) {
+        assertEquals(result2.result, ['a']);
+        assertEquals(result2.parseLocation, [0, 1]);
+        assertEquals(result2.consumed, ['a']);
+        assertEquals(result2.overConsumed, []);
+    } else {
+        fail("Result was ```result2``");
     }
     
-    if (is ParseResult<Character[]> result = parser.parse("b")) {
-        assertEquals(result.result, []);
-        assertEquals(result.parseLocation, [0, 0]);
-        assertEquals(result.consumed, []);
-        assertEquals(result.overConsumed, ['b']);
+    value result3 = parser.parse("b");
+    if (is ParseResult<{Character*}> result3) {
+        assertEquals(result3.result, []);
+        assertEquals(result3.parseLocation, [0, 0]);
+        assertEquals(result3.consumed, []);
+        assertEquals(result3.overConsumed, ['b']);
+    } else {
+        fail("Result was ```result3``");
     }
 }
 
@@ -427,7 +437,7 @@ void assertParseLocationsEqual(
     }
 }
 
-ParseResult<{Character*}>|ParseError findExpectedResult(ParseResult<Character[]|String>|ParseError result1, ParseResult<Character[]|String>|ParseError result2) {
+ParseResult<{Character*}>|ParseError findExpectedResult(ParseResult<{Character*}|String>|ParseError result1, ParseResult<{Character*}|String>|ParseError result2) {
     switch (result1)
     case (is ParseResult<{Character*}>) {
         switch (result2)

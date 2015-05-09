@@ -119,7 +119,12 @@ shared Parser<Character[]> noneOf(Character+ chars)
 shared Parser<Character[]> anyDigit
         = OneOf(true, *('0'..'9'));
 
-"A String parser. A String is considered to be any possibly empty stream of Characters
+"A word parser. A word is defined as a non-empty stream of continuous latin letters."
+see(`value letter`)
+shared Parser<String> word
+        = convertParser(many(letter, 1), String);
+
+"A String parser. A String is defined as a possibly empty stream of Characters
  without any spaces between them."
 see (`value spaceChars`)
 shared Parser<String> anyString

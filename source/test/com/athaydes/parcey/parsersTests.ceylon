@@ -18,7 +18,8 @@ import com.athaydes.parcey {
     anyString,
     string,
     char,
-    anyDigit
+    anyDigit,
+    word
 }
 import com.athaydes.parcey.combinator {
     ...
@@ -37,13 +38,13 @@ test shared void testEof() {
 }
 
 test shared void testAnyChar() {
-    assert(is ParseResult<Character[]> result1 = anyChar.parse("a"));
+    assert(is ParseResult<{Character*}> result1 = anyChar.parse("a"));
     assertEquals(result1.result, ['a']);
     assertEquals(result1.parseLocation, [0, 1]);
     assertEquals(result1.consumed, ['a']);
     assertEquals(result1.overConsumed, []);
     
-    assert(is ParseResult<Character[]> result2 = anyChar.parse("xyz"));
+    assert(is ParseResult<{Character*}> result2 = anyChar.parse("xyz"));
     assertEquals(result2.result, ['x']);
     assertEquals(result2.parseLocation, [0, 1]);
     assertEquals(result2.consumed, ['x']);
@@ -56,7 +57,7 @@ test shared void testAnyChar() {
 
 test shared void testLetter() {
     for (item in ('a'..'z').append('A'..'Z')) {
-        assert(is ParseResult<Character[]> result = letter.parse({item}));
+        assert(is ParseResult<{Character*}> result = letter.parse({item}));
         assertEquals(result.result, [item]);
         assertEquals(result.parseLocation, [0, 1]);
         assertEquals(result.consumed, [item]);
@@ -76,7 +77,7 @@ test shared void testSpace() {
 
     for (item in spaceChars) {
         value result = space.parse({item});
-        if (is ParseResult<Character[]> result) {
+        if (is ParseResult<{Character*}> result) {
             assertEquals(result.result, [item]);
             if (item == '\n') {
                 assertEquals(result.parseLocation, [1, 0]);    
@@ -113,6 +114,46 @@ test shared void testAnyString() {
     assertEquals(result3.parseLocation, [0, 3]);
     assertEquals(result3.consumed, ['x', 'y', 'z']);
     assertEquals(result3.overConsumed, [' ']);
+}
+
+test shared void testWord() {
+    value result1 = word.parse("");
+    if (is ParseError result1) {
+        assertFalse(result1.message.empty);
+        assertEquals(result1.consumed, []);
+    } else {
+        fail("Result was ```result1``");
+    }
+    
+    value result2 = word.parse("a");
+    if (is ParseResult<String> result2) {
+        assertEquals(result2.result, "a");
+        assertEquals(result2.parseLocation, [0, 1]);
+        assertEquals(result2.consumed, ['a']);
+        assertEquals(result2.overConsumed, []);
+    } else {
+        fail("Result was ```result2``");
+    }
+    
+    value result3 = word.parse("xyz abc");
+    if (is ParseResult<String> result3) {
+        assertEquals(result3.result, "xyz");
+        assertEquals(result3.parseLocation, [0, 3]);
+        assertEquals(result3.consumed, ['x', 'y', 'z']);
+        assertEquals(result3.overConsumed, [' ']);
+    } else {
+        fail("Result was ```result3``");
+    }
+    
+    value result4 = word.parse("abcd123");
+    if (is ParseResult<String> result4) {
+        assertEquals(result4.result, "abcd");
+        assertEquals(result4.parseLocation, [0, 4]);
+        assertEquals(result4.consumed, ['a', 'b', 'c', 'd']);
+        assertEquals(result4.overConsumed, ['1']);
+    } else {
+        fail("Result was ```result4``");
+    }
 }
 
 test shared void testString() {
@@ -176,7 +217,7 @@ test shared void testOneOf() {
     
     for (item in ['x', 'a']) {
         value result = parser.parse({item});
-        if (is ParseResult<Character[]> result) {
+        if (is ParseResult<{Character*}> result) {
             assertEquals(result.result, [item]);
             assertEquals(result.parseLocation, [0, 1]);
             assertEquals(result.consumed, [item]);
@@ -219,7 +260,7 @@ test shared void testNoneOf() {
     }
     for (item in ('A'..'Z').append(['\t', ' ', '?', '!', '%', '^', '&', '*'])) {
         value result = parser.parse({item});
-        if (is ParseResult<Character[]> result) {
+        if (is ParseResult<{Character*}> result) {
             assertEquals(result.result, [item]);
             assertEquals(result.parseLocation, [0, 1]);
             assertEquals(result.consumed, [item]);
@@ -232,7 +273,7 @@ test shared void testNoneOf() {
 
 test shared void testAnyDigit() {
     for (input in (0..9).map(Object.string)) {
-        assert(is ParseResult<Character[]> result = anyDigit.parse(input));
+        assert(is ParseResult<{Character*}> result = anyDigit.parse(input));
         assertEquals(result.result, input.sequence());
         assertEquals(result.parseLocation, [0, 1]);
         assertEquals(result.consumed, input.sequence());
