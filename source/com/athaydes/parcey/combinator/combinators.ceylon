@@ -130,6 +130,26 @@ shared Parser<[]> skipMany<Item>(Parser<Item> parser, Integer minOccurrences = 0
     };
 }
 
+"Creates a Parser that applies the given parsers only if all of them succeed.
+ 
+ If any Parser fails, the parser backtracks and returns an empty result."
+see (`function many`, `function either`)
+shared Parser<{Item*}> option<Item>(Parser<{Item*}>+ parsers) {
+    value parser = parserChain(*parsers);
+    return object satisfies Parser<{Item*}> {
+        shared actual ParseResult<{Item*}> doParse(Iterator<Character> input, ParsedLocation parsedLocation) {
+            value result = parser.doParse(input, parsedLocation);
+            switch (result)
+            case (is ParseError) {
+                return ParseResult([], parsedLocation, [], result.consumed);
+            }
+            case (is ParseResult<{Item*}>) {
+                return result;
+            }
+        }
+    };
+}
+
 ParseResult<Item> appendStreams<Item>(
     ParseResult<Item> first,
     ParseResult<Anything> second)

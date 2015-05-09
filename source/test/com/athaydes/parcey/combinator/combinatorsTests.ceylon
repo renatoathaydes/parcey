@@ -19,7 +19,8 @@ import com.athaydes.parcey.combinator {
     either,
     parserChain,
     many,
-    skipMany
+    skipMany,
+    option
 }
 
 test
@@ -333,6 +334,30 @@ shared void skipMany3CombinatorDoesNotConsumeNextToken() {
         assertEquals(result.overConsumed, []);
     } else {
         fail("Result was ``result``");
+    }
+}
+
+test shared void testOption() {
+    value parser = option(char('a'));
+    if (is ParseResult<Character[]> result = parser.parse("")) {
+        assertEquals(result.result, []);
+        assertEquals(result.parseLocation, [0, 0]);
+        assertEquals(result.consumed, []);
+        assertEquals(result.overConsumed, []);
+    }
+    
+    if (is ParseResult<Character[]> result = parser.parse("a")) {
+        assertEquals(result.result, ['a']);
+        assertEquals(result.parseLocation, [0, 1]);
+        assertEquals(result.consumed, ['a']);
+        assertEquals(result.overConsumed, []);
+    }
+    
+    if (is ParseResult<Character[]> result = parser.parse("b")) {
+        assertEquals(result.result, []);
+        assertEquals(result.parseLocation, [0, 0]);
+        assertEquals(result.consumed, []);
+        assertEquals(result.overConsumed, ['b']);
     }
 }
 
