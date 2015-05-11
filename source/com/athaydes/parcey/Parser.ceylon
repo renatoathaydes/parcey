@@ -215,6 +215,7 @@ class OneOf(shared actual String name, Boolean includingChars, {Character+} char
 
 "Given a parser *(p)* and a function T(K) *(f)*, return a new parser which delegates the parsing
  to *p*, using *f* to convert the result from type *K* to *T*."
+see(`function toOne`)
 shared Parser<{To*}> convertParser<From,To>(Parser<From> parser, To(From) converter)
         => object satisfies Parser<{To*}> {
     name = parser.name;
@@ -239,6 +240,19 @@ see(`function convertParser`)
 shared Parser<{String*}> stringParser(Parser<{Character*}> parser)
         => convertParser(parser, String);
 
+"Converts a function that takes one argument of type *Arg* to one which takes an
+ argument of type *`{Arg*}`*.
+ 
+ This is useful when converting parsers using [[convertParser]], because it is common that
+ parsers should produce a single output which needs to be converted to a different type, but because
+ parsers always return multiple values (so that they can be *chained* together), this function
+ is required in those cases.
+ 
+ For example, to parse a String and then produce a single Foo, where Foo's constructor takes a single String:
+ 
+     Parser<Foo> fooParser = convertParser(string(\"foo\"), toOne(Foo));
+"
+see(`function convertParser`, `function parserChain`)
 shared Result({Arg*}) toOne<Result, Arg>(Result(Arg) fun) {
     return function ({Arg*} args) {
         assert (exists first = args.first);
