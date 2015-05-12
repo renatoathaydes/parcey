@@ -13,12 +13,10 @@ shared String chooseName(String name, String default)
         => name.empty then default else name;
 
 shared ParseError parseError(
-    String parserName,
+    String errorMessage,
     ParsedLocation parsedLocation,
-    Character[] consumed,
-    Character[] overConsumed)
-        => ParseError("Expected ``parserName`` but found ``quote(String(overConsumed))`` at ``location(parsedLocation)``",
-        consumed, overConsumed);
+    Character[] consumed)
+        => ParseError("``errorMessage`` at ``location(parsedLocation)``", consumed);
 
 shared ParseResult<Item> appendStreams<Item>(
     ParseResult<Item> first,

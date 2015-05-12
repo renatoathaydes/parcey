@@ -16,10 +16,6 @@ import com.athaydes.parcey.internal {
 shared interface HasConsumed {
     "All characters that have been consumed."
     shared formal Character[] consumed;
-    
-    "All characters that have been consumed but must be 'given back' to any
-     consumer that runs after this."
-    shared formal Character[] overConsumed;
 }
 
 "[Row, Column] of the input that has been parsed."
@@ -28,10 +24,9 @@ shared alias ParsedLocation => [Integer, Integer];
 "Result of parsing an invalid input."
 shared class ParseError(
     shared String message,
-    shared actual Character[] consumed,
-    shared actual Character[] overConsumed)
+    shared actual Character[] consumed)
         satisfies HasConsumed {
-    string = "ParseError { message=``message``, consumed=``consumed``, overConsumed=``overConsumed`` }";
+    string = "ParseError { message=``message``, consumed=``consumed`` }";
 }
 
 "Result of successfully parsing some input."
@@ -41,7 +36,9 @@ shared class ParseResult<out Result>(
     "Parsed location after parsing the input."
     shared ParsedLocation parseLocation,
     shared actual Character[] consumed,
-    shared actual Character[] overConsumed = [])
+    "All characters that have been consumed but must be 'given back' to any
+     consumer that runs after this."
+    shared Character[] overConsumed = [])
         satisfies HasConsumed {
     
     string = "ParseResult { result=`` result else "null" ``, parsedLocation=``parseLocation``," +
@@ -87,7 +84,8 @@ shared Parser<[]> eof(String name_ = "")
             return ParseResult([], parsedLocation, []);
         }
         case (is Character) {
-            return parseError(delegateName else name, parsedLocation, [first], []);
+            return parseError("Expected ``delegateName else name`` but was '``first``'",
+                parsedLocation, [first]);
         }
     }
 };
@@ -107,7 +105,7 @@ shared Parser<Character[]> anyChar(String name_ = "")
             value consumed = [first];
             return ParseResult(consumed, locationAfterParsing(consumed, parsedLocation), consumed);
         }
-        return parseError(delegateName else name, parsedLocation, [], []);
+        return parseError("Expected ``delegateName else name`` but found EOF", parsedLocation, []);
     }
 };
 
@@ -155,16 +153,16 @@ shared Parser<Character[]> anyDigit(String name = "")
 "A word parser. A word is defined as a non-empty stream of continuous latin letters."
 see (`function letter`)
 shared Parser<{String*}> word(String name = "")
-        => convertParser(many(letter(), 1, chooseName(name, "word")), String);
+        => asMultiValueParser(many(letter(), 1, chooseName(name, "word")), String);
 
 "A String parser. A String is defined as a possibly empty stream of Characters
  without any spaces between them."
 see (`value spaceChars`)
 shared Parser<{String*}> anyString(String name = "")
-        => convertParser(many(noneOf(spaceChars), 0, chooseName(name, "any String")), String);
+        => asMultiValueParser(many(noneOf(spaceChars), 0, chooseName(name, "any String")), String);
 
 "A String parser which parses only the given string."
-shared Parser<String> string(String str, String name_ = "")
+shared Parser<String> oneString(String str, String name_ = "")
         => object satisfies Parser<String> {
     name = chooseName(name_, "string ``quote(str)``");
     shared actual ParseResult<String>|ParseError doParse(
@@ -173,7 +171,8 @@ shared Parser<String> string(String str, String name_ = "")
         String? delegateName) {
         if (str.empty) {
             if (is Character next = input.next()) {
-                return parseError(name, parsedLocation, [next], []);
+                return parseError("Expected ``delegateName else name`` but found '``next``'",
+                    parsedLocation, [next]);
             } else {
                 return ParseResult("", parsedLocation, []);
             }
@@ -182,8 +181,8 @@ shared Parser<String> string(String str, String name_ = "")
             for (expected->actual in zipEntries(str, asIterable(input))) {
                 consumed.appendCharacter(actual);
                 if (actual != expected) {
-                    return parseError(delegateName else name,
-                        parsedLocation, consumed.sequence(), []);
+                    return parseError("Expected ``delegateName else name`` but was ``consumed``",
+                        locationAfterParsing(consumed, parsedLocation), consumed.sequence());
                 }
             }
             return ParseResult(str, locationAfterParsing(consumed, parsedLocation), consumed.sequence());
@@ -200,7 +199,8 @@ class OneOf(shared actual String name, Boolean includingChars, {Character+} char
         value first = input.next();
         switch (first)
         case (is Finished) {
-            return parseError(delegateName else name, parsedLocation, [], []);
+            return parseError("Expected ``delegateName else name`` but was EOF",
+                parsedLocation, []);
         }
         case (is Character) {
             value consumed = [first];
@@ -208,53 +208,122 @@ class OneOf(shared actual String name, Boolean includingChars, {Character+} char
             if (boolFun(first in chars)) {
                 return ParseResult(consumed, locationAfterParsing(consumed, parsedLocation), consumed);
             }
-            return parseError(delegateName else name, parsedLocation, consumed, []);
+            return parseError("Expected ``delegateName else name`` but was '``first``'",
+                parsedLocation, consumed);
         }
     }
 }
 
-"Given a parser *(p)* and a function T(K) *(f)*, return a new parser which delegates the parsing
- to *p*, using *f* to convert the result from type *K* to *T*."
-see(`function toOne`)
-shared Parser<{To*}> convertParser<From,To>(Parser<From> parser, To(From) converter)
+"Given a parser *(p)* and a function To(From) *(f)*, return a new parser which delegates the parsing
+ to *p*, using *f* to convert the result from type *From* to *To* and turning the result into a single-value
+ Iterable<To>."
+see (`function toOne`, `function asOneValueParser`)
+shared Parser<{To*}> asMultiValueParser<From,To>(Parser<From> parser, To(From) converter)
         => object satisfies Parser<{To*}> {
     name = parser.name;
     shared actual ParseResult<{To*}>|ParseError doParse(
         Iterator<Character> input,
         ParsedLocation parsedLocation,
         String? delegateName) {
-        value result = parser.doParse(input, parsedLocation);
+        value result = parser.doParse(input, parsedLocation, delegateName);
         switch (result)
         case (is ParseResult<From>) {
-            return ParseResult({ converter(result.result) }, result.parseLocation, result.consumed, result.overConsumed);
+            return ParseResult({ converter(result.result) },
+                result.parseLocation, result.consumed, result.overConsumed);
         }
         case (is ParseError) {
-            return parseError(delegateName else name,
-                parsedLocation, result.consumed, result.overConsumed);
+            return result;
+        }
+    }
+};
+
+"Given a parser *(p)* and a function To(From) *(f)*, return a new parser which delegates the parsing
+ to *p*, using *f* to convert the result from type *From* to *To*.
+ 
+ Use [[asMultiValueParser]] if the required parser needs to be chained to other parsers."
+see (`function asMultiValueParser`)
+shared Parser<To> asOneValueParser<From,To>(Parser<From> parser, To(From) converter)
+        => object satisfies Parser<To> {
+    name = parser.name;
+    shared actual ParseResult<To>|ParseError doParse(
+        Iterator<Character> input,
+        ParsedLocation parsedLocation,
+        String? delegateName) {
+        value result = parser.doParse(input, parsedLocation, delegateName);
+        switch (result)
+        case (is ParseResult<From>) {
+            return ParseResult(converter(result.result), result.parseLocation, result.consumed, result.overConsumed);
+        }
+        case (is ParseError) {
+            return result;
         }
     }
 };
 
 "Converts a Parser of Characters to a String Parser."
-see(`function convertParser`)
+see (`function asMultiValueParser`)
 shared Parser<{String*}> stringParser(Parser<{Character*}> parser)
-        => convertParser(parser, String);
+        => asMultiValueParser(parser, String);
+
+"An Integer Parser.
+ 
+ It consumes the input as long as digits are found, leaving the rest of the input untouched.
+ 
+ Upon parsing some input, a [[ParseError]] is returned:
+ 
+ * if not even one digit is found.
+ * if the sequence of digits cannot be represented as an Integer (as it would be too large)."
+see (`function asMultiValueParser`, `function firstValue`)
+shared Parser<{Integer*}> integer(String name_ = "") {
+    return coallescedParser(asMultiValueParser(
+            stringParser(many(anyDigit(), 1, chooseName(name_, "integer"))),
+            toOne(parseInteger)));
+}
+
+shared Parser<{Value*}> coallescedParser<Value>(Parser<{Value?*}> parser)
+        given Value satisfies Object
+        => object satisfies Parser<{Value*}> {
+    
+    name => parser.name;
+    
+    shared actual ParseResult<{Value*}>|ParseError doParse(
+        Iterator<Character> input,
+        ParsedLocation parsedLocation,
+        String? delegateName) {
+        value result = parser.doParse(input, parsedLocation, delegateName);
+        if (is ParseResult<{Value?*}> result) {
+            if (result.result.any((element) => element is Null)) {
+                return ParseError("ParseResult contains a null value: ``result.result``", result.consumed);
+            } else {
+                return ParseResult(result.result.coalesced,
+                    result.parseLocation, result.consumed, result.overConsumed);
+            }
+        } else {
+            return result;
+        }
+    }
+};
+
+shared Value? firstValue<Value>(ParseResult<{Value*}>|ParseError parseResult)
+        => if (is ParseResult<{Value*}> parseResult) then
+    parseResult.result.first else null;
 
 "Converts a function that takes one argument of type *Arg* to one which takes an
  argument of type *`{Arg*}`*.
  
- This is useful when converting parsers using [[convertParser]], because it is common that
+ This is useful when converting parsers using [[asMultiValueParser]], because it is common that
  parsers should produce a single output which needs to be converted to a different type, but because
  parsers always return multiple values (so that they can be *chained* together), this function
  is required in those cases.
  
  For example, to parse a String and then produce a single Foo, where Foo's constructor takes a single String:
  
-     Parser<Foo> fooParser = convertParser(string(\"foo\"), toOne(Foo));
+     Parser<{Foo*}> fooParser = convertParser(string(\"foo\"), toOne(Foo));
 "
-see(`function convertParser`, `function parserChain`)
-shared Result({Arg*}) toOne<Result, Arg>(Result(Arg) fun) {
-    return function ({Arg*} args) {
+see (`function asMultiValueParser`, `function parserChain`)
+shared Result({Arg*}) toOne<out Result,in Arg>(Result(Arg) fun) {
+    return function({Arg*} args) {
+        "This function can only be called with non-empty iterables!"
         assert (exists first = args.first);
         return fun(first);
     };

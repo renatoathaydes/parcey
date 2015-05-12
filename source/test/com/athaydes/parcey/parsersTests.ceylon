@@ -16,11 +16,11 @@ import com.athaydes.parcey {
     space,
     spaceChars,
     anyString,
-    string,
+    oneString,
     char,
     anyDigit,
     word,
-    convertParser,
+    asMultiValueParser,
     stringParser,
     toOne
 }
@@ -167,7 +167,7 @@ shared void testWord() {
 
 test
 shared void testString() {
-    value result1 = string("").parse("");
+    value result1 = oneString("").parse("");
     if (is ParseResult<String> result1) {
         assertEquals(result1.result, "");
         assertEquals(result1.parseLocation, [0, 0]);
@@ -177,7 +177,7 @@ shared void testString() {
         fail("Result was ``result1``");
     }
     
-    value result2 = string("a").parse("a");
+    value result2 = oneString("a").parse("a");
     if (is ParseResult<String> result2) {
         assertEquals(result2.result, "a");
         assertEquals(result2.parseLocation, [0, 1]);
@@ -187,7 +187,7 @@ shared void testString() {
         fail("Result was ``result2``");
     }
     
-    value result3 = string("xyz").parse("xyz abc");
+    value result3 = oneString("xyz").parse("xyz abc");
     if (is ParseResult<String> result3) {
         assertEquals(result3.result, "xyz");
         assertEquals(result3.parseLocation, [0, 3]);
@@ -197,7 +197,7 @@ shared void testString() {
         fail("Result was ``result3``");
     }
     
-    value result4 = string("xyz").parse("xyab");
+    value result4 = oneString("xyz").parse("xyab");
     if (is ParseError result4) {
         assertFalse(result4.message.empty);
         assertEquals(result4.consumed, ['x', 'y', 'a']);
@@ -205,7 +205,7 @@ shared void testString() {
         fail("Result was ``result4``");
     }
     
-    value result5 = string("xyz").parse("abcxyz");
+    value result5 = oneString("xyz").parse("abcxyz");
     if (is ParseError result5) {
         assertFalse(result5.message.empty);
         assertEquals(result5.consumed, ['a']);
@@ -228,7 +228,7 @@ shared void testStringDoesNotOverconsume() {
             }
         }
     };
-    value result = string("xyz").doParse(iterator, [4, 10], null);
+    value result = oneString("xyz").doParse(iterator, [4, 10], null);
     if (is ParseResult<String> result) {
         assertEquals(result.result, "xyz");
         assertEquals(result.parseLocation, [4, 13]);
@@ -354,7 +354,6 @@ shared void simpleCombinationTest() {
         if (is ParseError result) {
             assertFalse(result.message.empty);
             assertEquals(result.consumed, input.sequence());
-            assertEquals(result.overConsumed, []);
         } else {
             fail("Result was ``result``");
         }
@@ -392,11 +391,11 @@ shared void complexCombinationTest() {
     value lowerCasedLetter = oneOf('a'..'z');
     value underscore = char('_');
     value spaces1 = skip(many(space(), 1));
-    value identifier = convertParser(stringParser(parserChain({
+    value identifier = asMultiValueParser(stringParser(parserChain({
         either { lowerCasedLetter, underscore },
         many(either { letter(), underscore })
     }, "identifier")), toOne(Identifier));
-    value typeIdentifier = convertParser(stringParser(parserChain({
+    value typeIdentifier = asMultiValueParser(stringParser(parserChain({
         capitalLetter,
         many(either { letter(), underscore })
     }, "type identifier")), toOne(Type));

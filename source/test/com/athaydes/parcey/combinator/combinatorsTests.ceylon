@@ -10,10 +10,14 @@ import com.athaydes.parcey {
     anyChar,
     ParseError,
     char,
-    string,
+    oneString,
     space,
     noneOf,
-    spaceChars
+    spaceChars,
+    ParsedLocation,
+    asOneValueParser,
+    integer,
+    Parser
 }
 import com.athaydes.parcey.combinator {
     either,
@@ -25,7 +29,9 @@ import com.athaydes.parcey.combinator {
 
 test
 shared void canParseNonStableStream() {
-    value parser = parserChain({anyChar(), char(' '), anyChar()});
+    value parser = parserChain {
+        anyChar(), char(' '), anyChar()
+    };
     
     value result = parser.parse(object satisfies Iterable<Character> {
             value data = { 'a', ' ', 'b' }.iterator();
@@ -42,7 +48,9 @@ shared void canParseNonStableStream() {
 
 test
 shared void eitherCombinatorCanParseAllAlternatives() {
-    value parser = either({char('a'), string("hi"), space()});
+    value parser = either {
+        char('a'), oneString("hi"), space()
+    };
     
     value result1 = parser.parse("a");
     if (is ParseResult<{Character*}> result1) {
@@ -71,7 +79,9 @@ shared void eitherCombinatorCanParseAllAlternatives() {
 
 test
 shared void eitherCombinatorCanBacktrackOnce() {
-    value parser = either({char('a'), char('b')});
+    value parser = either {
+        char('a'), char('b')
+    };
     
     value result = parser.parse("b");
     
@@ -85,7 +95,9 @@ shared void eitherCombinatorCanBacktrackOnce() {
 
 test
 shared void eitherCombinatorCanBacktrackTwice() {
-    value parser = either({char('a'), char('b'), char('c')});
+    value parser = either {
+        char('a'), char('b'), char('c')
+    };
     
     value result = parser.parse("c");
     
@@ -99,7 +111,9 @@ shared void eitherCombinatorCanBacktrackTwice() {
 
 test
 shared void eitherCombinatorCanBacktrackThrice() {
-    value parser = either({string("abcd"), string("abcef"), string("abceg")});
+    value parser = either {
+        oneString("abcd"), oneString("abcef"), oneString("abceg")
+    };
     
     value result = parser.parse("abcegh");
     
@@ -114,7 +128,7 @@ shared void eitherCombinatorCanBacktrackThrice() {
 
 test
 shared void eitherCombinatorDoesNotConsumeNextToken() {
-    value parser = either { string("ab"), string("ac") };
+    value parser = either { oneString("ab"), oneString("ac") };
     
     value result = parser.parse("ade");
     
@@ -170,7 +184,7 @@ shared void manyCombinatorDoesNotConsumeNextToken() {
 
 test
 shared void manyCombinatorDoesNotConsumeNextTokenUsingMultiCharacterConsumer() {
-    value result = many(string("abc")).parse("abcabcabcdef");
+    value result = many(oneString("abc")).parse("abcabcabcdef");
     
     if (is ParseResult<{Character*}> result) {
         assertEquals(result.result.sequence(), ['a', 'b', 'c', 'a', 'b', 'c', 'a', 'b', 'c']);
@@ -253,7 +267,7 @@ shared void many3CombinatorDoesNotConsumeNextToken() {
 
 test
 shared void skipManyCombinatorDoesNotConsumeNextTokenUsingMultiCharacterConsumer() {
-    value result = skip(many(string("abc"))).parse("abcabcabcdef");
+    value result = skip(many(oneString("abc"))).parse("abcabcabcdef");
     
     if (is ParseResult<{Character*}> result) {
         assertEquals(result.result.sequence(), []);
@@ -345,8 +359,9 @@ shared void skipmany1CombinatorTooShortInputTest() {
 
 test
 shared void skipMany1CombinatorDoesNotConsumeNextToken() {
-    value result = parserChain({skip(many(char('a'), 1)), char('b')})
-            .parse("aab");
+    value result = parserChain {
+        skip(many(char('a'), 1)), char('b')
+    }.parse("aab");
     
     if (is ParseResult<{Character*}> result) {
         assertEquals(result.result.sequence(), ['b']);
@@ -372,8 +387,9 @@ shared void skipMany3CombinatorTooShortInputTest() {
 
 test
 shared void skipMany3CombinatorDoesNotConsumeNextToken() {
-    value result = parserChain({skip(many(char('a'), 3)), char('b')})
-            .parse("aaaab");
+    value result = parserChain {
+        skip(many(char('a'), 3)), char('b')
+    }.parse("aaaab");
     
     if (is ParseResult<{Character*}> result) {
         assertEquals(result.result.sequence(), ['b']);
@@ -386,7 +402,7 @@ shared void skipMany3CombinatorDoesNotConsumeNextToken() {
 }
 
 test shared void testOption() {
-    value parser = option({char('a')});
+    value parser = option { char('a') };
     
     value result1 = parser.parse("");
     if (is ParseResult<{Character*}> result1) {
@@ -434,7 +450,7 @@ shared void parserChainSimpleTest() {
 
 test
 shared void parserChain2ParsersTest() {
-    for (index->parserPair in [[char('a'), char(' ')], [many(noneOf(spaceChars)), char(' ')], [space(), string("xxmn")]].indexed) {
+    for (index->parserPair in [[char('a'), char(' ')], [many(noneOf(spaceChars)), char(' ')], [space(), oneString("xxmn")]].indexed) {
         for (input in ["", "0", "\n", " ", "a", "a b c", "123", " abc", " xxx yyy"]) {
             value result1 = parserPair[0].parse(input);
             value nonParsed = input.sublistFrom(result1.consumed.size);
@@ -446,6 +462,50 @@ shared void parserChain2ParsersTest() {
             assertResultsEqual(totalResult, expectedResult, errorMessage);
         }
     }
+}
+
+test
+shared void parserChainParsedLocationTest() {
+    value parser = parserChain {
+        char('a'), char('b'), either { char('c'), char('d') }, oneString("xyz")
+    };
+    
+    for ([input, expected] in [["a", [0, 1]], ["abx", [0, 2]], ["abcd", [0, 3]], ["abcxym", [0, 3]]]) {
+        value result = parser.parse(input);
+        if (is ParseError result) {
+            assertEquals(extractLocation(result.message), expected, result.message);
+        } else {
+            fail("Result for input ``input`` was ``result``");
+        }    
+    }
+}
+
+ParsedLocation extractLocation(String errorMessage) {
+    object messageParser {
+        function asLocation({Integer*} indexes) {
+            assert (exists row = indexes.first);
+            assert (exists col = indexes.rest.first);
+            return [row, col];
+        }
+        value spaces = skip(many(space()));
+        shared Parser<ParsedLocation> locationParser = asOneValueParser(parserChain {
+            integer(), skip(char(',')), spaces, skip(oneString("column")), spaces, integer()
+        }, asLocation);
+    }
+    // messages always end with 'row <i>, column <j>'
+    value rowIndex = errorMessage.lastInclusion("row");
+    if (exists rowIndex) {
+        value locationMessage = errorMessage.sublistFrom(rowIndex + "row ".size);
+        value result = messageParser.locationParser.parse(locationMessage);
+        if (is ParseResult<ParsedLocation> result) {
+            return result.result;
+        } else {
+            fail("Could not parse location in '``errorMessage``' ----> ``result.message``");
+        }
+    } else {
+        fail("Error message does not contain 'row': ``errorMessage``");
+    }
+    throw;
 }
 
 void assertResultsEqual(
@@ -464,10 +524,6 @@ void assertResultsEqual(
     }
     case (is ParseError) {
         if (is ParseError expectedResult) {
-            "The parseLocation of the messages will differ because we don't calculate it in the test code."
-            String relevantPartOf(String message)
-                    => String(message.sublistTo(2 + (message.inclusions("at row").first else -1)));
-            assertEquals(relevantPartOf(actualResult.message), relevantPartOf(expectedResult.message), errorMessage);
             assertEquals(actualResult.consumed, expectedResult.consumed, errorMessage);
         } else {
             fail("``errorMessage`` - Results have different types: ``actualResult``, ``expectedResult``");
@@ -499,7 +555,7 @@ ParseResult<{Character*}>|ParseError findExpectedResult(ParseResult<{Character*}
         case (is ParseError) {
             return ParseError(
                 result2.message,
-                result1.consumed.append(result2.consumed), result2.overConsumed);
+                result1.consumed.append(result2.consumed));
         }
     }
     case (is ParseError) {

@@ -27,13 +27,13 @@ shared Parser<{Item*}> parserChain<Item>({Parser<{Item*}>+} parsers, String name
         variable ParseResult<{Item*}> result = ParseResult([], parsedLocation, []);
         variable Iterator<Character> effectiveInput = input;
         for (parser in parsers) {
-            value location = locationAfterParsing(result.consumed, parsedLocation);
-            value current = parser.doParse(effectiveInput, location,
-                delegateName else parser.name);
+            value current = parser.doParse(effectiveInput,
+                locationAfterParsing(result.consumed, parsedLocation));
             switch (current)
             case (is ParseError) {
-                return parseError(delegateName else parser.name, location,
-                    result.consumed.append(current.consumed), current.overConsumed);
+                value consumed = result.consumed.append(current.consumed);
+                return parseError("Expected ``delegateName else name`` but found '``String(current.consumed)``'",
+                    locationAfterParsing(result.consumed, parsedLocation), consumed);
             }
             case (is ParseResult<{Item*}>) {
                 if (!current.overConsumed.empty) {
@@ -53,7 +53,7 @@ shared Parser<{Item*}> parserChain<Item>({Parser<{Item*}>+} parsers, String name
  before being passed to the next parser, such that the next parser will 'see' exactly the same input as the previous Parser."
 shared Parser<Item> either<Item>({Parser<Item>+} parsers, String name_ = "") {
     return object satisfies Parser<Item> {
-        name = chooseName(name_, parsers.last.name);
+        name = chooseName(name_, "either ``parsers.map(Parser.name).interpose(" or ").fold("")(plus)``");
         shared actual ParseResult<Item>|ParseError doParse(
             Iterator<Character> input,
             ParsedLocation parsedLocation,
@@ -64,7 +64,8 @@ shared Parser<Item> either<Item>({Parser<Item>+} parsers, String name_ = "") {
                 value current = parser.doParse(effectiveInput, parsedLocation);
                 switch (current)
                 case (is ParseError) {
-                    error = parseError(delegateName else parser.name, parsedLocation, current.consumed, []);
+                    error = parseError("Expected '``delegateName else name``' but found '``String(current.consumed)``'",
+                        parsedLocation, current.consumed);
                     effectiveInput = chain(error.consumed, effectiveInput);
                 }
                 case (is ParseResult<Item>) {
@@ -102,8 +103,8 @@ shared Parser<{Item*}> many<Item>(Parser<{Item*}> parser, Integer minOccurrences
                         return ParseResult(result.result, result.parseLocation,
                             result.consumed, current.consumed);
                     } else {
-                        return parseError(delegateName else parser.name, location,
-                            result.consumed.append(current.consumed), current.consumed);
+                        return parseError("Expected ``delegateName else parser.name`` but was ``current.consumed``",
+                            location, result.consumed.append(current.consumed));
                     }
                 }
                 case (is ParseResult<{Item*}>) {
@@ -157,7 +158,8 @@ shared Parser<[]> skip<Item>(Parser<{Item*}> parser, String name_ = "") {
             value result = parser.doParse(input, parsedLocation);
             switch (result)
             case (is ParseError) {
-                return parseError(name, parsedLocation, result.consumed, result.overConsumed);
+                return parseError("Expected ``delegateName else name`` but was ``result.consumed``",
+                    parsedLocation, result.consumed);
             }
             case (is ParseResult<{Item*}>) {
                 return ParseResult([], result.parseLocation, result.consumed, result.overConsumed);
