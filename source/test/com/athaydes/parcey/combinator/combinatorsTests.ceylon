@@ -15,7 +15,7 @@ import com.athaydes.parcey {
     noneOf,
     spaceChars,
     ParsedLocation,
-    asOneValueParser,
+    asSingleValueParser,
     integer,
     Parser
 }
@@ -553,7 +553,7 @@ ParsedLocation extractLocation(String errorMessage) {
             return [row, col];
         }
         value spaces = skip(many(space()));
-        shared Parser<ParsedLocation> locationParser = asOneValueParser(seq {
+        shared Parser<ParsedLocation> locationParser = asSingleValueParser(seq {
             integer(), skip(char(',')), spaces, skip(oneString("column")), spaces, integer()
         }, asLocation);
     }

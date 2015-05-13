@@ -224,7 +224,7 @@ class OneOf(shared actual String name, Boolean includingChars, {Character+} char
 "Given a parser *(p)* and a function To(From) *(f)*, return a new parser which delegates the parsing
  to *p*, using *f* to convert the result from type *From* to *To* and turning the result into a single-value
  Iterable<To>."
-see (`function toOne`, `function asOneValueParser`)
+see (`function toOne`, `function asSingleValueParser`)
 shared Parser<{To*}> asMultiValueParser<From,To>(Parser<From> parser, To(From) converter)
         => object satisfies Parser<{To*}> {
     name = parser.name;
@@ -249,7 +249,7 @@ shared Parser<{To*}> asMultiValueParser<From,To>(Parser<From> parser, To(From) c
  
  Use [[asMultiValueParser]] if the required parser needs to be chained to other parsers."
 see (`function asMultiValueParser`)
-shared Parser<To> asOneValueParser<From,To>(Parser<From> parser, To(From) converter)
+shared Parser<To> asSingleValueParser<From,To>(Parser<From> parser, To(From) converter)
         => object satisfies Parser<To> {
     name = parser.name;
     shared actual ParseResult<To>|ParseError doParse(

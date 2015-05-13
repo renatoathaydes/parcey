@@ -151,15 +151,30 @@ shared Parser<{Item*}> option<Item>({Parser<{Item*}>+} parsers) {
 "Creates a Parser that applies the given parser followed by the *skipped* separator parser
  as many times as possible.
  
- For example, the following Parser will parse a row of zero or more Integers separated by a comma
+ For example, the following Parser will parse a zero or more Integers separated by a comma
  and optional spaces:
  
-     sepBy(seq { spaces(), char(','), spaces() }, integer());"
+     sepBy(around(spaces(), char(',')), integer());
+     
+ The [[minOcurrences|minOccurrences]] argument may specify the minimum number of times the given
+ parser must succeed.
+ 
+ Notice that if `minOccurrences <= 1`, then no separator is required in the input
+ for this Parser to succeed.
+ 
+ For example, given the following Parser:
+ 
+     sepBy(char(':'), anyChar(), 1);
+     
+ The following are valid inputs:
+ 
+ * a
+ * b:c:d"
 shared Parser<{Item*}> sepBy<Item>(
     Parser<{Anything*}> separator,
     Parser<{Item*}> parser,
     Integer minOccurrences = 0)
-        => let (lastItemParser = (minOccurrences == 0)
+        => let (lastItemParser = (minOccurrences <= 0)
             then option<Item> else (({Parser<{Item*}>+} p) => p.first))
     seq {
         many(seq { parser, skip(separator) }, minOccurrences - 1),
@@ -188,3 +203,14 @@ shared Parser<[]> skip<Item>(Parser<{Item*}> parser, String name_ = "") {
         }
     };
 }
+
+"Surrounds the given parser with the surrounding parser.
+ 
+ Example of Parser that parses words separated by commas and optional spaces:
+ 
+     sepBy(around(spaces(), char(',')), word());"
+see(`function sepBy`)
+shared Parser<{Item*}> around<Item>(Parser<{Item*}> surrounding, Parser<{Item*}> parser)
+        => seq { surrounding, parser, surrounding };
+
+    

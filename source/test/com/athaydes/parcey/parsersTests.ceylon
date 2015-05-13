@@ -407,7 +407,7 @@ shared void complexCombinationTest() {
     }, "argument");
     value argumentList = seq({
         skip(char('(')),
-        sepBy(seq { spaces(), char(','), spaces() }, argument),
+        sepBy(around(spaces(), char(',')), argument),
         skip(char(')'))
     }, "argument list");
     
