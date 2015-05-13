@@ -171,7 +171,7 @@ shared Parser<{Item*}> option<Item>({Parser<{Item*}>+} parsers) {
  * a
  * b:c:d"
 shared Parser<{Item*}> sepBy<Item>(
-    Parser<{Anything*}> separator,
+    Parser<Anything> separator,
     Parser<{Item*}> parser,
     Integer minOccurrences = 0)
         => let (lastItemParser = (minOccurrences <= 0)
@@ -184,7 +184,7 @@ shared Parser<{Item*}> sepBy<Item>(
 "Creates a Parser that applies the given parsers but throws away their results,
  returning an [[Empty]] as its result if the parser succeeds."
 see (`function many`, `function either`)
-shared Parser<[]> skip<Item>(Parser<{Item*}> parser, String name_ = "") {
+shared Parser<[]> skip(Parser<Anything> parser, String name_ = "") {
     return object satisfies Parser<[]> {
         name = chooseName(name_, "to skip ``parser.name``");
         shared actual ParseResult<[]>|ParseError doParse(
@@ -197,7 +197,7 @@ shared Parser<[]> skip<Item>(Parser<{Item*}> parser, String name_ = "") {
                 return parseError("Expected ``delegateName else name`` but was ``result.consumed``",
                     parsedLocation, result.consumed);
             }
-            case (is ParseResult<{Item*}>) {
+            case (is ParseResult<Anything>) {
                 return ParseResult([], result.parseLocation, result.consumed, result.overConsumed);
             }
         }
