@@ -15,9 +15,11 @@ import com.athaydes.parcey.internal {
 
 "Creates a Parser that applies each of the given parsers in sequence.
  
- If any of the parser fails, the chain is broken and a [[com.athaydes.parcey::ParseError]] is returned with
- the whole input that has been consumed by all parsers."
-shared Parser<{Item*}> parserChain<Item>({Parser<{Item*}>+} parsers, String name_ = "")
+ If any of the parsers fails, the chain is broken and a [[com.athaydes.parcey::ParseError]]
+ is returned immediately.
+ 
+ This is a very commonly-used Parser, hence its short name which stands for *sequence of Parsers*."
+shared Parser<{Item*}> seq<Item>({Parser<{Item*}>+} parsers, String name_ = "")
         => object satisfies Parser<{Item*}> {
     name = chooseName(name_, parsers.map(Parser.name).interpose("->").fold("")(plus));
     shared actual ParseResult<{Item*}>|ParseError doParse(
@@ -32,7 +34,7 @@ shared Parser<{Item*}> parserChain<Item>({Parser<{Item*}>+} parsers, String name
             switch (current)
             case (is ParseError) {
                 value consumed = result.consumed.append(current.consumed);
-                return parseError("Expected ``delegateName else name`` but found '``String(current.consumed)``'",
+                return parseError("Expected ``delegateName else parser.name`` but found '``String(current.consumed)``'",
                     locationAfterParsing(result.consumed, parsedLocation), consumed);
             }
             case (is ParseResult<{Item*}>) {
@@ -86,20 +88,21 @@ shared Parser<{Item*}> many<Item>(Parser<{Item*}> parser, Integer minOccurrences
     value parsers = [parser].cycled;
     return object satisfies Parser<{Item*}> {
 
-        name = chooseName(name_, (minOccurrences == 0 then "many" else "at least ``minOccurrences``")
+        name = chooseName(name_, (minOccurrences <= 0 then "many" else "at least ``minOccurrences``")
             + " ``simplePlural("occurrence", minOccurrences)`` of ``parser.name``");
 
         shared actual ParseResult<{Item*}>|ParseError doParse(
             Iterator<Character> input,
             ParsedLocation parsedLocation,
             String? delegateName) {
+            variable Integer passes = 0;
             variable ParseResult<{Item*}> result = ParseResult([], parsedLocation, []);
             for (parser in parsers) {
                 value location = locationAfterParsing(result.consumed, parsedLocation);
                 value current = parser.doParse(input, location);
                 switch (current)
                 case (is ParseError) {
-                    if (result.consumed.size >= minOccurrences) {
+                    if (passes >= minOccurrences) {
                         return ParseResult(result.result, result.parseLocation,
                             result.consumed, current.consumed);
                     } else {
@@ -113,6 +116,7 @@ shared Parser<{Item*}> many<Item>(Parser<{Item*}> parser, Integer minOccurrences
                         // did not consume anything, stop or there will be an infinite loop
                         return ParseResult(result.result, result.parseLocation, result.consumed, result.overConsumed);
                     }
+                    passes++;
                 }
             }
             throw; // parsers is an infinite stream, so this will never be reached
@@ -125,7 +129,7 @@ shared Parser<{Item*}> many<Item>(Parser<{Item*}> parser, Integer minOccurrences
  If any Parser fails, the parser backtracks and returns an empty result."
 see (`function many`, `function either`)
 shared Parser<{Item*}> option<Item>({Parser<{Item*}>+} parsers) {
-    value parser = parserChain<Item>(parsers);
+    value parser = seq<Item>(parsers);
     return object satisfies Parser<{Item*}> {
         name = "option"; // this parser cannot produce errors so a name is unnecessary
         shared actual ParseResult<{Item*}> doParse(
@@ -144,9 +148,26 @@ shared Parser<{Item*}> option<Item>({Parser<{Item*}>+} parsers) {
     };
 }
 
-"Creates a Parser that applies the given parsers only if all of them succeed.
+"Creates a Parser that applies the given parser followed by the *skipped* separator parser
+ as many times as possible.
  
- If any Parser fails, the parser backtracks and returns an empty result."
+ For example, the following Parser will parse a row of zero or more Integers separated by a comma
+ and optional spaces:
+ 
+     sepBy(seq { spaces(), char(','), spaces() }, integer());"
+shared Parser<{Item*}> sepBy<Item>(
+    Parser<{Anything*}> separator,
+    Parser<{Item*}> parser,
+    Integer minOccurrences = 0)
+        => let (lastItemParser = (minOccurrences == 0)
+            then option<Item> else (({Parser<{Item*}>+} p) => p.first))
+    seq {
+        many(seq { parser, skip(separator) }, minOccurrences - 1),
+        lastItemParser({ parser })
+    };
+
+"Creates a Parser that applies the given parsers but throws away their results,
+ returning an [[Empty]] as its result if the parser succeeds."
 see (`function many`, `function either`)
 shared Parser<[]> skip<Item>(Parser<{Item*}> parser, String name_ = "") {
     return object satisfies Parser<[]> {

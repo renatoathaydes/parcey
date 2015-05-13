@@ -1,7 +1,8 @@
 import com.athaydes.parcey.combinator {
     either,
-    parserChain,
-    many
+    seq,
+    many,
+    skip
 }
 import com.athaydes.parcey.internal {
     locationAfterParsing,
@@ -54,7 +55,7 @@ shared interface Parser<out Parsed> {
     "Parse the given input. The input is only traversed once by using its iterator.
           The parsedLocation given is used only to keep track of how many characters have been parsed when using
           a chain of parsers."
-    see (`function parserChain`)
+    see (`function seq`)
     shared default ParseResult<Parsed>|ParseError parse(
         {Character*} input,
         ParsedLocation parsedLocation = [0, 0])
@@ -115,6 +116,12 @@ shared [Character+] spaceChars = [' ', '\f', '\t', '\r', '\n'];
 "A space parser. A space is defined by [[spaceChars]]."
 shared Parser<Character[]> space(String name = "")
         => oneOf(spaceChars, chooseName(name, "space"));
+
+"A space Parser which consumes as many spaces as possible, discarding its results
+ and returning an [[Empty]] as a result in case it succeeds."
+see(`function space`)
+shared Parser<[]> spaces(Integer minOccurrences = 0, String name = "")
+        => skip(many(space(), minOccurrences), name);
 
 "A latin letter. Must be one of 'A'..'Z' or 'a'..'z'.
  
@@ -320,7 +327,7 @@ shared Value? firstValue<Value>(ParseResult<{Value*}>|ParseError parseResult)
  
      Parser<{Foo*}> fooParser = convertParser(string(\"foo\"), toOne(Foo));
 "
-see (`function asMultiValueParser`, `function parserChain`)
+see (`function asMultiValueParser`, `function seq`)
 shared Result({Arg*}) toOne<out Result,in Arg>(Result(Arg) fun) {
     return function({Arg*} args) {
         "This function can only be called with non-empty iterables!"

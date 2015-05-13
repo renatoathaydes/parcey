@@ -21,15 +21,16 @@ import com.athaydes.parcey {
 }
 import com.athaydes.parcey.combinator {
     either,
-    parserChain,
+    seq,
     many,
     option,
-    skip
+    skip,
+    sepBy
 }
 
 test
 shared void canParseNonStableStream() {
-    value parser = parserChain {
+    value parser = seq {
         anyChar(), char(' '), anyChar()
     };
     
@@ -224,7 +225,7 @@ shared void many1CombinatorTooShortInputTest() {
 
 test
 shared void many1CombinatorDoesNotConsumeNextToken() {
-    value result = parserChain { many(char('a'), 1), char('b') }
+    value result = seq { many(char('a'), 1), char('b') }
             .parse("aab");
     
     if (is ParseResult<{Character*}> result) {
@@ -251,7 +252,7 @@ shared void many3CombinatorTooShortInputTest() {
 
 test
 shared void many3CombinatorDoesNotConsumeNextToken() {
-    value result = parserChain({
+    value result = seq({
         many(char('a'), 3), char('b')
     }).parse("aaaab");
     
@@ -319,7 +320,7 @@ shared void skipManyCombinatorDoesNotConsumeNextToken() {
         fail("Result was ``result1``");
     }
     
-    value result = parserChain({skip(many(char('a'))), char('b')})
+    value result = seq({skip(many(char('a'))), char('b')})
             .parse("aab");
     if (is ParseResult<{Character*}> result) {
         assertEquals(result.result, ['b']);
@@ -359,7 +360,7 @@ shared void skipmany1CombinatorTooShortInputTest() {
 
 test
 shared void skipMany1CombinatorDoesNotConsumeNextToken() {
-    value result = parserChain {
+    value result = seq {
         skip(many(char('a'), 1)), char('b')
     }.parse("aab");
     
@@ -387,7 +388,7 @@ shared void skipMany3CombinatorTooShortInputTest() {
 
 test
 shared void skipMany3CombinatorDoesNotConsumeNextToken() {
-    value result = parserChain {
+    value result = seq {
         skip(many(char('a'), 3)), char('b')
     }.parse("aaaab");
     
@@ -440,7 +441,7 @@ shared void parserChainSimpleTest() {
     for (index->singleParser in [char('a'), many(noneOf(spaceChars)), space()].indexed) {
         for (input in ["", "0", "\n", " ", "a", "abc", "123", " xxx yyy"]) {
             value result1 = singleParser.parse(input);
-            value result2 = parserChain({singleParser}).parse(input);
+            value result2 = seq({singleParser}).parse(input);
             value errorMessage = "Parser index: ``index``, Input: ``input``";
             assertResultsEqual(result1, result2, errorMessage);
             assertParseLocationsEqual(result1, result2, errorMessage);
@@ -456,7 +457,7 @@ shared void parserChain2ParsersTest() {
             value nonParsed = input.sublistFrom(result1.consumed.size);
             value x = String(nonParsed);
             value result2 = parserPair[1].parse(x);
-            value totalResult = parserChain(parserPair).parse(input);
+            value totalResult = seq(parserPair).parse(input);
             value expectedResult = findExpectedResult(result1, result2);
             value errorMessage = "Parser index: ``index``, Input: '``input``'";
             assertResultsEqual(totalResult, expectedResult, errorMessage);
@@ -466,7 +467,7 @@ shared void parserChain2ParsersTest() {
 
 test
 shared void parserChainParsedLocationTest() {
-    value parser = parserChain {
+    value parser = seq {
         char('a'), char('b'), either { char('c'), char('d') }, oneString("xyz")
     };
     
@@ -480,6 +481,70 @@ shared void parserChainParsedLocationTest() {
     }
 }
 
+test
+shared void testSepBy() {
+    value commaSeparated = sepBy(char(','), integer());
+    
+    value result1 = commaSeparated.parse("");
+    if (is ParseResult<{Integer*}> result1) {
+        assertEquals(result1.result.sequence(), []);
+    } else {
+        fail("Result was ``result1``");
+    }
+    
+    value result2 = commaSeparated.parse("1,2,");
+    if (is ParseResult<{Integer*}> result2) {
+        assertEquals(result2.result.sequence(), [1, 2]);
+    } else {
+        fail("Result was ``result2``");
+    }
+    
+    value result3 = commaSeparated.parse("1");
+    if (is ParseResult<{Integer*}> result3) {
+        assertEquals(result3.result.sequence(), [1]);
+    } else {
+        fail("Result was ``result3``");
+    }
+    
+    value result4 = commaSeparated.parse("1,2,3,4,5");
+    if (is ParseResult<{Integer*}> result4) {
+        assertEquals(result4.result.sequence(), [1, 2, 3, 4, 5]);
+    } else {
+        fail("Result was ``result4``");
+    }
+}
+
+test
+shared void testSepByMin3() {
+    value commaSeparated = sepBy(char(','), integer(), 3);
+    
+    value result1 = commaSeparated.parse("100,200,53");
+    if (is ParseResult<{Integer*}> result1) {
+        assertEquals(result1.result.sequence(), [100, 200, 53]);
+    } else {
+        fail("Result was ``result1``");
+    }
+    
+    value result2 = commaSeparated.parse("1,2,3,4,5");
+    if (is ParseResult<{Integer*}> result2) {
+        assertEquals(result2.result.sequence(), [1, 2, 3, 4, 5]);
+    } else {
+        fail("Result was ``result2``");
+    }
+    value result3 = commaSeparated.parse("1");
+    if (is ParseError result3) {
+        assertFalse(result3.message.empty);
+    } else {
+        fail("Result was ``result3``");
+    }
+    value result4 = commaSeparated.parse("1,2");
+    if (is ParseError result4) {
+        assertFalse(result4.message.empty);
+    } else {
+        fail("Result was ``result4``");
+    }
+}
+
 ParsedLocation extractLocation(String errorMessage) {
     object messageParser {
         function asLocation({Integer*} indexes) {
@@ -488,7 +553,7 @@ ParsedLocation extractLocation(String errorMessage) {
             return [row, col];
         }
         value spaces = skip(many(space()));
-        shared Parser<ParsedLocation> locationParser = asOneValueParser(parserChain {
+        shared Parser<ParsedLocation> locationParser = asOneValueParser(seq {
             integer(), skip(char(',')), spaces, skip(oneString("column")), spaces, integer()
         }, asLocation);
     }

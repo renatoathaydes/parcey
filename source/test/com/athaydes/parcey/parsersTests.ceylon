@@ -22,7 +22,8 @@ import com.athaydes.parcey {
     word,
     asMultiValueParser,
     stringParser,
-    toOne
+    toOne,
+    spaces
 }
 import com.athaydes.parcey.combinator {
     ...
@@ -332,7 +333,7 @@ test
 shared void simpleCombinationTest() {
     value lowerCasedLetter = oneOf('a'..'z');
     value underscore = char('_');
-    value identifier = parserChain({
+    value identifier = seq({
         either { lowerCasedLetter, underscore },
         many(either { letter(), underscore })
     }, "identifier");
@@ -390,38 +391,42 @@ shared void complexCombinationTest() {
     value capitalLetter = oneOf('A'..'Z');
     value lowerCasedLetter = oneOf('a'..'z');
     value underscore = char('_');
-    value spaces1 = skip(many(space(), 1));
-    value identifier = asMultiValueParser(stringParser(parserChain({
+    value identifier = asMultiValueParser(stringParser(seq({
         either { lowerCasedLetter, underscore },
         many(either { letter(), underscore })
     }, "identifier")), toOne(Identifier));
-    value typeIdentifier = asMultiValueParser(stringParser(parserChain({
+    value typeIdentifier = asMultiValueParser(stringParser(seq({
         capitalLetter,
         many(either { letter(), underscore })
     }, "type identifier")), toOne(Type));
     value modifier = identifier;
-    value argument = parserChain({
+    value argument = seq({
         typeIdentifier,
-        spaces1,
+        spaces(1),
         identifier
     }, "argument");
-    
-    value ceylonFunctionSignature = parserChain {
-        skip(many(space())),
-        many(parserChain { modifier, spaces1 }),
-        typeIdentifier,
-        spaces1,
-        identifier,
-        skip(many(space())),
+    value argumentList = seq({
         skip(char('(')),
-        many(argument),
+        sepBy(seq { spaces(), char(','), spaces() }, argument),
         skip(char(')'))
+    }, "argument list");
+    
+    value ceylonFunctionSignature = seq {
+        spaces(),
+        many(seq { modifier, spaces(1) }),
+        typeIdentifier,
+        spaces(1),
+        identifier,
+        spaces(),
+        argumentList
     };
     
-    value result = ceylonFunctionSignature.parse(" String hi()  ");
+    value result = ceylonFunctionSignature.parse(" String hi(Boolean b, Integer i) ");
     if (is ParseResult<{CeylonElement*}> result) {
         assertEquals(result.result.sequence(),
-            [Type("String"), Identifier("hi")]);
+            [Type("String"), Identifier("hi"),
+             Type("Boolean"), Identifier("b"),
+             Type("Integer"), Identifier("i")]);
     } else {
         fail("Result was ``result``");
     }
