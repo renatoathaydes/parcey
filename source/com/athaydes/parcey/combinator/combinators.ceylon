@@ -148,10 +148,10 @@ shared Parser<{Item*}> option<Item>({Parser<{Item*}>+} parsers) {
     };
 }
 
-"Creates a Parser that applies the given parser followed by the *skipped* separator parser
- as many times as possible.
+"Creates a Parser that applies the given parser multiple times, using the *skipped* separator parser
+ in between applications, as many times as possible.
  
- For example, the following Parser will parse a zero or more Integers separated by a comma
+ For example, the following Parser will parse zero or more Integers separated by a comma
  and optional spaces:
  
      sepBy(around(spaces(), char(',')), integer());
