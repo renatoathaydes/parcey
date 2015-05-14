@@ -94,10 +94,10 @@ shared Parser<[]> eof(String name_ = "")
 "Parser for a single Character.
  
  It fails if the input is empty."
-shared Parser<Character[]> anyChar(String name_ = "")
-        => object satisfies Parser<Character[]> {
+shared Parser<{Character+}> anyChar(String name_ = "")
+        => object satisfies Parser<{Character+}> {
     name => chooseName(name_, "any character");
-    shared actual ParseResult<Character[]>|ParseError doParse(
+    shared actual ParseResult<{Character+}>|ParseError doParse(
         Iterator<Character> input,
         ParsedLocation parsedLocation,
         String? delegateName) {
@@ -114,7 +114,7 @@ shared Parser<Character[]> anyChar(String name_ = "")
 shared [Character+] spaceChars = [' ', '\f', '\t', '\r', '\n'];
 
 "A space parser. A space is defined by [[spaceChars]]."
-shared Parser<Character[]> space(String name = "")
+shared Parser<{Character+}> space(String name = "")
         => oneOf(spaceChars, chooseName(name, "space"));
 
 "A space Parser which consumes as many spaces as possible, discarding its results
@@ -129,47 +129,47 @@ shared Parser<[]> spaces(Integer minOccurrences = 0, String name = "")
  
      value swedishLetter = either(letter, oneOf('ö', 'ä', 'å', 'Ö', 'Ä', 'Å'));
  "
-shared Parser<Character[]> letter(String name = "")
+shared Parser<{Character+}> letter(String name = "")
         => either({ oneOf('A'..'Z'), oneOf('a'..'z') },
     chooseName(name, "letter"));
 
 "Parser for one of the given characters.
  
  It fails if the input is empty."
-shared Parser<Character[]> oneOf({Character+} chars, String name = "")
+shared Parser<{Character+}> oneOf({Character+} chars, String name = "")
         => OneOf(chooseName(name, "one of ``chars``"), true, chars);
 
 "Parser for a single character.
  
  It fails if the input is empty."
-shared Parser<Character[]> char(Character char, String name = "")
+shared Parser<{Character+}> char(Character char, String name = "")
         => oneOf({ char }, chooseName(name, quote(char)));
 
 "Parser for none of the given characters. It fails if the input is one of the given characters.
  
  It succeeds if the input is empty."
-shared Parser<Character[]> noneOf({Character+} chars, String name = "")
+shared Parser<{Character+}> noneOf({Character+} chars, String name = "")
         => OneOf(chooseName(name, "none of ``chars``"), false, chars);
 
 "Parser for a single digit (0..9).
  
  It fails if the input is empty."
-shared Parser<Character[]> anyDigit(String name = "")
+shared Parser<{Character+}> digit(String name = "")
         => OneOf(chooseName(name, "digit"), true, '0'..'9');
 
 "A word parser. A word is defined as a non-empty stream of continuous latin letters."
 see (`function letter`)
-shared Parser<{String*}> word(String name = "")
-        => asMultiValueParser(many(letter(), 1, chooseName(name, "word")), String);
+shared Parser<{String+}> word(String name = "")
+        => multiValueParser(many(letter(), 1, chooseName(name, "word")), String);
 
 "A String parser. A String is defined as a possibly empty stream of Characters
  without any spaces between them."
 see (`value spaceChars`)
-shared Parser<{String*}> anyString(String name = "")
-        => asMultiValueParser(many(noneOf(spaceChars), 0, chooseName(name, "any String")), String);
+shared Parser<{String+}> anyStr(String name = "")
+        => multiValueParser(many(noneOf(spaceChars), 0, chooseName(name, "any String")), String);
 
 "A String parser which parses only the given string."
-shared Parser<String> oneString(String str, String name_ = "")
+shared Parser<String> str(String str, String name_ = "")
         => object satisfies Parser<String> {
     name = chooseName(name_, "string ``quote(str)``");
     shared actual ParseResult<String>|ParseError doParse(
@@ -198,8 +198,8 @@ shared Parser<String> oneString(String str, String name_ = "")
 };
 
 class OneOf(shared actual String name, Boolean includingChars, {Character+} chars)
-        satisfies Parser<Character[]> {
-    shared actual ParseResult<Character[]>|ParseError doParse(
+        satisfies Parser<{Character+}> {
+    shared actual ParseResult<{Character+}>|ParseError doParse(
         Iterator<Character> input,
         ParsedLocation parsedLocation,
         String? delegateName) {
@@ -224,8 +224,8 @@ class OneOf(shared actual String name, Boolean includingChars, {Character+} char
 "Given a parser *(p)* and a function To(From) *(f)*, return a new parser which delegates the parsing
  to *p*, using *f* to convert the result from type *From* to *To* and turning the result into a single-value
  Iterable<To>."
-see (`function toOne`, `function asSingleValueParser`)
-shared Parser<{To+}> asMultiValueParser<From,To>(Parser<From> parser, To(From) converter)
+see (`function takeArgs`, `function valueParser`)
+shared Parser<{To+}> multiValueParser<From,To>(Parser<From> parser, To(From) converter)
         => object satisfies Parser<{To+}> {
     name = parser.name;
     shared actual ParseResult<{To+}>|ParseError doParse(
@@ -247,9 +247,14 @@ shared Parser<{To+}> asMultiValueParser<From,To>(Parser<From> parser, To(From) c
 "Given a parser *(p)* and a function To(From) *(f)*, return a new parser which delegates the parsing
  to *p*, using *f* to convert the result from type *From* to *To*.
  
- Use [[asMultiValueParser]] if the required parser needs to be chained to other parsers."
-see (`function asMultiValueParser`)
-shared Parser<To> asSingleValueParser<From,To>(Parser<From> parser, To(From) converter)
+ This is useful because it is common that
+ parsers should produce a single value which needs to be converted to a different type, but because
+ parsers always return multiple values (so that they can be *chained* together), this function
+ is required in those cases.
+
+ Use [[multiValueParser]] if the required parser needs to be chained to other parsers."
+see (`function multiValueParser`)
+shared Parser<To> valueParser<From,To>(Parser<From> parser, To(From) converter)
         => object satisfies Parser<To> {
     name = parser.name;
     shared actual ParseResult<To>|ParseError doParse(
@@ -268,9 +273,9 @@ shared Parser<To> asSingleValueParser<From,To>(Parser<From> parser, To(From) con
 };
 
 "Converts a Parser of Characters to a String Parser."
-see (`function asMultiValueParser`)
-shared Parser<{String*}> stringParser(Parser<{Character*}> parser)
-        => asMultiValueParser(parser, String);
+see (`function multiValueParser`)
+shared Parser<{String+}> stringParser(Parser<{Character*}> parser)
+        => multiValueParser(parser, String);
 
 "An Integer Parser.
  
@@ -280,29 +285,34 @@ shared Parser<{String*}> stringParser(Parser<{Character*}> parser)
  
  * if not even one digit is found.
  * if the sequence of digits cannot be represented as an Integer (as it would be too large)."
-see (`function asMultiValueParser`, `function firstValue`)
-shared Parser<{Integer*}> integer(String name_ = "") {
-    return coallescedParser(asMultiValueParser(
-            stringParser(many(anyDigit(), 1, chooseName(name_, "integer"))),
-            toOne(parseInteger)));
+see (`function multiValueParser`)
+shared Parser<{Integer+}> integer(String name_ = "") {
+    return coallescedParser(multiValueParser(
+            stringParser(many(digit(), 1, chooseName(name_, "integer"))),
+            takeArgs(parseInteger)));
 }
 
-shared Parser<{Value*}> coallescedParser<Value>(Parser<{Value?*}> parser)
+"Converts a Parser which may generate null values to one which will not.
+ 
+ A [[ParseError]] occurs if the parser would generate a null value."
+shared Parser<{Value+}> coallescedParser<Value>(Parser<{Value?+}> parser)
         given Value satisfies Object
-        => object satisfies Parser<{Value*}> {
+        => object satisfies Parser<{Value+}> {
     
     name => parser.name;
     
-    shared actual ParseResult<{Value*}>|ParseError doParse(
+    shared actual ParseResult<{Value+}>|ParseError doParse(
         Iterator<Character> input,
         ParsedLocation parsedLocation,
         String? delegateName) {
         value result = parser.doParse(input, parsedLocation, delegateName);
-        if (is ParseResult<{Value?*}> result) {
-            if (result.result.any((element) => element is Null)) {
-                return ParseError("ParseResult contains a null value: ``result.result``", result.consumed);
+        if (is ParseResult<{Value?+}> result) {
+            value results = result.result.sequence();
+            if (results.any((element) => element is Null)) {
+                return ParseError("ParseResult contains a null value: ``results``", result.consumed);
             } else {
-                return ParseResult(result.result.coalesced,
+                assert(is {Value+} values = results.coalesced.sequence());
+                return ParseResult(values,
                     result.parseLocation, result.consumed, result.overConsumed);
             }
         } else {
@@ -311,24 +321,15 @@ shared Parser<{Value*}> coallescedParser<Value>(Parser<{Value?*}> parser)
     }
 };
 
-shared Value? firstValue<Value>(ParseResult<{Value*}>|ParseError parseResult)
-        => if (is ParseResult<{Value*}> parseResult) then
-    parseResult.result.first else null;
-
 "Converts a function that takes one argument of type *Arg* to one which takes an
- argument of type *`{Arg*}`*.
- 
- This is useful when converting parsers using [[asMultiValueParser]], because it is common that
- parsers should produce a single output which needs to be converted to a different type, but because
- parsers always return multiple values (so that they can be *chained* together), this function
- is required in those cases.
+ argument of type *`{Arg*}`* (eg. many args).
  
  For example, to parse a String and then produce a single Foo, where Foo's constructor takes a single String:
  
-     Parser<{Foo*}> fooParser = convertParser(string(\"foo\"), toOne(Foo));
+     Parser<{Foo*}> fooParser = multiValueParser(str(\"foo\"), takeArgs(Foo));
 "
-see (`function asMultiValueParser`, `function seq`)
-shared Result({Arg*}) toOne<out Result,in Arg>(Result(Arg) fun) {
+see (`function multiValueParser`, `function seq`)
+shared Result({Arg*}) takeArgs<out Result,in Arg>(Result(Arg) fun) {
     return function({Arg*} args) {
         "This function can only be called with non-empty iterables!"
         assert (exists first = args.first);

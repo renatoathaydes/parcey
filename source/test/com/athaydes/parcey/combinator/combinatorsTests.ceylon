@@ -10,7 +10,7 @@ import com.athaydes.parcey {
     anyChar,
     ParseError,
     char,
-    oneString,
+    str,
     space,
     noneOf,
     spaceChars,
@@ -50,7 +50,7 @@ shared void canParseNonStableStream() {
 test
 shared void eitherCombinatorCanParseAllAlternatives() {
     value parser = either {
-        char('a'), oneString("hi"), space()
+        char('a'), str("hi"), space()
     };
     
     value result1 = parser.parse("a");
@@ -113,7 +113,7 @@ shared void eitherCombinatorCanBacktrackTwice() {
 test
 shared void eitherCombinatorCanBacktrackThrice() {
     value parser = either {
-        oneString("abcd"), oneString("abcef"), oneString("abceg")
+        str("abcd"), str("abcef"), str("abceg")
     };
     
     value result = parser.parse("abcegh");
@@ -129,7 +129,7 @@ shared void eitherCombinatorCanBacktrackThrice() {
 
 test
 shared void eitherCombinatorDoesNotConsumeNextToken() {
-    value parser = either { oneString("ab"), oneString("ac") };
+    value parser = either { str("ab"), str("ac") };
     
     value result = parser.parse("ade");
     
@@ -185,7 +185,7 @@ shared void manyCombinatorDoesNotConsumeNextToken() {
 
 test
 shared void manyCombinatorDoesNotConsumeNextTokenUsingMultiCharacterConsumer() {
-    value result = many(oneString("abc")).parse("abcabcabcdef");
+    value result = many(str("abc")).parse("abcabcabcdef");
     
     if (is ParseResult<{Character*}> result) {
         assertEquals(result.result.sequence(), ['a', 'b', 'c', 'a', 'b', 'c', 'a', 'b', 'c']);
@@ -297,7 +297,7 @@ shared void manySeqManyCombinationTest() {
 }
 test
 shared void skipManyCombinatorDoesNotConsumeNextTokenUsingMultiCharacterConsumer() {
-    value result = skip(many(oneString("abc"))).parse("abcabcabcdef");
+    value result = skip(many(str("abc"))).parse("abcabcabcdef");
     
     if (is ParseResult<{Character*}> result) {
         assertEquals(result.result.sequence(), []);
@@ -466,7 +466,7 @@ test shared void testOptionSimple() {
 }
 
 test shared void testOptionMultivalue() {
-    value parser = option(seq { oneString("hej"), oneString("bye") });
+    value parser = option(seq { str("hej"), str("bye") });
     
     value result1 = parser.parse("hejdå");
     if (is ParseResult<{Character*}> result1) {
@@ -514,7 +514,7 @@ shared void parserChainSimpleTest() {
 
 test
 shared void parserChain2ParsersTest() {
-    for (index->parserPair in [[char('a'), char(' ')], [many(noneOf(spaceChars)), char(' ')], [space(), oneString("xxmn")]].indexed) {
+    for (index->parserPair in [[char('a'), char(' ')], [many(noneOf(spaceChars)), char(' ')], [space(), str("xxmn")]].indexed) {
         for (input in ["", "0", "\n", " ", "a", "a b c", "123", " abc", " xxx yyy"]) {
             value result1 = parserPair[0].parse(input);
             value nonParsed = input.sublistFrom(result1.consumed.size);
@@ -531,7 +531,7 @@ shared void parserChain2ParsersTest() {
 test
 shared void parserChainParsedLocationTest() {
     value parser = seq {
-        char('a'), char('b'), either { char('c'), char('d') }, oneString("xyz")
+        char('a'), char('b'), either { char('c'), char('d') }, str("xyz")
     };
     
     for ([input, expected] in [["a", [0, 1]], ["abx", [0, 2]], ["abcd", [0, 3]], ["abcxym", [0, 3]]]) {
@@ -615,7 +615,7 @@ shared void testSepByWithComplexCombination() {
     value args = seq {
         skip(char('(')),
         sepBy(around(spaces(), char(',')),
-            stringParser(either { oneString("shared"), oneString("actual") })),
+            stringParser(either { str("shared"), str("actual") })),
         skip(char(')'))
     };
     

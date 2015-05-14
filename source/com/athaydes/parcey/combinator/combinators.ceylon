@@ -178,6 +178,7 @@ shared Parser<{Item*}> option<Item>(Parser<{Item*}> parser) {
  
  * a
  * b:c:d"
+see(`function sepWith`)
 shared Parser<{Item*}> sepBy<Item>(
     Parser<Anything> separator,
     Parser<{Item*}> parser,
@@ -190,6 +191,45 @@ shared Parser<{Item*}> sepBy<Item>(
         parser,
         optionalIf(minOccurrences == 1)(
             many(seq { skip(separator), parser }, minOccurrences - 1))
+    });
+}
+
+"Creates a Parser that applies the given parser multiple times, using the separator parser
+ in between applications, as many times as possible.
+ 
+ For example, the following Parser will parse zero or more Integers separated by a comma
+ and optional spaces:
+ 
+     sepBy(around(spaces(), char(',')), integer());
+     
+ The [[minOcurrences|minOccurrences]] argument may specify the minimum number of times the given
+ parser must succeed.
+ 
+ Notice that if `minOccurrences <= 1`, then no separator is required in the input
+ for this Parser to succeed.
+ 
+ For example, given the following Parser:
+ 
+     sepBy(char(':'), anyChar(), 1);
+     
+ The following are valid inputs:
+ 
+ * a
+ * b:c:d"
+see(`function sepBy`)
+shared Parser<{Item|Sep*}> sepWith<Item, Sep>(
+    Parser<{Sep*}> separator,
+    Parser<{Item*}> parser,
+    Integer minOccurrences = 0,
+    String name_ = "") {
+    alias Val => Item|Sep;
+    function optionalIf(Boolean condition) {
+        return condition then option<Val> else identity<Parser<{Val*}>>;
+    }
+    return optionalIf(minOccurrences <= 0)(seq {
+        parser,
+        optionalIf(minOccurrences == 1)(
+            many(seq { separator, parser }, minOccurrences - 1))
     });
 }
 

@@ -10,9 +10,9 @@ import com.athaydes.parcey {
     ParseError,
     Parser,
     ParseResult,
-    asSingleValueParser,
+    valueParser,
     char,
-    oneString
+    str
 }
 import ceylon.test {
     fail,
@@ -26,8 +26,8 @@ ParsedLocation extractLocation(String errorMessage) {
             return [row, col];
         }
         value spaces = skip(many(space()));
-        shared Parser<ParsedLocation> locationParser = asSingleValueParser(seq {
-            integer(), skip(char(',')), spaces, skip(oneString("column")), spaces, integer()
+        shared Parser<ParsedLocation> locationParser = valueParser(seq {
+            integer(), skip(char(',')), spaces, skip(str("column")), spaces, integer()
         }, asLocation);
     }
     // messages always end with 'row <i>, column <j>'
