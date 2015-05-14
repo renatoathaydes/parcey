@@ -225,10 +225,10 @@ class OneOf(shared actual String name, Boolean includingChars, {Character+} char
  to *p*, using *f* to convert the result from type *From* to *To* and turning the result into a single-value
  Iterable<To>."
 see (`function toOne`, `function asSingleValueParser`)
-shared Parser<{To*}> asMultiValueParser<From,To>(Parser<From> parser, To(From) converter)
-        => object satisfies Parser<{To*}> {
+shared Parser<{To+}> asMultiValueParser<From,To>(Parser<From> parser, To(From) converter)
+        => object satisfies Parser<{To+}> {
     name = parser.name;
-    shared actual ParseResult<{To*}>|ParseError doParse(
+    shared actual ParseResult<{To+}>|ParseError doParse(
         Iterator<Character> input,
         ParsedLocation parsedLocation,
         String? delegateName) {

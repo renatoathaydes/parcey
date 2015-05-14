@@ -41,7 +41,7 @@ shared Parser<{Item*}> seq<Item>({Parser<{Item*}>+} parsers, String name_ = "")
                 if (!current.overConsumed.empty) {
                     effectiveInput = chain(current.overConsumed, effectiveInput);
                 }
-                result = append(result, current, true);
+                result = append(result, current, false);
             }
         }
         return result;
@@ -86,50 +86,58 @@ shared Parser<Item> either<Item>({Parser<Item>+} parsers, String name_ = "") {
 see (`function skip`)
 shared Parser<{Item*}> many<Item>(Parser<{Item*}> parser, Integer minOccurrences = 0, String name_ = "") {
     value parsers = [parser].cycled;
+
     return object satisfies Parser<{Item*}> {
 
         name = chooseName(name_, (minOccurrences <= 0 then "many" else "at least ``minOccurrences``")
             + " ``simplePlural("occurrence", minOccurrences)`` of ``parser.name``");
 
+        function minMany(Iterator<Character> input, ParsedLocation parsedLocation)
+                => seq({parser}.chain(parsers.take(minOccurrences - 1)), name)
+                    .doParse(input, parsedLocation, name);
+        
         shared actual ParseResult<{Item*}>|ParseError doParse(
             Iterator<Character> input,
             ParsedLocation parsedLocation,
             String? delegateName) {
-            variable Integer passes = 0;
             variable ParseResult<{Item*}> result = ParseResult([], parsedLocation, []);
-            for (parser in parsers) {
+            if (minOccurrences > 0) {
+                value mandatoryResult = minMany(input, parsedLocation);
+                if (is ParseError mandatoryResult) {
+                    return mandatoryResult;
+                } else {
+                    result = mandatoryResult;
+                }    
+            }
+            for (optional in parsers) {
                 value location = locationAfterParsing(result.consumed, parsedLocation);
-                value current = parser.doParse(input, location);
-                switch (current)
+                value optionalResult = optional.doParse(
+                    chain(result.overConsumed, input), location, name);
+                
+                switch (optionalResult)
                 case (is ParseError) {
-                    if (passes >= minOccurrences) {
-                        return ParseResult(result.result, result.parseLocation,
-                            result.consumed, current.consumed);
-                    } else {
-                        return parseError("Expected ``delegateName else parser.name`` but was ``current.consumed``",
-                            location, result.consumed.append(current.consumed));
-                    }
+                    return ParseResult(result.result, result.parseLocation,
+                        result.consumed, optionalResult.consumed);
                 }
                 case (is ParseResult<{Item*}>) {
-                    result = append(result, current, true);
-                    if (current.consumed.empty) {
+                    result = append(result, optionalResult, false);
+                    if (optionalResult.consumed.empty) {
                         // did not consume anything, stop or there will be an infinite loop
-                        return ParseResult(result.result, result.parseLocation, result.consumed, result.overConsumed);
+                        return ParseResult(result.result, result.parseLocation,
+                            result.consumed, result.overConsumed);
                     }
-                    passes++;
                 }
             }
-            throw; // parsers is an infinite stream, so this will never be reached
+            throw; // looping an infinite stream, so this will never be reached
         }
     };
 }
 
-"Creates a Parser that applies the given parsers only if all of them succeed.
+"Creates a Parser that applies the given parser if it succeeds.
  
- If any Parser fails, the parser backtracks and returns an empty result."
+ In case of failure, this Parser backtracks and returns an empty result."
 see (`function many`, `function either`)
-shared Parser<{Item*}> option<Item>({Parser<{Item*}>+} parsers) {
-    value parser = seq<Item>(parsers);
+shared Parser<{Item*}> option<Item>(Parser<{Item*}> parser) {
     return object satisfies Parser<{Item*}> {
         name = "option"; // this parser cannot produce errors so a name is unnecessary
         shared actual ParseResult<{Item*}> doParse(
@@ -173,13 +181,17 @@ shared Parser<{Item*}> option<Item>({Parser<{Item*}>+} parsers) {
 shared Parser<{Item*}> sepBy<Item>(
     Parser<Anything> separator,
     Parser<{Item*}> parser,
-    Integer minOccurrences = 0)
-        => let (lastItemParser = (minOccurrences <= 0)
-            then option<Item> else (({Parser<{Item*}>+} p) => p.first))
-    seq {
-        many(seq { parser, skip(separator) }, minOccurrences - 1),
-        lastItemParser({ parser })
-    };
+    Integer minOccurrences = 0,
+    String name_ = "") {
+    function optionalIf(Boolean condition) {
+        return condition then option<Item> else identity<Parser<{Item*}>>;
+    }
+    return optionalIf(minOccurrences <= 0)(seq {
+        parser,
+        optionalIf(minOccurrences == 1)(
+            many(seq { skip(separator), parser }, minOccurrences - 1))
+    });
+}
 
 "Creates a Parser that applies the given parsers but throws away their results,
  returning an [[Empty]] as its result if the parser succeeds."

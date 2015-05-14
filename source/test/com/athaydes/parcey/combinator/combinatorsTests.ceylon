@@ -17,7 +17,9 @@ import com.athaydes.parcey {
     ParsedLocation,
     asSingleValueParser,
     integer,
-    Parser
+    Parser,
+    stringParser,
+    spaces
 }
 import com.athaydes.parcey.combinator {
     either,
@@ -25,7 +27,8 @@ import com.athaydes.parcey.combinator {
     many,
     option,
     skip,
-    sepBy
+    sepBy,
+    around
 }
 
 test
@@ -267,6 +270,35 @@ shared void many3CombinatorDoesNotConsumeNextToken() {
 }
 
 test
+shared void manySeqCombinationTest() {
+    value manySeq = many(seq { char('x'), skip(char(',')) });
+    
+    value result1 = manySeq.parse("x,x,x!");
+    if (is ParseResult<{Character*}> result1) {
+        assertEquals(result1.result.sequence(), ['x', 'x']);
+        assertEquals(result1.parseLocation, [0, 4]);
+        assertEquals(result1.consumed, ['x', ',', 'x', ',']);
+        assertEquals(result1.overConsumed, ['x', '!']);
+    } else {
+        fail("Result was ``result1``");
+    }
+}
+
+test
+shared void manySeqManyCombinationTest() {
+    value parser = many(seq { skip(char('.')), many(char('x')) });
+    
+    value result1 = parser.parse(".x.xxx..x!x");
+    if (is ParseResult<{Character*}> result1) {
+        assertEquals(result1.result.sequence(), ['x', 'x', 'x', 'x', 'x']);
+        assertEquals(result1.parseLocation, [0, 9]);
+        assertEquals(result1.consumed, ['.', 'x', '.', 'x', 'x', 'x', '.', '.', 'x']);
+        assertEquals(result1.overConsumed, ['!']);
+    } else {
+        fail("Result was ``result1``");
+    }
+}
+test
 shared void skipManyCombinatorDoesNotConsumeNextTokenUsingMultiCharacterConsumer() {
     value result = skip(many(oneString("abc"))).parse("abcabcabcdef");
     
@@ -402,8 +434,8 @@ shared void skipMany3CombinatorDoesNotConsumeNextToken() {
     }
 }
 
-test shared void testOption() {
-    value parser = option { char('a') };
+test shared void testOptionSimple() {
+    value parser = option(char('a'));
     
     value result1 = parser.parse("");
     if (is ParseResult<{Character*}> result1) {
@@ -431,6 +463,40 @@ test shared void testOption() {
         assertEquals(result3.parseLocation, [0, 0]);
         assertEquals(result3.consumed, []);
         assertEquals(result3.overConsumed, ['b']);
+    } else {
+        fail("Result was ```result3``");
+    }
+}
+
+test shared void testOptionMultivalue() {
+    value parser = option(seq { oneString("hej"), oneString("bye") });
+    
+    value result1 = parser.parse("hejdå");
+    if (is ParseResult<{Character*}> result1) {
+        assertEquals(result1.result.sequence(), []);
+        assertEquals(result1.parseLocation, [0, 0]);
+        assertEquals(result1.consumed, []);
+        assertEquals(result1.overConsumed, ['h', 'e', 'j', 'd']);
+    } else {
+        fail("Result was ```result1``");
+    }
+    
+    value result2 = parser.parse("hejbye");
+    if (is ParseResult<{Character*}> result2) {
+        assertEquals(result2.result.sequence(), ['h', 'e', 'j', 'b', 'y', 'e']);
+        assertEquals(result2.parseLocation, [0, 6]);
+        assertEquals(result2.consumed, ['h', 'e', 'j', 'b', 'y', 'e']);
+        assertEquals(result2.overConsumed, []);
+    } else {
+        fail("Result was ```result2``");
+    }
+    
+    value result3 = parser.parse("hell");
+    if (is ParseResult<{Character*}> result3) {
+        assertEquals(result3.result.sequence(), []);
+        assertEquals(result3.parseLocation, [0, 0]);
+        assertEquals(result3.consumed, []);
+        assertEquals(result3.overConsumed, ['h', 'e', 'l']);
     } else {
         fail("Result was ```result3``");
     }
@@ -495,6 +561,8 @@ shared void testSepBy() {
     value result2 = commaSeparated.parse("1,2,");
     if (is ParseResult<{Integer*}> result2) {
         assertEquals(result2.result.sequence(), [1, 2]);
+        assertEquals(result2.consumed, ['1', ',', '2']);
+        assertEquals(result2.overConsumed, [',']);
     } else {
         fail("Result was ``result2``");
     }
@@ -540,6 +608,44 @@ shared void testSepByMin3() {
     value result4 = commaSeparated.parse("1,2");
     if (is ParseError result4) {
         assertFalse(result4.message.empty);
+    } else {
+        fail("Result was ``result4``");
+    }
+}
+
+test
+shared void testSepByWithComplexCombination() {
+    value args = seq {
+        skip(char('(')),
+        sepBy(around(spaces(), char(',')),
+            stringParser(either { oneString("shared"), oneString("actual") })),
+        skip(char(')'))
+    };
+    
+    value result1 = args.parse("()");
+    if (is ParseResult<{String*}> result1) {
+        assertEquals(result1.result.sequence(), []);
+    } else {
+        fail("Result was ``result1``");
+    }
+    
+    value result2 = args.parse("(shared)");
+    if (is ParseResult<{String*}> result2) {
+        assertEquals(result2.result.sequence(), ["shared"]);
+    } else {
+        fail("Result was ``result2``");
+    }
+    
+    value result3 = args.parse("(shared, actual)");
+    if (is ParseResult<{String*}> result3) {
+        assertEquals(result3.result.sequence(), ["shared", "actual"]);
+    } else {
+        fail("Result was ``result3``");
+    }
+    
+    value result4 = args.parse("(shared   ,    actual,shared)");
+    if (is ParseResult<{String*}> result4) {
+        assertEquals(result4.result.sequence(), ["shared", "actual", "shared"]);
     } else {
         fail("Result was ``result4``");
     }

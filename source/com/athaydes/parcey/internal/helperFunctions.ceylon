@@ -29,12 +29,12 @@ shared ParseResult<Item> appendStreams<Item>(
 shared ParseResult<{Item*}> append<Item>(
     ParseResult<{Item*}> first,
     ParseResult<{Item*}> second,
-    Boolean appendConsumedStreams)
+    Boolean appendOverconsumed)
         => ParseResult(
         first.result.chain(second.result),
         second.parseLocation,
-        appendConsumedStreams then first.consumed.append(second.consumed) else second.consumed,
-        second.overConsumed);
+        first.consumed.append(second.consumed),
+        appendOverconsumed then first.overConsumed.append(second.overConsumed) else second.overConsumed);
 
 shared Iterator<Character> chain(Character[] consumed, Iterator<Character> rest)
         => object satisfies Iterator<Character> {
