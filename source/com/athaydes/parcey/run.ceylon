@@ -4,11 +4,12 @@ import com.athaydes.parcey.combinator {
 
 "Run the module `com.athaydes.parcey`."
 shared void run() {
-    value csv = seq({anyChar(), either({char('.'), char(',')}), anyChar()});
-    print(csv.parse("a,b"));
-    print(csv.parse("a.b"));
-    print(csv.parse("a,b,c"));
-    print(csv.parse(""));
-    print(csv.parse(",a,b"));
-    
+    value sentence = seq {
+        sepBy(char(' '), many(word(), 1)),
+        skip(oneOf { '.', '!', '?' })
+    };
+    assert(is ParseResult<{String*}> result =
+        sentence.parse("This is a sentence!"));
+    assert(result.result.sequence() == ["This", "is", "a", "sentence"]);
+    print(result);
 }
