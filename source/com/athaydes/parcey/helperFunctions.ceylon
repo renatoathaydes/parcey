@@ -4,7 +4,10 @@ import com.athaydes.parcey.combinator {
 }
 
 "Given a parser *(p)* and a function To(From) *(f)*, return a new parser which delegates the parsing
- to *p*, using *f* to convert the result from type *From* to *To*."
+ to *p*, using *f* to convert the result from type *From* to *To*.
+ 
+ For use with chain parsers (eg. [[Parser<{From*}>]]), prefer [[mapParser]]."
+see(`function mapParser`)
 shared Parser<To> mapValueParser<From,To>(Parser<From> parser, To(From) converter)
         => object satisfies Parser<To> {
     name = parser.name;
@@ -25,25 +28,13 @@ shared Parser<To> mapValueParser<From,To>(Parser<From> parser, To(From) converte
 };
 
 "Given a parser *(p)* and a function [[To(From)]] *(f)*, return a new parser which delegates the parsing
- to *p*, using *f* to convert the result from type [[{From*}]] to [[{To*}]]."
+ to *p*, using *f* to convert the result from type [[{From*}]] to [[{To*}]].
+ 
+ This function is convenient when using chain parsers. For single-value parsers,
+ prefer to use [[mapValueParser]]."
+see(`function mapValueParser`)
 shared Parser<{To*}> mapParser<From,To>(Parser<{From*}> parser, To(From) converter)
-        => object satisfies Parser<{To*}> {
-    name = parser.name;
-    shared actual ParseResult<{To*}>|ParseError doParse(
-        Iterator<Character> input,
-        ParsedLocation parsedLocation,
-        String? delegateName) {
-        value result = parser.doParse(input, parsedLocation, delegateName);
-        switch (result)
-        case (is ParseResult<{From*}>) {
-            return ParseResult(result.result.map(converter),
-                result.parseLocation, result.consumed, result.overConsumed);
-        }
-        case (is ParseError) {
-            return result;
-        }
-    }
-};
+        => mapValueParser(parser, ({From*} from) => from.map(converter));
 
 "Converts an [[Item]] parser to a [[{Item+}]] parser which can be
  chained to other multi-value parsers.
