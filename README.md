@@ -34,7 +34,7 @@ assert(is ParseResult<{Integer*}> contents =
 assert(contents.result.sequence() == [123]);
 ```
 
-> Notice that most parsers return a sequence of values, rather than a single value... that's because, most of the time, parsers are used in to parse several values, of course, but also because this allows us to combine the parsers much more easily, as we'll see later.
+> Notice that most parsers return a sequence of values, rather than a single value... that's because, most of the time, parsers are used to parse several values, not just one... but also because this allows us to combine the parsers much more easily, as we'll see later.
 
 If something goes wrong, you'll get a good error message:
 
