@@ -19,6 +19,7 @@ import com.athaydes.parcey.internal {
  is returned immediately.
  
  This is a very commonly-used Parser, hence its short name which stands for *sequence of Parsers*."
+see(`function seq1`)
 shared Parser<{Item*}> seq<Item>({Parser<{Item*}>+} parsers, String name_ = "")
         => object satisfies Parser<{Item*}> {
     name = chooseName(name_, parsers.map(Parser.name).interpose("->").fold("")(plus));
@@ -47,6 +48,34 @@ shared Parser<{Item*}> seq<Item>({Parser<{Item*}>+} parsers, String name_ = "")
         return result;
     }
 };
+
+"Creates a Parser that applies each of the given parsers in sequence, ensuring at least
+ one [[Item]] is returned in the result.
+ 
+ If any of the parsers fails, the chain is broken and a [[com.athaydes.parcey::ParseError]]
+ is returned immediately."
+see(`function seq`)
+shared Parser<{Item+}> seq1<Item>({Parser<{Item*}>+} parsers, String name_ = "")
+        => object satisfies Parser<{Item+}> {
+    value delegate = seq(parsers, name_);
+    name = delegate.name;
+    shared actual ParseResult<{Item+}>|ParseError doParse(
+        Iterator<Character> input,
+        ParsedLocation parsedLocation,
+        String? delegateName) {
+            value result = delegate.doParse(input, parsedLocation);
+            if (is ParseResult<{Item*}> result,
+                is {Item+} res = result.result) {
+                return ParseResult(res, result.parseLocation,
+                    result.consumed, result.overConsumed);
+            } else if (is ParseError result) {
+                return result;
+            } else {
+                return parseError("Empty result from ``name``",
+                    parsedLocation, result.consumed.append(result.overConsumed));
+            }
+        }
+    };
 
 "Creates a Parser which attempts to parse input using the first of the given parsers, and in case it fails,
  attempts to use the next parser and so on until there is no more available parsers.

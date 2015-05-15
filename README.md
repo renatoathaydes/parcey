@@ -50,6 +50,7 @@ print(error.message);
 Here's a full list of the available **parsers**:
 
 * `char`: parses the single specified character.
+* `chars`: parses a non-empty stream of characters.
 * `anyChar`: parses any character.
 * `letter`: parses a single latin letter (`'a'..'z'` and `'A'..'Z'`).
 * `word`: parses any word (defined as a sequence of latin letters).
@@ -66,6 +67,7 @@ Here's a full list of the available **parsers**:
 And these are the parser **combinators**:
 
 * `seq`: applies one or more parsers in sequence, one after the other.
+* `seq1`: like `seq`, but ensures at least one item in the result stream.
 * `either`: applies one of the given parsers, trying each until one succeeds.
 * `sepBy`: parses a parser separated by a separator parser.
 * `sepWith`: like `sepBy`, but does not discard the separators.

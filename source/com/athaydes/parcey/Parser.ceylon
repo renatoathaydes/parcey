@@ -2,7 +2,8 @@ import com.athaydes.parcey.combinator {
     either,
     seq,
     many,
-    skip
+    skip,
+    seq1
 }
 import com.athaydes.parcey.internal {
     locationAfterParsing,
@@ -145,6 +146,14 @@ shared Parser<{Character+}> oneOf({Character+} chars, String name = "")
 shared Parser<{Character+}> char(Character char, String name = "")
         => oneOf({ char }, chooseName(name, quote(char)));
 
+"Parser for a sequence of characters.
+ 
+ This parser is similar to the [[str]] parser, but returns a sequence
+ of Characters instead of a String and does not accept empty Strings."
+see(`function char`, `function str`)
+shared Parser<{Character+}> chars({Character+} chars, String name = "")
+        => seq1(chars.map(char));
+
 "Parser for none of the given characters. It fails if the input is one of the given characters.
  
  It succeeds if the input is empty."
@@ -169,30 +178,30 @@ shared Parser<{String+}> anyStr(String name = "")
         => multiValueParser(many(noneOf(spaceChars), 0, chooseName(name, "any String")), String);
 
 "A String parser which parses only the given string."
-shared Parser<String> str(String str, String name_ = "")
-        => object satisfies Parser<String> {
-    name = chooseName(name_, "string ``quote(str)``");
-    shared actual ParseResult<String>|ParseError doParse(
+shared Parser<{String+}> str(String text, String name_ = "")
+        => object satisfies Parser<{String+}> {
+    name = chooseName(name_, "string ``quote(text)``");
+    shared actual ParseResult<{String+}>|ParseError doParse(
         Iterator<Character> input,
         ParsedLocation parsedLocation,
         String? delegateName) {
-        if (str.empty) {
+        if (text.empty) {
             if (is Character next = input.next()) {
                 return parseError("Expected ``delegateName else name`` but found '``next``'",
                     parsedLocation, [next]);
             } else {
-                return ParseResult("", parsedLocation, []);
+                return ParseResult({""}, parsedLocation, []);
             }
         } else {
             value consumed = StringBuilder();
-            for (expected->actual in zipEntries(str, asIterable(input))) {
+            for (expected->actual in zipEntries(text, asIterable(input))) {
                 consumed.appendCharacter(actual);
                 if (actual != expected) {
                     return parseError("Expected ``delegateName else name`` but was ``consumed``",
                         locationAfterParsing(consumed, parsedLocation), consumed.sequence());
                 }
             }
-            return ParseResult(str, locationAfterParsing(consumed, parsedLocation), consumed.sequence());
+            return ParseResult({text}, locationAfterParsing(consumed, parsedLocation), consumed.sequence());
         }
     }
 };

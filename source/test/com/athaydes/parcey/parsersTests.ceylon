@@ -23,7 +23,8 @@ import com.athaydes.parcey {
     multiValueParser,
     stringParser,
     takeArgs,
-    spaces
+    spaces,
+    chars
 }
 import com.athaydes.parcey.combinator {
     ...
@@ -59,6 +60,30 @@ shared void testAnyChar() {
     assert (is ParseError result3 = anyChar().parse(""));
     assertFalse(result3.message.empty);
     assertEquals(result3.consumed, []);
+}
+
+test
+shared void testChars() {
+    value parser = chars { 'a', 'b', 'c' };
+    
+    value result1 = parser.parse('a'..'z');
+    
+    if (is ParseResult<{Character+}> result1) {
+        assertEquals(result1.result.sequence(), ['a', 'b', 'c']);
+        assertEquals(result1.parseLocation, [0, 3]);
+        assertEquals(result1.consumed, ['a', 'b', 'c']);
+        assertEquals(result1.overConsumed, []);
+    } else {
+        fail("Result was ```result1``");
+    }
+
+    value result2 = parser.parse("abxy");
+    if (is ParseError result2) {
+        assertEquals(result2.consumed, ['a', 'b', 'x']);
+        assertFalse(result2.message.empty);
+    } else {
+        fail("Result was ```result2``");
+    }
 }
 
 test
@@ -167,10 +192,10 @@ shared void testWord() {
 }
 
 test
-shared void testString() {
+shared void testStr() {
     value result1 = str("").parse("");
-    if (is ParseResult<String> result1) {
-        assertEquals(result1.result, "");
+    if (is ParseResult<{String+}> result1) {
+        assertEquals(result1.result.sequence(), [""]);
         assertEquals(result1.parseLocation, [0, 0]);
         assertEquals(result1.consumed, []);
         assertEquals(result1.overConsumed, []);
@@ -179,8 +204,8 @@ shared void testString() {
     }
     
     value result2 = str("a").parse("a");
-    if (is ParseResult<String> result2) {
-        assertEquals(result2.result, "a");
+    if (is ParseResult<{String+}> result2) {
+        assertEquals(result2.result.sequence(), ["a"]);
         assertEquals(result2.parseLocation, [0, 1]);
         assertEquals(result2.consumed, ['a']);
         assertEquals(result2.overConsumed, []);
@@ -189,8 +214,8 @@ shared void testString() {
     }
     
     value result3 = str("xyz").parse("xyz abc");
-    if (is ParseResult<String> result3) {
-        assertEquals(result3.result, "xyz");
+    if (is ParseResult<{String+}> result3) {
+        assertEquals(result3.result.sequence(), ["xyz"]);
         assertEquals(result3.parseLocation, [0, 3]);
         assertEquals(result3.consumed, ['x', 'y', 'z']);
         assertEquals(result3.overConsumed, []);
@@ -230,8 +255,8 @@ shared void testStringDoesNotOverconsume() {
         }
     };
     value result = str("xyz").doParse(iterator, [4, 10], null);
-    if (is ParseResult<String> result) {
-        assertEquals(result.result, "xyz");
+    if (is ParseResult<{String+}> result) {
+        assertEquals(result.result.sequence(), ["xyz"]);
         assertEquals(result.parseLocation, [4, 13]);
         assertEquals(result.consumed, ['x', 'y', 'z']);
         assertEquals(result.overConsumed, []);

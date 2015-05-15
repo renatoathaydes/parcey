@@ -15,8 +15,8 @@ import com.athaydes.parcey {
     noneOf,
     spaceChars,
     integer,
-    stringParser,
-    spaces
+    spaces,
+    chars
 }
 import com.athaydes.parcey.combinator {
     either,
@@ -50,7 +50,7 @@ shared void canParseNonStableStream() {
 test
 shared void eitherCombinatorCanParseAllAlternatives() {
     value parser = either {
-        char('a'), str("hi"), space()
+        char('a'), chars(['h', 'i']), space()
     };
     
     value result1 = parser.parse("a");
@@ -62,8 +62,8 @@ shared void eitherCombinatorCanParseAllAlternatives() {
     }
     
     value result2 = parser.parse("hi");
-    if (is ParseResult<String> result2) {
-        assertEquals(result2.result, "hi");
+    if (is ParseResult<{Character+}> result2) {
+        assertEquals(result2.result.sequence(), ['h', 'i']);
         assertEquals(result2.parseLocation, [0, 2]);
     } else {
         fail("Result was ``result2``");
@@ -118,8 +118,8 @@ shared void eitherCombinatorCanBacktrackThrice() {
     
     value result = parser.parse("abcegh");
     
-    if (is ParseResult<{Character*}> result) {
-        assertEquals(result.result.sequence(), ['a', 'b', 'c', 'e', 'g']);
+    if (is ParseResult<{String+}> result) {
+        assertEquals(result.result.sequence(), ["abceg"]);
         assertEquals(result.parseLocation, [0, 5]);
         assertEquals(result.overConsumed, []);
     } else {
@@ -187,8 +187,8 @@ test
 shared void manyCombinatorDoesNotConsumeNextTokenUsingMultiCharacterConsumer() {
     value result = many(str("abc")).parse("abcabcabcdef");
     
-    if (is ParseResult<{Character*}> result) {
-        assertEquals(result.result.sequence(), ['a', 'b', 'c', 'a', 'b', 'c', 'a', 'b', 'c']);
+    if (is ParseResult<{String*}> result) {
+        assertEquals(result.result.sequence(), ["abc", "abc", "abc"]);
         assertEquals(result.parseLocation, [0, 9]);
         assertEquals(result.consumed, ['a', 'b', 'c', 'a', 'b', 'c', 'a', 'b', 'c']);
         assertEquals(result.overConsumed, ['d']);
@@ -469,7 +469,7 @@ test shared void testOptionMultivalue() {
     value parser = option(seq { str("hej"), str("bye") });
     
     value result1 = parser.parse("hejdå");
-    if (is ParseResult<{Character*}> result1) {
+    if (is ParseResult<{String*}> result1) {
         assertEquals(result1.result.sequence(), []);
         assertEquals(result1.parseLocation, [0, 0]);
         assertEquals(result1.consumed, []);
@@ -479,8 +479,8 @@ test shared void testOptionMultivalue() {
     }
     
     value result2 = parser.parse("hejbye");
-    if (is ParseResult<{Character*}> result2) {
-        assertEquals(result2.result.sequence(), ['h', 'e', 'j', 'b', 'y', 'e']);
+    if (is ParseResult<{String*}> result2) {
+        assertEquals(result2.result.sequence(), ["hej", "bye"]);
         assertEquals(result2.parseLocation, [0, 6]);
         assertEquals(result2.consumed, ['h', 'e', 'j', 'b', 'y', 'e']);
         assertEquals(result2.overConsumed, []);
@@ -489,7 +489,7 @@ test shared void testOptionMultivalue() {
     }
     
     value result3 = parser.parse("hell");
-    if (is ParseResult<{Character*}> result3) {
+    if (is ParseResult<{String*}> result3) {
         assertEquals(result3.result.sequence(), []);
         assertEquals(result3.parseLocation, [0, 0]);
         assertEquals(result3.consumed, []);
@@ -514,7 +514,7 @@ shared void parserChainSimpleTest() {
 
 test
 shared void parserChain2ParsersTest() {
-    for (index->parserPair in [[char('a'), char(' ')], [many(noneOf(spaceChars)), char(' ')], [space(), str("xxmn")]].indexed) {
+    for (index->parserPair in [[char('a'), char(' ')], [many(noneOf(spaceChars)), char(' ')], [space(), chars(['x', 'x', 'm'])]].indexed) {
         for (input in ["", "0", "\n", " ", "a", "a b c", "123", " abc", " xxx yyy"]) {
             value result1 = parserPair[0].parse(input);
             value nonParsed = input.sublistFrom(result1.consumed.size);
@@ -615,7 +615,7 @@ shared void testSepByWithComplexCombination() {
     value args = seq {
         skip(char('(')),
         sepBy(around(spaces(), char(',')),
-            stringParser(either { str("shared"), str("actual") })),
+            either { str("shared"), str("actual") }),
         skip(char(')'))
     };
     
