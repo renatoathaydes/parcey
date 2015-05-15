@@ -94,19 +94,3 @@ shared Parser<{Value+}> coallescedParser<Value>(Parser<{Value?+}> parser)
         }
     }
 };
-
-"Converts a function that takes one argument of type *Arg* to one which takes an
- argument of type *`{Arg*}`* (eg. many args).
- 
- For example, to parse a String and then produce a single Foo, where Foo's constructor takes a single String:
- 
-     Parser<{Foo*}> fooParser = multiValueParser(str(\"foo\"), takeArgs(Foo));
- "
-see (`function mapValueParser`, `function seq`)
-shared Result({Arg*}) takeArgs<out Result,in Arg>(Result(Arg) fun) {
-    return function({Arg*} args) {
-        "This function can only be called with non-empty iterables!"
-        assert (exists first = args.first);
-        return fun(first);
-    };
-}
