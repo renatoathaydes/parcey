@@ -80,37 +80,54 @@ For a detailed description, check the CeylonDocs!
 
 ### Helper functions
 
-* `valueParser`: converts a parser of type A to a parser of type B.
-* `multiValueParser`: converts a parser of type A to a parser of type {B+}.
-* `stringParser`: converts a parser of type {Character*} to a parser of type {String*}.
-* `coallescedParser`: turns a parser of type A? into a parser of type A.
-* `takeArgs`: converts a function which takes an argument of type A to one that takes an argument of type {A*}.
+* `mapValueParser`: converts a parser of type `A` to a parser of type `B`.
+* `mapParser`: converts a parser of type `{A*}` to a parser of type `{B*}`.
+* `chainParser`: converts a parser of type `A` to a parser of type `{A+}`.
+* `strParser`: converts a parser of type `{Character*}` to a parser of type `{String+}`.
+* `coallescedParser`: converts a parser of type `{A?*}` to a parser of type `{A*}`.
+* `first`: converts a parser of type `{A*}` to a parser of type `A`.
 
 These helper functions work together to let you create Parsers which can generate values of the types you're interested, not just Strings and Characters.
 
 Quick examples:
 
+*A Person has a single name which is a valid word*.
+
 ```ceylon
 class Person(shared String name) {}
 
 Parser<Person> personParser =
-        valueParser(word(), takeArgs(Person));
+    mapValueParser(first(word()), Person);
 
-assert(is ParseResult<Person> contents3 = personParser.parse("Mikael"));
+assert(is ParseResult<Person> contents3 =
+    personParser.parse("Mikael"));
 Person mikael = contents3.result;
 assert(mikael.name == "Mikael");
 ```
 
-```ceylon
-Parser<{Person+}> peopleParser =
-        multiValueParser(sepBy(spaces(),word()), takeArgs(Person));
+*A sequence of words separated by spaces, where each word is a `Person`*.
 
-assert(is ParseResult<{Person+}> contents4 =
+```ceylon
+// let's re-use the personParser from the previous example
+Parser<{Person*}> peopleParser =
+    sepBy(spaces(), chainParser(personParser));
+
+assert(is ParseResult<{Person*}> contents4 =
     peopleParser.parse("Mary John"));
 value people = contents4.result.sequence();
 assert((people[0]?.name else "") == "Mary");
 assert((people[1]?.name else "") == "John");
 ```
+
+More concisely, we could define `peopleParser` as:
+
+```ceylon
+Parser<{Person*}> peopleParser2 =
+    mapParser(sepBy(spaces(), word()), Person);
+```
+
+That's because `mapParser`, unlike `mapValueParser`, creates a `Parser`
+which is ready to be chained to other parsers (ie. it has type `Parser<{A*}>`, not just `Parser<A>`), which can be very helpful!
 
 ### More examples
 

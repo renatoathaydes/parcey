@@ -36,21 +36,27 @@ see(`function mapValueParser`)
 shared Parser<{To*}> mapParser<From,To>(Parser<{From*}> parser, To(From) converter)
         => mapValueParser(parser, ({From*} from) => from.map(converter));
 
+"Converts a [[{Item+}]] parser to an [[Item]] parser.
+ 
+ Notice that the given parser may consume many [[Item]]s even if wrapped around this function."
+shared Parser<Item> first<Item>(Parser<{Item+}> parser)
+        => mapValueParser(parser, ({Item+} items) => items.first);
+
 "Converts an [[Item]] parser to a [[{Item+}]] parser which can be
  chained to other multi-value parsers.
  
  The result of parsing some input, if successful, is an Iterable
  containing the single value returned by the given parser."
 see(`function seq`, `function seq1`)
-shared Parser<{Item+}> asChainParser<Item>(Parser<Item> parser)
+shared Parser<{Item+}> chainParser<Item>(Parser<Item> parser)
         => mapValueParser(parser, (Item result) => { result });
 
-"Converts a Parser of Characters to a String Parser.
+"Converts a Parser of Characters to a [[{String+}]] Parser.
  
- If succesful, the returned value is an [[{String+}]] containing a single String."
+ If succesful, the returned Iterable contains a single String."
 see (`function mapValueParser`)
 shared Parser<{String+}> strParser(Parser<{Character*}> parser)
-        => asChainParser(mapValueParser(parser, String));
+        => chainParser(mapValueParser(parser, String));
 
 "Converts a Parser which may generate null values to one which will not.
  

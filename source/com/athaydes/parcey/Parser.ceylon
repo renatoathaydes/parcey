@@ -73,24 +73,9 @@ shared interface Parser<out Parsed> {
 "Parser that expects an empty stream.
  
  It only succeeds if the input is empty."
-shared Parser<[]> eof(String name_ = "")
-        => object satisfies Parser<[]> {
-    name => chooseName(name_, "EOF");
-    shared actual ParseResult<[]>|ParseError doParse(
-        Iterator<Character> input,
-        ParsedLocation parsedLocation,
-        String? delegateName) {
-        value first = input.next();
-        switch (first)
-        case (is Finished) {
-            return ParseResult([], parsedLocation, []);
-        }
-        case (is Character) {
-            return parseError("Expected ``delegateName else name`` but was '``first``'",
-                parsedLocation, [first]);
-        }
-    }
-};
+shared Parser<[]> eof(String name = "")
+        => mapValueParser(str("", chooseName(name, "EOF")),
+    ({String+} _) => []);
 
 "Parser for a single Character.
  
@@ -169,14 +154,13 @@ shared Parser<{Character+}> digit(String name = "")
 "A word parser. A word is defined as a non-empty stream of continuous latin letters."
 see (`function letter`)
 shared Parser<{String+}> word(String name = "")
-        => asChainParser(mapValueParser(
-            many(letter(), 1, chooseName(name, "word")), String));
+        => strParser(many(letter(), 1, chooseName(name, "word")));
 
 "A String parser. A String is defined as a possibly empty stream of Characters
  without any spaces between them."
 see (`value spaceChars`)
 shared Parser<{String+}> anyStr(String name = "")
-        => asChainParser(mapValueParser(many(noneOf(spaceChars), 0, chooseName(name, "any String")), String));
+        => strParser(many(noneOf(spaceChars), 0, chooseName(name, "any String")));
 
 "A String parser which parses only the given string."
 shared Parser<{String+}> str(String text, String name_ = "")
@@ -219,7 +203,7 @@ see (`function mapValueParser`)
 shared Parser<{Integer+}> integer(String name_ = "") {
     value digitsParser = mapValueParser(many(digit(), 1, chooseName(name_, "integer")), String);
     value intParser = mapValueParser<String, Integer?>(digitsParser, parseInteger);
-    return coallescedParser(asChainParser(intParser));
+    return coallescedParser(chainParser(intParser));
 }
 
 class OneOf(shared actual String name, Boolean includingChars, {Character+} chars)

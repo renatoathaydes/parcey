@@ -20,11 +20,12 @@ import com.athaydes.parcey {
     char,
     digit,
     word,
-    mapValueParser,
     spaces,
     chars,
-    asChainParser,
-    mapParser
+    mapParser,
+    strParser,
+    mapValueParser,
+    first
 }
 import com.athaydes.parcey.combinator {
     ...
@@ -416,19 +417,16 @@ shared void complexCombinationTest() {
     value capitalLetter = oneOf('A'..'Z');
     value lowerCasedLetter = oneOf('a'..'z');
     value underscore = char('_');
-    value identifier = mapParser(
-        asChainParser(mapValueParser(seq({
+    value identifierStr = strParser(seq({
             either { lowerCasedLetter, underscore },
             many(either { letter(), underscore })
-        }, "identifier"), String)),
-        Identifier);
-    value typeIdentifier = asChainParser(
-        mapValueParser(
-            mapValueParser(seq({
-                capitalLetter,
-                many(either { letter(), underscore })
-            }, "type identifier"),
-            String), Type));
+        }, "identifier"));
+    value identifier = mapParser(identifierStr, Identifier);
+    value typeStr = strParser(seq({
+            capitalLetter,
+            many(either { letter(), underscore })
+        }, "type identifier"));
+    value typeIdentifier = mapParser(typeStr, Type);
     value modifier = identifier;
     value argument = seq({
         typeIdentifier,

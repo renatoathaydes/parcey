@@ -16,16 +16,18 @@ shared void run() {
     // helper functions example
     class Person(shared String name) {}
     
-    Parser<{Person*}> personParser =
-            mapParser(word(), Person);
+    Parser<Person> personParser =
+            mapValueParser(first(word()), Person);
     
-    assert(is ParseResult<{Person*}> contents3 =
+    assert(is ParseResult<Person> contents3 =
         personParser.parse("Mikael"));
-    Person? mikael = contents3.result.first;
-    assert(exists mikael, mikael.name == "Mikael");
-
+    Person mikael = contents3.result;
+    assert(mikael.name == "Mikael");
+    
     Parser<{Person*}> peopleParser =
-            sepBy(spaces(), personParser);
+            sepBy(spaces(), chainParser(personParser));
+    //Parser<{Person*}> peopleParser2 =
+    //        mapParser(sepBy(spaces(), word()), Person);
     
     assert(is ParseResult<{Person*}> contents4 =
         peopleParser.parse("Mary John"));
