@@ -16,22 +16,21 @@ shared void run() {
     // helper functions example
     class Person(shared String name) {}
     
-    Parser<Person> personParser =
-            valueParser(word(), takeArgs(Person));
+    Parser<{Person*}> personParser =
+            mapParser(word(), Person);
     
-    assert(is ParseResult<Person> contents3 =
+    assert(is ParseResult<{Person*}> contents3 =
         personParser.parse("Mikael"));
-    Person mikael = contents3.result;
-    assert(mikael.name == "Mikael");
+    Person? mikael = contents3.result.first;
+    assert(exists mikael, mikael.name == "Mikael");
 
-    Parser<{Person+}> peopleParser =
-            multiValueParser(sepBy(spaces(),word()), takeArgs(Person));
+    Parser<{Person*}> peopleParser =
+            sepBy(spaces(), personParser);
     
-    assert(is ParseResult<{Person+}> contents4 =
+    assert(is ParseResult<{Person*}> contents4 =
         peopleParser.parse("Mary John"));
     value people = contents4.result.sequence();
     assert((people[0]?.name else "") == "Mary");
-    //FIXME multiValueParser discards all values but the first
     assert((people[1]?.name else "") == "John");
 
     // sentence example

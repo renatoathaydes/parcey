@@ -1,8 +1,8 @@
-import com.athaydes.parcey.combinator {
-    many,
-    skip,
-    seq
+import ceylon.test {
+    fail,
+    assertEquals
 }
+
 import com.athaydes.parcey {
     space,
     integer,
@@ -10,13 +10,14 @@ import com.athaydes.parcey {
     ParseError,
     Parser,
     ParseResult,
-    valueParser,
     char,
-    str
+    str,
+    mapValueParser
 }
-import ceylon.test {
-    fail,
-    assertEquals
+import com.athaydes.parcey.combinator {
+    many,
+    skip,
+    seq
 }
 ParsedLocation extractLocation(String errorMessage) {
     object messageParser {
@@ -26,7 +27,7 @@ ParsedLocation extractLocation(String errorMessage) {
             return [row, col];
         }
         value spaces = skip(many(space()));
-        shared Parser<ParsedLocation> locationParser = valueParser(seq {
+        shared Parser<ParsedLocation> locationParser = mapValueParser(seq {
             integer(), skip(char(',')), spaces, skip(str("column")), spaces, integer()
         }, asLocation);
     }
