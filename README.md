@@ -63,7 +63,7 @@ assert(contents2.result.sequence() == [10, 20, 30]);
 The spaces are not included in the result because the `spaces` parser
 discards its results.
 
-> Note: the type of `parser2` is `Parser<{Integer*}>`, not `Parser<{Integer|Character*}> because Ceylon can infer that all parameters of `seq` are either parsers of `{Integer*}` or `[]` (the
+> Note: the type of `parser2` is `Parser<{Integer*}>`, not `Parser<{Integer|Character*}>` because Ceylon can infer that all parameters of `seq` are either parsers of `{Integer*}` or `[]` (the
 `spaces` parsers), and the union of `[]` with any other `Iterable` type is just the other type!
 
 If what we really wanted in the example above was to parse as many integers as
