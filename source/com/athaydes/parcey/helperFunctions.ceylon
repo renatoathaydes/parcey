@@ -43,21 +43,7 @@ shared Parser<{To*}> mapParser<From,To>(Parser<{From*}> parser, To(From) convert
  containing the single value returned by the given parser."
 see(`function seq`, `function seq1`)
 shared Parser<{Item+}> asChainParser<Item>(Parser<Item> parser)
-        => object satisfies Parser<{Item+}> {
-            name = parser.name;
-            shared actual ParseResult<{Item+}>|ParseError doParse(
-                Iterator<Character> input,
-                ParsedLocation parsedLocation,
-                String? delegateName) {
-                value result = parser.doParse(input, parsedLocation);
-                if (is ParseError result) {
-                    return result;
-                } else {
-                    return ParseResult({result.result},
-                        result.parseLocation, result.consumed, result.overConsumed);
-                }
-            }
-    };
+        => mapValueParser(parser, (Item result) => { result });
 
 "Converts a Parser of Characters to a String Parser.
  

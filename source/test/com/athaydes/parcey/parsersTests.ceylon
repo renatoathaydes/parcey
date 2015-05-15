@@ -23,7 +23,8 @@ import com.athaydes.parcey {
     mapValueParser,
     spaces,
     chars,
-    asChainParser
+    asChainParser,
+    mapParser
 }
 import com.athaydes.parcey.combinator {
     ...
@@ -415,12 +416,12 @@ shared void complexCombinationTest() {
     value capitalLetter = oneOf('A'..'Z');
     value lowerCasedLetter = oneOf('a'..'z');
     value underscore = char('_');
-    value identifier = asChainParser(mapValueParser(
-        mapValueParser(seq({
+    value identifier = mapParser(
+        asChainParser(mapValueParser(seq({
             either { lowerCasedLetter, underscore },
             many(either { letter(), underscore })
-        }, "identifier"),
-        String), Identifier));
+        }, "identifier"), String)),
+        Identifier);
     value typeIdentifier = asChainParser(
         mapValueParser(
             mapValueParser(seq({
