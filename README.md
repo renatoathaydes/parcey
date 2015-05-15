@@ -45,6 +45,73 @@ print(error.message);
 // prints: Expected integer but found 'h' at row 1, column 1
 ```
 
+An example of a parser combinator is `seq`, which takes a sequence of parsers
+and applies each one in turn.
+
+So, to parse 3 integers separated by spaces, we could do:
+
+```ceylon
+value parser2 = seq {
+    integer(), spaces(), integer(), spaces(), integer()
+};
+
+value contents2 = parser2.parse("10  20 30 40  50");
+assert(is ParseResult<{Integer*}> contents2);
+assert(contents2.result.sequence() == [10, 20, 30]);
+```
+
+The spaces are not included in the result because the `spaces` parser
+discards its results.
+
+> Note: the type of `parser2` is `Parser<{Integer*}>`, not `Parser<{Integer|Character*}> because Ceylon can infer that all parameters of `seq` are either parsers of `{Integer*}` or `[]` (the
+`spaces` parsers), and the union of `[]` with any other `Iterable` type is just the other type!
+
+If what we really wanted in the example above was to parse as many integers as
+possible, not just the first 3, we could use a powerful combinator called `sepBy`, which does just that kind of thing...
+
+```ceylon
+value parser3 = sepBy(spaces(), integer());
+
+value contents3 = parser3.parse("10  20 30 40  50");
+assert(is ParseResult<{Integer*}> contents3);
+assert(contents3.result.sequence() == [10, 20, 30, 40, 50]);
+```
+
+Great, isn't it?
+
+Notice that the last argument of every parser function is the parser name.
+A nice default is provided for all parsers, but you can use that to improve error messages.
+
+For example, using `parser2` defined above (which expecs 3 integers separated by spaces):
+
+```ceylon
+value error2 = parser2.parse("x y");
+assert(is ParseError error2);
+print(error2.message);
+```
+
+Prints:
+
+```
+Expected integer but found 'x' at row 1, column 1
+```
+
+If we created the integer parsers using names:
+
+```ceylon
+value parser2 = seq {
+    integer("latitude"), spaces(),
+    integer("longitude"), spaces(),
+    integer("elevation")
+};
+```
+
+The error message would have been:
+
+```
+Expected latitude but found 'x' at row 1, column 1
+```
+
 ### List of parsers
 
 Here's a full list of the available **parsers**:

@@ -13,15 +13,33 @@ shared void run() {
     assert(is ParseError error = parser.parse("hello"));
     print(error.message);
     
+    value parser2 = seq {
+        integer("latitude"), spaces(), integer(), spaces(), integer()
+    };
+    
+    value contents2 = parser2.parse("10  20 30 40  50");
+    assert(is ParseResult<{Integer*}> contents2);
+    assert(contents2.result.sequence() == [10, 20, 30]);
+    
+    value parser3 = sepBy(spaces(), integer());
+    
+    value contents3 = parser3.parse("10  20 30 40  50");
+    assert(is ParseResult<{Integer*}> contents3);
+    assert(contents3.result.sequence() == [10, 20, 30, 40, 50]);
+    
+    value error2 = parser2.parse("x y");
+    assert(is ParseError error2);
+    print(error2.message);
+
     // helper functions example
     class Person(shared String name) {}
     
     Parser<Person> personParser =
             mapValueParser(first(word()), Person);
     
-    assert(is ParseResult<Person> contents3 =
+    assert(is ParseResult<Person> contents4 =
         personParser.parse("Mikael"));
-    Person mikael = contents3.result;
+    Person mikael = contents4.result;
     assert(mikael.name == "Mikael");
     
     Parser<{Person*}> peopleParser =
@@ -29,9 +47,9 @@ shared void run() {
     //Parser<{Person*}> peopleParser2 =
     //        mapParser(sepBy(spaces(), word()), Person);
     
-    assert(is ParseResult<{Person*}> contents4 =
+    assert(is ParseResult<{Person*}> contents5 =
         peopleParser.parse("Mary John"));
-    value people = contents4.result.sequence();
+    value people = contents5.result.sequence();
     assert((people[0]?.name else "") == "Mary");
     assert((people[1]?.name else "") == "John");
 
@@ -50,9 +68,9 @@ shared void run() {
     value operator = oneOf { '+', '-', '*', '/', '^', '%' };
     value calculation = many(sepWith(around(spaces(), operator), integer()), 2);
     
-    assert(is ParseResult<{Integer|Character*}> contents2 =
+    assert(is ParseResult<{Integer|Character*}> contents6 =
         calculation.parse("2 + 4*60 / 2"));
-    print(contents2);
-    assert(contents2.result.sequence() == [2, '+', 4, '*', 60, '/', 2]);
+    print(contents6);
+    assert(contents6.result.sequence() == [2, '+', 4, '*', 60, '/', 2]);
     
 }
