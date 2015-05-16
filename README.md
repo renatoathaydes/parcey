@@ -82,7 +82,7 @@ Great, isn't it?
 Notice that the last argument of every parser function is the parser name.
 A nice default is provided for all parsers, but you can use that to improve error messages.
 
-For example, using `parser2` defined above (which expecs 3 integers separated by spaces):
+For example, using `parser2` defined above (which expects 3 integers separated by spaces):
 
 ```ceylon
 value error2 = parser2.parse("x y");
@@ -124,7 +124,7 @@ Here's a full list of the available **parsers**:
 * `str`: parses the single specified String.
 * `anyStr`: parses any String (defined as a sequence of any characters, except spaces).
 * `space`: parses a space (whitespace, new-line, etc).
-* `spaces`: parses as many spaces as possible.
+* `spaces`: parses as many spaces as possible, discarding the results.
 * `digit`: parses a single digit (`0..9`).
 * `integer`: parses an `Integer`.
 * `oneOf`: parses one of the given characters.
@@ -154,7 +154,7 @@ For a detailed description, check the CeylonDocs!
 * `coallescedParser`: converts a parser of type `{A?*}` to a parser of type `{A*}`.
 * `first`: converts a parser of type `{A*}` to a parser of type `A`.
 
-These helper functions work together to let you create Parsers which can generate values of the types you're interested, not just Strings and Characters.
+These helper functions work together to let you create Parsers which can generate values of the types you're interested in, not just Strings and Characters.
 
 Quick examples:
 

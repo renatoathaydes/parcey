@@ -14,9 +14,9 @@ shared String chooseName(String name, String default)
 
 shared ParseError parseError(
     String errorMessage,
-    ParsedLocation parsedLocation,
-    Character[] consumed)
-        => ParseError("``errorMessage`` at ``location(parsedLocation)``", consumed);
+    Character[] consumed,
+    ParsedLocation parsedLocation)
+        => ParseError("``errorMessage`` at ``location(locationAfterParsing(consumed, parsedLocation))``", consumed);
 
 shared ParseResult<Item> appendStreams<Item>(
     ParseResult<Item> first,
@@ -51,8 +51,9 @@ shared String quote(Anything s)
 shared Boolean negate(Boolean b)
         => !b;
 
+"Returns a String showing the location with 1-based indexes."
 shared String location(ParsedLocation parsedLocation)
-        => "row ``parsedLocation[0]``, column ``parsedLocation[1]``";
+        => "row ``parsedLocation[0] + 1``, column ``parsedLocation[1]``";
 
 shared ParsedLocation locationAfterParsing({Character*} parsed, ParsedLocation parsedLocation) {
     variable Integer row = parsedLocation[0];

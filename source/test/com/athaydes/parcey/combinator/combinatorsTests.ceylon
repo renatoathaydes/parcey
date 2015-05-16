@@ -16,7 +16,8 @@ import com.athaydes.parcey {
     spaceChars,
     integer,
     spaces,
-    chars
+    chars,
+    digit
 }
 import com.athaydes.parcey.combinator {
     either,
@@ -529,12 +530,28 @@ shared void parserChain2ParsersTest() {
 }
 
 test
-shared void parserChainParsedLocationTest() {
+shared void parserChainParsedLocationColumnTest() {
     value parser = seq {
         char('a'), char('b'), either { char('c'), char('d') }, str("xyz")
     };
     
-    for ([input, expected] in [["a", [0, 1]], ["abx", [0, 2]], ["abcd", [0, 3]], ["abcxym", [0, 3]]]) {
+    for ([input, expected] in [["a", [1, 1]], ["abx", [1, 3]], ["abcd", [1, 4]], ["abcxym", [1, 6]]]) {
+        value result = parser.parse(input);
+        if (is ParseError result) {
+            assertEquals(extractLocation(result.message), expected, result.message);
+        } else {
+            fail("Result for input ``input`` was ``result``");
+        }    
+    }
+}
+
+test
+shared void parserChainParsedLocationRowTest() {
+    value parser = seq {
+        sepBy(spaces(), seq { str("hello"), digit() }, 4)
+    };
+    
+    for ([input, expected] in [["hello1\nhello2\nhellow", [3, 6]], ["hello2\nbye", [2, 1]]]) {
         value result = parser.parse(input);
         if (is ParseError result) {
             assertEquals(extractLocation(result.message), expected, result.message);

@@ -92,7 +92,8 @@ shared Parser<{Character+}> anyChar(String name_ = "")
             value consumed = [first];
             return ParseResult(consumed, locationAfterParsing(consumed, parsedLocation), consumed);
         }
-        return parseError("Expected ``delegateName else name`` but found EOF", parsedLocation, []);
+        return parseError("Expected ``delegateName else name`` but found EOF",
+            [], parsedLocation);
     }
 };
 
@@ -173,7 +174,7 @@ shared Parser<{String+}> str(String text, String name_ = "")
         if (text.empty) {
             if (is Character next = input.next()) {
                 return parseError("Expected ``delegateName else name`` but found '``next``'",
-                    parsedLocation, [next]);
+                    [next], parsedLocation);
             } else {
                 return ParseResult({""}, parsedLocation, []);
             }
@@ -183,7 +184,7 @@ shared Parser<{String+}> str(String text, String name_ = "")
                 consumed.appendCharacter(actual);
                 if (actual != expected) {
                     return parseError("Expected ``delegateName else name`` but was ``consumed``",
-                        locationAfterParsing(consumed, parsedLocation), consumed.sequence());
+                        consumed.sequence(), parsedLocation);
                 }
             }
             return ParseResult({text}, locationAfterParsing(consumed, parsedLocation), consumed.sequence());
@@ -216,7 +217,7 @@ class OneOf(shared actual String name, Boolean includingChars, {Character+} char
         switch (first)
         case (is Finished) {
             return parseError("Expected ``delegateName else name`` but was EOF",
-                parsedLocation, []);
+                [], parsedLocation);
         }
         case (is Character) {
             value consumed = [first];
@@ -225,7 +226,7 @@ class OneOf(shared actual String name, Boolean includingChars, {Character+} char
                 return ParseResult(consumed, locationAfterParsing(consumed, parsedLocation), consumed);
             }
             return parseError("Expected ``delegateName else name`` but was '``first``'",
-                parsedLocation, consumed);
+                consumed, parsedLocation);
         }
     }
 }

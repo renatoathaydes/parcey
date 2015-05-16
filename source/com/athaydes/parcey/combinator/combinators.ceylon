@@ -36,7 +36,7 @@ shared Parser<{Item*}> seq<Item>({Parser<{Item*}>+} parsers, String name_ = "")
             case (is ParseError) {
                 value consumed = result.consumed.append(current.consumed);
                 return parseError("Expected ``delegateName else parser.name`` but found '``String(current.consumed)``'",
-                    locationAfterParsing(result.consumed, parsedLocation), consumed);
+                    consumed, parsedLocation);
             }
             case (is ParseResult<{Item*}>) {
                 if (!current.overConsumed.empty) {
@@ -71,8 +71,9 @@ shared Parser<{Item+}> seq1<Item>({Parser<{Item*}>+} parsers, String name_ = "")
             } else if (is ParseError result) {
                 return result;
             } else {
+                value consumed = result.consumed.append(result.overConsumed);
                 return parseError("Empty result from ``name``",
-                    parsedLocation, result.consumed.append(result.overConsumed));
+                    consumed, parsedLocation);
             }
         }
     };
@@ -96,7 +97,7 @@ shared Parser<Item> either<Item>({Parser<Item>+} parsers, String name_ = "") {
                 switch (current)
                 case (is ParseError) {
                     error = parseError("Expected '``delegateName else name``' but found '``String(current.consumed)``'",
-                        parsedLocation, current.consumed);
+                        current.consumed, parsedLocation);
                     effectiveInput = chain(error.consumed, effectiveInput);
                 }
                 case (is ParseResult<Item>) {
@@ -276,7 +277,7 @@ shared Parser<[]> skip(Parser<Anything> parser, String name_ = "") {
             switch (result)
             case (is ParseError) {
                 return parseError("Expected ``delegateName else name`` but was ``result.consumed``",
-                    parsedLocation, result.consumed);
+                    result.consumed, parsedLocation);
             }
             case (is ParseResult<Anything>) {
                 return ParseResult([], result.parseLocation, result.consumed, result.overConsumed);
@@ -293,5 +294,3 @@ shared Parser<[]> skip(Parser<Anything> parser, String name_ = "") {
 see(`function sepBy`)
 shared Parser<{Item*}> around<Item>(Parser<{Item*}> surrounding, Parser<{Item*}> parser)
         => seq { surrounding, parser, surrounding };
-
-    

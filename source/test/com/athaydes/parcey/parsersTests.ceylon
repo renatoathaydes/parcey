@@ -23,9 +23,7 @@ import com.athaydes.parcey {
     spaces,
     chars,
     mapParser,
-    strParser,
-    mapValueParser,
-    first
+    strParser
 }
 import com.athaydes.parcey.combinator {
     ...
