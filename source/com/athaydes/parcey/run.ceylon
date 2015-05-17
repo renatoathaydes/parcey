@@ -170,3 +170,17 @@ shared void run() {
     assert(exists second = array[1],
         second == JsonNumber(2));
 }
+
+shared void runCeylonDocExamples() {
+    Parser<{<String->Integer>*}> namedInteger = mapParsers({
+        word(),
+        skip(char(':')),
+        integer()
+    }, ({String|Integer*} elements) {
+        assert(is String key = elements.first);
+        assert(is Integer element = elements.last);
+        return key->element;
+    }, "namedInteger");
+    
+    print(namedInteger.parse("hello:10"));
+}

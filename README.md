@@ -149,6 +149,7 @@ For a detailed description, check the CeylonDocs!
 
 * `mapValueParser`: converts a parser of type `A` to a parser of type `B`.
 * `mapParser`: converts a parser of type `{A*}` to a parser of type `{B*}`.
+* `mapParsers`: converts a sequence of parsers of type `{A*}` to a parser of type `{B*}`.
 * `chainParser`: converts a parser of type `A` to a parser of type `{A+}`.
 * `strParser`: converts a parser of type `{Character*}` to a parser of type `{String+}`.
 * `coallescedParser`: converts a parser of type `{A?*}` to a parser of type `{A*}`.
@@ -195,6 +196,20 @@ Parser<{Person*}> peopleParser2 =
 
 That's because `mapParser`, unlike `mapValueParser`, creates a `Parser`
 which is ready to be chained to other parsers (ie. it has type `Parser<{A*}>`, not just `Parser<A>`), which can be very helpful!
+
+To map to types that take more than one argument to construct, use `mapParsers`:
+
+```ceylon
+Parser<{<String->Integer>*}> namedInteger = mapParsers({
+    word(),
+    skip(char(':')),
+    integer()
+}, ({String|Integer*} elements) {
+    assert(is String key = elements.first);
+    assert(is Integer element = elements.last);
+    return key->element;
+}, "namedInteger");
+```
 
 ### More examples
 

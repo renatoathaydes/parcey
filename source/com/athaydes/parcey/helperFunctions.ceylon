@@ -36,11 +36,27 @@ see(`function mapValueParser`)
 shared Parser<{To*}> mapParser<From,To>(Parser<{From*}> parser, To(From) converter)
         => mapValueParser(parser, ({From*} from) => from.map(converter));
 
-Parser<{To*}> mapParsers<Item, To>(
-    {Parser<{Item*}>+} parsers,
-    To({Item*}) converter,
-    String name_ = "") {
-    return object satisfies Parser<{To*}> {
+"Given several parsers *(ps)* and a function [[To({From*})]] *(f)*, return a new parser which delegates the parsing
+ to a [[seq]] of *ps*, using *f* to convert the results from type [[{From*}]] to [[{To*}]].
+ 
+ This function allows mapping to types which take more than one argument in the constructor.
+ 
+ For example:
+ 
+     Parser<{<String->Integer>*}> namedInteger = mapParsers({
+         word(),
+         skip(char(':')),
+         integer()
+     }, ({String|Integer*} elements) {
+         assert(is String key = elements.first);
+         assert(is Integer element = elements.last);
+         return key->element;
+     }, \"namedInteger\");"
+shared Parser<{To*}> mapParsers<From, To>(
+    {Parser<{From*}>+} parsers,
+    To({From*}) converter,
+    String name_ = "")
+        => object satisfies Parser<{To*}> {
         name => name_;
         shared actual ParseResult<{To*}>|ParseError doParse(
             Iterator<Character> input,
@@ -50,7 +66,6 @@ Parser<{To*}> mapParsers<Item, To>(
             return chainParser(parser).doParse(input, parsedLocation);
         }
     };
-}
 
 "Converts a [[{Item+}]] parser to an [[Item]] parser.
  
