@@ -36,6 +36,22 @@ see(`function mapValueParser`)
 shared Parser<{To*}> mapParser<From,To>(Parser<{From*}> parser, To(From) converter)
         => mapValueParser(parser, ({From*} from) => from.map(converter));
 
+Parser<{To*}> mapParsers<Item, To>(
+    {Parser<{Item*}>+} parsers,
+    To({Item*}) converter,
+    String name_ = "") {
+    return object satisfies Parser<{To*}> {
+        name => name_;
+        shared actual ParseResult<{To*}>|ParseError doParse(
+            Iterator<Character> input,
+            ParsedLocation parsedLocation,
+            String? delegateName) {
+            value parser = mapValueParser(seq(parsers), converter);
+            return chainParser(parser).doParse(input, parsedLocation);
+        }
+    };
+}
+
 "Converts a [[{Item+}]] parser to an [[Item]] parser.
  
  Notice that the given parser may consume many [[Item]]s even if wrapped around this function."

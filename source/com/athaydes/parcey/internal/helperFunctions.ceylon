@@ -10,7 +10,7 @@ shared {T*} asIterable<T>(Iterator<T> iter)
 };
 
 shared String chooseName(String name, String default)
-        => name.empty then default else name;
+        => "(``name.empty then default else name``)";
 
 shared ParseError parseError(
     String errorMessage,

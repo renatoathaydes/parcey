@@ -22,7 +22,7 @@ import com.athaydes.parcey.internal {
 see(`function seq1`)
 shared Parser<{Item*}> seq<Item>({Parser<{Item*}>+} parsers, String name_ = "")
         => object satisfies Parser<{Item*}> {
-    name = chooseName(name_, parsers.map(Parser.name).interpose("->").fold("")(plus));
+    name => chooseName(name_, parsers.map(Parser.name).interpose("->").fold("")(plus));
     shared actual ParseResult<{Item*}>|ParseError doParse(
         Iterator<Character> input,
         ParsedLocation parsedLocation,
@@ -58,7 +58,7 @@ see(`function seq`)
 shared Parser<{Item+}> seq1<Item>({Parser<{Item*}>+} parsers, String name_ = "")
         => object satisfies Parser<{Item+}> {
     value delegate = seq(parsers, name_);
-    name = delegate.name;
+    name => delegate.name;
     shared actual ParseResult<{Item+}>|ParseError doParse(
         Iterator<Character> input,
         ParsedLocation parsedLocation,
@@ -85,7 +85,7 @@ shared Parser<{Item+}> seq1<Item>({Parser<{Item*}>+} parsers, String name_ = "")
  before being passed to the next parser, such that the next parser will 'see' exactly the same input as the previous Parser."
 shared Parser<Item> either<Item>({Parser<Item>+} parsers, String name_ = "") {
     return object satisfies Parser<Item> {
-        name = chooseName(name_, "either ``parsers.map(Parser.name).interpose(" or ").fold("")(plus)``");
+        name => chooseName(name_, "either ``parsers.map(Parser.name).interpose(" or ").fold("")(plus)``");
         shared actual ParseResult<Item>|ParseError doParse(
             Iterator<Character> input,
             ParsedLocation parsedLocation,
@@ -119,7 +119,7 @@ shared Parser<{Item*}> many<Item>(Parser<{Item*}> parser, Integer minOccurrences
 
     return object satisfies Parser<{Item*}> {
 
-        name = chooseName(name_, (minOccurrences <= 0 then "many" else "at least ``minOccurrences``")
+        name => chooseName(name_, (minOccurrences <= 0 then "many" else "at least ``minOccurrences``")
             + " ``simplePlural("occurrence", minOccurrences)`` of ``parser.name``");
 
         function minMany(Iterator<Character> input, ParsedLocation parsedLocation)
@@ -213,15 +213,15 @@ shared Parser<{Item*}> sepBy<Item>(
     Parser<Anything> separator,
     Parser<{Item*}> parser,
     Integer minOccurrences = 0,
-    String name_ = "") {
-    function optionalIf(Boolean condition) {
-        return condition then option<Item> else identity<Parser<{Item*}>>;
-    }
-    return optionalIf(minOccurrences <= 0)(seq {
+    String name = "") {
+    function optionalIf(Boolean condition)
+            => condition then option<Item> else identity<Parser<{Item*}>>;
+    
+    return optionalIf(minOccurrences <= 0)(seq({
         parser,
         optionalIf(minOccurrences == 1)(
             many(seq { skip(separator), parser }, minOccurrences - 1))
-    });
+    }, name));
 }
 
 "Creates a Parser that applies the given parser multiple times, using the separator parser
@@ -251,16 +251,16 @@ shared Parser<{Item|Sep*}> sepWith<Item, Sep>(
     Parser<{Sep*}> separator,
     Parser<{Item*}> parser,
     Integer minOccurrences = 0,
-    String name_ = "") {
+    String name = "") {
     alias Val => Item|Sep;
     function optionalIf(Boolean condition) {
         return condition then option<Val> else identity<Parser<{Val*}>>;
     }
-    return optionalIf(minOccurrences <= 0)(seq {
+    return optionalIf(minOccurrences <= 0)(seq({
         parser,
         optionalIf(minOccurrences == 1)(
             many(seq { separator, parser }, minOccurrences - 1))
-    });
+    }, name));
 }
 
 "Creates a Parser that applies the given parsers but throws away their results,
@@ -268,7 +268,7 @@ shared Parser<{Item|Sep*}> sepWith<Item, Sep>(
 see (`function many`, `function either`)
 shared Parser<[]> skip(Parser<Anything> parser, String name_ = "") {
     return object satisfies Parser<[]> {
-        name = chooseName(name_, "to skip ``parser.name``");
+        name => chooseName(name_, "to skip ``parser.name``");
         shared actual ParseResult<[]>|ParseError doParse(
             Iterator<Character> input,
             ParsedLocation parsedLocation,

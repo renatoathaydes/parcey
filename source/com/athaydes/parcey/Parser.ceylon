@@ -130,7 +130,7 @@ shared Parser<{Character+}> oneOf({Character+} chars, String name = "")
  
  It fails if the input is empty."
 shared Parser<{Character+}> char(Character char, String name = "")
-        => oneOf({ char }, chooseName(name, quote(char)));
+        => OneOf(chooseName(name, quote(char)), true, { char });
 
 "Parser for a sequence of characters.
  

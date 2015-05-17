@@ -223,3 +223,104 @@ assert(is ParseResult<{Integer|Character*}> contents2 =
     calculation.parse("2 + 4*60 / 2"));
 assert(contents2.result.sequence() == [2, '+', 4, '*', 60, '/', 2]);
 ```
+
+*A more complicated example: a simplified Json Parser*
+
+```ceylon
+// firt, let's define some objects to represent Json
+class JsonString(shared String val) {
+    equals(Object that)
+            => if (is JsonString that) then
+    this.val == that.val else false;
+}
+class JsonNumber(shared Integer val) {
+    equals(Object that)
+            => if (is JsonNumber that) then
+    this.val == that.val else false;
+}
+class JsonArray(shared {JsonElement*} val)
+        satisfies Correspondence<Integer, JsonElement>{
+    value array = val.sequence();
+    defines = array.defines;
+    get = array.get;
+}
+class JsonEntry(shared JsonString key, shared JsonElement element) {}
+class JsonObject(shared {JsonEntry*} entries) {}
+
+alias JsonValue => JsonString|JsonNumber;
+alias JsonElement => JsonValue|JsonArray|JsonObject;
+
+// now we can define the parsers
+value quote = skip(char('"'));
+function jsonStr()
+        => mapParser(strParser(seq({
+    quote, many(noneOf { '"' }), quote
+}, "jsonString")), JsonString);
+function jsonInt()
+        => mapParser(integer("jsonInt"), JsonNumber);
+function jsonValue()
+        => either { jsonStr(), jsonInt() };
+
+// a recursive definition needs explicit type
+Parser<{JsonArray*}> jsonArray() => seq {
+    skip(around(spaces(), char('['))), chainParser(
+    mapValueParser(
+        sepBy(around(spaces(), char(',')), either {
+            jsonValue(),
+            jsonArray()
+        }), JsonArray)),
+    skip(around(spaces(), char(']')))
+};
+
+// Mutually referring parsers must be wrapped in a class or object
+object json {
+
+    shared Parser<{JsonElement*}> jsonElement()
+            => either { jsonValue(), jsonObject(), jsonArray() };
+
+    shared Parser<{JsonEntry*}> jsonEntry() => mapParsers({
+        jsonStr(),
+        skip(char(':')),
+        jsonElement()
+    }, ({JsonElement*} elements) {
+            assert(is JsonString key = elements.first);
+            assert(is JsonElement element = elements.last);
+            return JsonEntry(key, element);
+    }, "jsonEntry");
+    
+    shared Parser<{JsonObject*}> jsonObject() => mapParsers({
+        skip(around(spaces(), char('{'))),
+        sepBy(char(','), jsonEntry()),
+        skip(around(spaces(), char('}')))
+    }, JsonObject);
+    
+}
+
+value jsonParser = either {
+    jsonValue(),
+    json.jsonObject()
+};
+
+// parsing a simple json value
+assert(is ParseResult<{JsonNumber*}> contents7
+    = jsonParser.parse("10"));
+assert(exists n = contents7.result.first,
+    n == JsonNumber(10));
+
+// parsing a json Object
+value jsonObj = jsonParser.parse("{\"int\":1,\"array\":[\"item1\", 2] }");
+
+assert(is ParseResult<{JsonElement*}> jsonObj); 
+assert(is JsonObject obj = jsonObj.result.first);
+value fields = obj.entries.sequence();
+assert(exists intField = fields[0]);
+assert(intField.key == JsonString("int"),
+    intField.element == JsonNumber(1));
+assert(exists arrayField = fields[1]);
+assert(arrayField.key == JsonString("array"),
+    is JsonArray array = arrayField.element);
+assert(exists first = array[0],
+    first == JsonString("item1"));
+assert(exists second = array[1],
+    second == JsonNumber(2));
+```
