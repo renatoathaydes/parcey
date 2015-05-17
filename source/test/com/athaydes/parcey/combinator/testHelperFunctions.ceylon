@@ -22,7 +22,8 @@ import com.athaydes.parcey.combinator {
 import ceylon.language.meta.model {
     Type
 }
-ParsedLocation extractLocation(String errorMessage) {
+
+shared ParsedLocation extractLocation(String errorMessage) {
     object messageParser {
         function asLocation({Integer*} indexes) {
             assert (exists row = indexes.first);
@@ -107,7 +108,7 @@ ParseResult<{Character*}>|ParseError findExpectedResult(ParseResult<{Character*}
 
 shared void expect<Expected>(
     Anything actual,
-    Type<Expected>|Anything(Expected) \ithen = void(Anything _) {}) {
+    Type<Expected>|Anything(Expected) \ithen) {
     if (is Expected actual) {
         if (is Anything(Expected) \ithen) {
             \ithen(actual);

@@ -194,17 +194,82 @@ shared Parser<{String+}> str(String text, String name_ = "")
 
 "An Integer Parser.
  
- It consumes the input as long as digits are found, leaving the rest of the input untouched.
+ The expected input format is given by this regular expression: `([+-])?d+`. 
  
  Upon parsing some input, a [[ParseError]] is returned:
  
  * if not even one digit is found.
- * if the sequence of digits cannot be represented as an Integer (as it would be too large)."
+ * if the sequence of digits cannot be represented as an Integer due to overflow."
 see (`function mapValueParser`)
 shared Parser<{Integer+}> integer(String name_ = "") {
-    value digitsParser = mapValueParser(many(digit(), 1, chooseName(name_, "integer")), String);
-    value intParser = mapValueParser<String, Integer?>(digitsParser, parseInteger);
-    return coallescedParser(chainParser(intParser));
+    return object satisfies Parser<{Integer+}> {
+        name => chooseName(name_, "integer");
+        
+        function validFirst(Character c)
+                => c.digit || c in ['+', '-'];
+        
+        function asInteger(Character c, Boolean negative)
+                => (negative then -1 else 1) * (c.integer - 48);
+        
+        function overflow(Character[] consumed, ParsedLocation location)
+                => parseError("``name``: overflow",
+                consumed, location);
+
+        shared actual ParseResult<{Integer+}>|ParseError doParse(
+            Iterator<Character> input,
+            ParsedLocation parsedLocation,
+            String? delegateName) {
+            value first = input.next();
+            Boolean hasSign;
+            Boolean negative;
+            variable Character[] consumed = [];
+            if (is Character first) {
+                consumed = consumed.append([first]);
+                if (validFirst(first)) {
+                    hasSign = !first.digit;
+                    negative = hasSign && first == '-';
+                } else {
+                    return parseError("Expected ``name`` but found '``first``'",
+                        [first], parsedLocation);
+                }
+            } else {
+                return parseError("Expected ``name`` but found nothing",
+                    [], parsedLocation);
+            }
+            value maxConsumeLength = runtime.maxIntegerValue.string.size +
+                    (hasSign then 1 else 0);
+            variable Character[] overConsumed = [];
+            for (next in asIterable(input)) {
+                if (next.digit) {
+                    consumed = consumed.append([next]);
+                    if (consumed.size > maxConsumeLength) {
+                        return overflow(consumed, parsedLocation);
+                    }
+                } else {
+                    overConsumed = [next];
+                    break;
+                }
+            }
+            value digits = hasSign then consumed.rest else consumed;
+            if (digits.empty) {
+                return parseError("Expected ``name`` but found '``consumed.first else ""``'",
+                        consumed, parsedLocation);
+            }
+            variable Integer result = 0;
+            value overflowGuard = negative
+                    then Integer.largerThan else Integer.smallerThan;
+            for (exponent->next in digits.reversed.indexed) {
+                value current = result;
+                result += asInteger(next, negative) * 10^exponent;
+                if (overflowGuard(result)(current)) {
+                    return overflow(consumed, parsedLocation);
+                }
+            }
+            return ParseResult({ result },
+                locationAfterParsing(consumed, parsedLocation),
+                consumed, overConsumed);
+        }
+    };
 }
 
 class OneOf(shared actual String name, Boolean includingChars, {Character+} chars)

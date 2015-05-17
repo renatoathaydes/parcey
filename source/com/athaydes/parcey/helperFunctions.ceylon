@@ -2,6 +2,10 @@ import com.athaydes.parcey.combinator {
     seq,
     seq1
 }
+import com.athaydes.parcey.internal {
+    parseError,
+    chooseName
+}
 
 "Given a parser *(p)* and a function To(From) *(f)*, return a new parser which delegates the parsing
  to *p*, using *f* to convert the result from type *From* to *To*.
@@ -92,11 +96,13 @@ shared Parser<{String+}> strParser(Parser<{Character*}> parser)
 "Converts a Parser which may generate null values to one which will not.
  
  A [[ParseError]] occurs if the parser would generate only null values."
-shared Parser<{Value+}> coallescedParser<Value>(Parser<{Value?+}> parser)
+shared Parser<{Value+}> coallescedParser<Value>(
+    Parser<{Value?+}> parser,
+    String name_ = "")
         given Value satisfies Object
         => object satisfies Parser<{Value+}> {
     
-    name => parser.name;
+    name => chooseName(name_, "result contains only null values");
     
     shared actual ParseResult<{Value+}>|ParseError doParse(
         Iterator<Character> input,
@@ -105,8 +111,8 @@ shared Parser<{Value+}> coallescedParser<Value>(Parser<{Value?+}> parser)
         value result = parser.doParse(input, parsedLocation, delegateName);
         if (is ParseResult<{Value?+}> result) {
             value results = result.result.sequence();
-            if (results.any((element) => element is Null)) {
-                return ParseError("ParseResult contains a null value: ``results``", result.consumed);
+            if (results.every((element) => element is Null)) {
+                return parseError(name, result.consumed, parsedLocation);
             } else {
                 assert(is {Value+} values = results.coalesced.sequence());
                 return ParseResult(values,

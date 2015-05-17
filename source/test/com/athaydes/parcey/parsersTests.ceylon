@@ -1,7 +1,8 @@
 import ceylon.test {
     test,
     assertEquals,
-    assertFalse
+    assertFalse,
+    assertTrue
 }
 import com.athaydes.parcey {
     anyChar,
@@ -28,7 +29,11 @@ import com.athaydes.parcey.combinator {
     ...
 }
 import test.com.athaydes.parcey.combinator {
-    expect
+    expect,
+    extractLocation
+}
+import ceylon.language.meta {
+    typeLiteral
 }
 
 test
@@ -313,8 +318,45 @@ shared void testDigit() {
 
 test
 shared void testInteger() {
-    // TODO
-    integer().parse("");
+    expect(integer().parse(""), typeLiteral<ParseError>());
+    for (input in (0..9).map(Object.string)) {
+        expect(integer().parse(input), void(ParseResult<{Integer*}> result) {
+                assertEquals(result.result.sequence(), [parseInteger(input)]);
+                assertEquals(result.parseLocation, [0, 1]);
+                assertEquals(result.consumed, input.sequence());
+                assertEquals(result.overConsumed, []);
+            });
+    }
+    for (input in (-1 .. -9).map(Object.string)) {
+        expect(integer().parse(input), void(ParseResult<{Integer*}> result) {
+                assertEquals(result.result.sequence(), [parseInteger(input)]);
+                assertEquals(result.parseLocation, [0, 2]);
+                assertEquals(result.consumed, input.sequence());
+                assertEquals(result.overConsumed, []);
+            });
+    }
+    expect(integer().parse("9876543210"), void(ParseResult<{Integer*}> result) {
+            assertEquals(result.result.sequence(), [9876543210]);
+            assertEquals(result.parseLocation, [0, 10]);
+            assertEquals(result.consumed, ('9'..'0').sequence());
+            assertEquals(result.overConsumed, []);
+        });
+    expect(integer().parse(runtime.maxIntegerValue.string),
+        typeLiteral<ParseResult<{Integer*}>>());
+    expect(integer().parse(runtime.minIntegerValue.string),
+        typeLiteral<ParseResult<{Integer*}>>());
+    expect(integer().parse("000450abcd"),
+        void(ParseResult<{Integer*}> result) {
+            assertEquals(result.result.sequence(), [450]);
+            assertEquals(result.consumed, "000450".sequence());
+            assertEquals(result.overConsumed, ['a']);
+        });
+    expect(integer().parse(['9'].cycled.take(100)),
+        void(ParseError error) {
+            value location = extractLocation(error.message);
+            assertTrue(location.last < 25,
+                "Parsed too many digits before overflowing: ``location``");
+        });
 }
 
 test
@@ -411,3 +453,4 @@ shared void complexCombinationTest() {
                 ]);
         });
 }
+
