@@ -432,7 +432,7 @@ shared void skipMany3CombinatorDoesNotConsumeNextToken() {
     }
 }
 
-test shared void testOptionSimple() {
+test shared void optionSimpleTest() {
     value parser = option(char('a'));
     
     value result1 = parser.parse("");
@@ -466,7 +466,23 @@ test shared void testOptionSimple() {
     }
 }
 
-test shared void testOptionMultivalue() {
+test shared void aroundTest() {
+    value parser = around(spaces(), char('c'));
+    expect(parser.parse("c"), void(ParseResult<{Character*}> result) {
+        assertEquals(result.result.sequence(), ['c']);
+        assertEquals(result.parseLocation, [0, 1]);
+        assertEquals(result.consumed, ['c']);
+        assertEquals(result.overConsumed, []);
+    });
+    expect(parser.parse("  c   !!"), void(ParseResult<{Character*}> result) {
+        assertEquals(result.result.sequence(), ['c']);
+        assertEquals(result.parseLocation, [0, 6]);
+        assertEquals(result.consumed, [' ', ' ', 'c', ' ', ' ', ' ' ]);
+        assertEquals(result.overConsumed, ['!']);
+    });
+}
+
+test shared void optionMultivalueTest() {
     value parser = option(seq { str("hej"), str("bye") });
     
     value result1 = parser.parse("hejdå");
@@ -562,7 +578,7 @@ shared void parserChainParsedLocationRowTest() {
 }
 
 test
-shared void testSepBy() {
+shared void sepByTest() {
     value commaSeparated = sepBy(char(','), integer());
     
     value result1 = commaSeparated.parse("");
@@ -597,7 +613,7 @@ shared void testSepBy() {
 }
 
 test
-shared void testSepByMin3() {
+shared void sepByMin3Test() {
     value commaSeparated = sepBy(char(','), integer(), 3);
     
     value result1 = commaSeparated.parse("100,200,53");
@@ -628,7 +644,7 @@ shared void testSepByMin3() {
 }
 
 test
-shared void testSepByWithComplexCombination() {
+shared void sepByWithComplexCombinationTest() {
     value args = seq {
         skip(char('(')),
         sepBy(around(spaces(), char(',')),

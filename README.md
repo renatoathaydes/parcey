@@ -278,13 +278,16 @@ function jsonValue()
 
 // a recursive definition needs explicit type
 Parser<{JsonArray*}> jsonArray() => seq {
-    skip(around(spaces(), char('['))), chainParser(
-    mapValueParser(
-        sepBy(around(spaces(), char(',')), either {
-            jsonValue(),
-            jsonArray()
-        }), JsonArray)),
-    skip(around(spaces(), char(']')))
+    skip(around(spaces(), char('['))),
+    chainParser(
+        mapValueParser(
+            sepBy(around(spaces(), char(',')), either {
+                jsonValue(),
+                jsonArray()
+            }), JsonArray)
+    ),
+    spaces(),
+    skip(char(']'))
 };
 
 // Mutually referring parsers must be wrapped in a class or object
@@ -295,7 +298,7 @@ object json {
 
     shared Parser<{JsonEntry*}> jsonEntry() => mapParsers({
         jsonStr(),
-        skip(char(':')),
+        skip(around(spaces(), char(':'))),
         jsonElement()
     }, ({JsonElement*} elements) {
             assert(is JsonString key = elements.first);
@@ -305,9 +308,10 @@ object json {
     
     shared Parser<{JsonObject*}> jsonObject() => mapParsers({
         skip(around(spaces(), char('{'))),
-        sepBy(char(','), jsonEntry()),
-        skip(around(spaces(), char('}')))
-    }, JsonObject);
+        sepBy(around(spaces(), char(',')), jsonEntry()),
+        spaces(),
+        skip(char('}'))
+    }, JsonObject, "jsonObject");
     
 }
 
@@ -315,7 +319,11 @@ value jsonParser = either {
     jsonValue(),
     json.jsonObject()
 };
+```
 
+Now we can test the jsonParser with some Json input:
+
+```ceylon
 // parsing a simple json value
 assert(is ParseResult<{JsonNumber*}> contents7
     = jsonParser.parse("10"));
@@ -323,8 +331,8 @@ assert(exists n = contents7.result.first,
     n == JsonNumber(10));
 
 // parsing a json Object
-value jsonObj = jsonParser.parse("{\"int\":1,\"array\":[\"item1\", 2] }");
-
+value jsonObj = jsonParser.parse("{\"int\": 1, \"array\": [\"item1\", 2] }");
+print(jsonObj);
 assert(is ParseResult<{JsonElement*}> jsonObj); 
 assert(is JsonObject obj = jsonObj.result.first);
 value fields = obj.entries.sequence();

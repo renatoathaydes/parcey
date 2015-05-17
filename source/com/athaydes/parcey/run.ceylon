@@ -109,13 +109,16 @@ shared void run() {
     
     // a recursive definition needs explicit type
     Parser<{JsonArray*}> jsonArray() => seq {
-        skip(around(spaces(), char('['))), chainParser(
-        mapValueParser(
-            sepBy(around(spaces(), char(',')), either {
-                jsonValue(),
-                jsonArray()
-            }), JsonArray)),
-        skip(around(spaces(), char(']')))
+        skip(around(spaces(), char('['))),
+        chainParser(
+            mapValueParser(
+                sepBy(around(spaces(), char(',')), either {
+                    jsonValue(),
+                    jsonArray()
+                }), JsonArray)
+        ),
+        spaces(),
+        skip(char(']'))
     };
     
     // Mutually referring parsers must be wrapped in a class or object
@@ -126,7 +129,7 @@ shared void run() {
     
         shared Parser<{JsonEntry*}> jsonEntry() => mapParsers({
             jsonStr(),
-            skip(char(':')),
+            skip(around(spaces(), char(':'))),
             jsonElement()
         }, ({JsonElement*} elements) {
                 assert(is JsonString key = elements.first);
@@ -136,9 +139,10 @@ shared void run() {
         
         shared Parser<{JsonObject*}> jsonObject() => mapParsers({
             skip(around(spaces(), char('{'))),
-            sepBy(char(','), jsonEntry()),
-            skip(around(spaces(), char('}')))
-        }, JsonObject);
+            sepBy(around(spaces(), char(',')), jsonEntry()),
+            spaces(),
+            skip(char('}'))
+        }, JsonObject, "jsonObject");
         
     }
     
@@ -154,8 +158,8 @@ shared void run() {
         n == JsonNumber(10));
     
     // parsing a json Object
-    value jsonObj = jsonParser.parse("{\"int\":1,\"array\":[\"item1\", 2] }");
-    
+    value jsonObj = jsonParser.parse("{\"int\": 1, \"array\": [\"item1\", 2] }");
+    print(jsonObj);
     assert(is ParseResult<{JsonElement*}> jsonObj); 
     assert(is JsonObject obj = jsonObj.result.first);
     value fields = obj.entries.sequence();
@@ -169,6 +173,9 @@ shared void run() {
         first == JsonString("item1"));
     assert(exists second = array[1],
         second == JsonNumber(2));
+    
+    value badJson = jsonParser.parse("{\"int\": 1, array: [\"item1\", 2] }");
+    print(badJson);
 }
 
 shared void runCeylonDocExamples() {

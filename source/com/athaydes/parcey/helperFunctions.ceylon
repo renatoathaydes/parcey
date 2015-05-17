@@ -10,6 +10,9 @@ import com.athaydes.parcey.internal {
 "Given a parser *(p)* and a function To(From) *(f)*, return a new parser which delegates the parsing
  to *p*, using *f* to convert the result from type *From* to *To*.
  
+ If [[converter]] throws an Exception, it is caught and converted into a [[ParseError]], which is then
+ returned as the result of parsing the input.
+ 
  For use with chain parsers (eg. [[Parser<{From*}>]]), prefer [[mapParser]]."
 see(`function mapParser`)
 shared Parser<To> mapValueParser<From,To>(Parser<From> parser, To(From) converter)
@@ -22,8 +25,12 @@ shared Parser<To> mapValueParser<From,To>(Parser<From> parser, To(From) converte
         value result = parser.doParse(input, parsedLocation, delegateName);
         switch (result)
         case (is ParseResult<From>) {
-            return ParseResult(converter(result.result),
+            try {
+                return ParseResult(converter(result.result),
                     result.parseLocation, result.consumed, result.overConsumed);
+            } catch(e) {
+                return parseError(e.message, result.consumed, parsedLocation);
+            }
         }
         case (is ParseError) {
             return result;
@@ -34,6 +41,9 @@ shared Parser<To> mapValueParser<From,To>(Parser<From> parser, To(From) converte
 "Given a parser *(p)* and a function [[To(From)]] *(f)*, return a new parser which delegates the parsing
  to *p*, using *f* to convert the result from type [[{From*}]] to [[{To*}]].
  
+ If [[converter]] throws an Exception, it is caught and converted into a [[ParseError]], which is then
+ returned as the result of parsing the input.
+ 
  This function is convenient when using chain parsers. For single-value parsers,
  prefer to use [[mapValueParser]]."
 see(`function mapValueParser`)
@@ -42,6 +52,9 @@ shared Parser<{To*}> mapParser<From,To>(Parser<{From*}> parser, To(From) convert
 
 "Given several parsers *(ps)* and a function [[To({From*})]] *(f)*, return a new parser which delegates the parsing
  to a [[seq]] of *ps*, using *f* to convert the results from type [[{From*}]] to [[{To*}]].
+ 
+ If [[converter]] throws an Exception, it is caught and converted into a [[ParseError]], which is then
+ returned as the result of parsing the input.
  
  This function allows mapping to types which take more than one argument in the constructor.
  
@@ -67,7 +80,8 @@ shared Parser<{To*}> mapParsers<From, To>(
             ParsedLocation parsedLocation,
             String? delegateName) {
             value parser = mapValueParser(seq(parsers), converter);
-            return chainParser(parser).doParse(input, parsedLocation);
+            return chainParser(parser)
+                    .doParse(input, parsedLocation, chooseName(delegateName else name, name));
         }
     };
 
@@ -93,33 +107,9 @@ see (`function mapValueParser`)
 shared Parser<{String+}> strParser(Parser<{Character*}> parser)
         => chainParser(mapValueParser(parser, String));
 
-"Converts a Parser which may generate null values to one which will not.
- 
- A [[ParseError]] occurs if the parser would generate only null values."
-shared Parser<{Value+}> coallescedParser<Value>(
-    Parser<{Value?+}> parser,
+"Converts a Parser which may generate null values to one which will not."
+shared Parser<{Value*}> coallescedParser<Value>(
+    Parser<{Value?*}> parser,
     String name_ = "")
         given Value satisfies Object
-        => object satisfies Parser<{Value+}> {
-    
-    name => chooseName(name_, "result contains only null values");
-    
-    shared actual ParseResult<{Value+}>|ParseError doParse(
-        Iterator<Character> input,
-        ParsedLocation parsedLocation,
-        String? delegateName) {
-        value result = parser.doParse(input, parsedLocation, delegateName);
-        if (is ParseResult<{Value?+}> result) {
-            value results = result.result.sequence();
-            if (results.every((element) => element is Null)) {
-                return parseError(name, result.consumed, parsedLocation);
-            } else {
-                assert(is {Value+} values = results.coalesced.sequence());
-                return ParseResult(values,
-                    result.parseLocation, result.consumed, result.overConsumed);
-            }
-        } else {
-            return result;
-        }
-    }
-};
+        => mapValueParser<{Value?*}, {Value*}>(parser, Iterable.coalesced);
