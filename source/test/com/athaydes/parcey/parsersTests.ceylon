@@ -333,7 +333,7 @@ shared void testNoneOf() {
 }
 
 test
-shared void testAnyDigit() {
+shared void testDigit() {
     for (input in (0..9).map(Object.string)) {
         assert (is ParseResult<{Character*}> result = digit().parse(input));
         assertEquals(result.result, input.sequence());
