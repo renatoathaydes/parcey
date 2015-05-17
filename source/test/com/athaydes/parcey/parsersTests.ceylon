@@ -1,10 +1,8 @@
 import ceylon.test {
     test,
     assertEquals,
-    assertFalse,
-    fail
+    assertFalse
 }
-
 import com.athaydes.parcey {
     anyChar,
     ParseResult,
@@ -23,220 +21,198 @@ import com.athaydes.parcey {
     spaces,
     chars,
     mapParser,
-    strParser
+    strParser,
+    integer
 }
 import com.athaydes.parcey.combinator {
     ...
 }
+import test.com.athaydes.parcey.combinator {
+    expect
+}
 
 test
 shared void testEof() {
-    assert (is ParseResult<[]> result1 = eof().parse(""));
-    assertEquals(result1.result.sequence(), []);
-    assertEquals(result1.parseLocation, [0, 0]);
-    assertEquals(result1.consumed, []);
-    assertEquals(result1.overConsumed, []);
+    expect(eof().parse(""), void(ParseResult<[]> result) {
+            assertEquals(result.result.sequence(), []);
+            assertEquals(result.parseLocation, [0, 0]);
+            assertEquals(result.consumed, []);
+            assertEquals(result.overConsumed, []);
+        });
     
-    assert (is ParseError result2 = eof().parse("a"));
-    assertFalse(result2.message.empty);
-    assertEquals(result2.consumed, ['a']);
+    expect(eof().parse("a"), void(ParseError result) {
+            assertFalse(result.message.empty);
+            assertEquals(result.consumed, ['a']);
+        });
 }
 
 test
 shared void testAnyChar() {
-    assert (is ParseResult<{Character*}> result1 = anyChar().parse("a"));
-    assertEquals(result1.result, ['a']);
-    assertEquals(result1.parseLocation, [0, 1]);
-    assertEquals(result1.consumed, ['a']);
-    assertEquals(result1.overConsumed, []);
+    expect(anyChar().parse("a"), void(ParseResult<{Character*}> result) {
+            assertEquals(result.result, ['a']);
+            assertEquals(result.parseLocation, [0, 1]);
+            assertEquals(result.consumed, ['a']);
+            assertEquals(result.overConsumed, []);
+        });
+    expect(anyChar().parse("xyz"), void(ParseResult<{Character*}> result) {
+            assertEquals(result.result, ['x']);
+            assertEquals(result.parseLocation, [0, 1]);
+            assertEquals(result.consumed, ['x']);
+            assertEquals(result.overConsumed, []);
+        });
     
-    assert (is ParseResult<{Character*}> result2 = anyChar().parse("xyz"));
-    assertEquals(result2.result, ['x']);
-    assertEquals(result2.parseLocation, [0, 1]);
-    assertEquals(result2.consumed, ['x']);
-    assertEquals(result2.overConsumed, []);
-    
-    assert (is ParseError result3 = anyChar().parse(""));
-    assertFalse(result3.message.empty);
-    assertEquals(result3.consumed, []);
+    expect(anyChar().parse(""), void(ParseError result3) {
+            assertFalse(result3.message.empty);
+            assertEquals(result3.consumed, []);
+        });
 }
 
 test
 shared void testChars() {
     value parser = chars { 'a', 'b', 'c' };
     
-    value result1 = parser.parse('a'..'z');
+    expect(parser.parse('a'..'z'), void(ParseResult<{Character+}> result) {
+            assertEquals(result.result.sequence(), ['a', 'b', 'c']);
+            assertEquals(result.parseLocation, [0, 3]);
+            assertEquals(result.consumed, ['a', 'b', 'c']);
+            assertEquals(result.overConsumed, []);
+        });
     
-    if (is ParseResult<{Character+}> result1) {
-        assertEquals(result1.result.sequence(), ['a', 'b', 'c']);
-        assertEquals(result1.parseLocation, [0, 3]);
-        assertEquals(result1.consumed, ['a', 'b', 'c']);
-        assertEquals(result1.overConsumed, []);
-    } else {
-        fail("Result was ```result1``");
-    }
-
-    value result2 = parser.parse("abxy");
-    if (is ParseError result2) {
-        assertEquals(result2.consumed, ['a', 'b', 'x']);
-        assertFalse(result2.message.empty);
-    } else {
-        fail("Result was ```result2``");
-    }
+    expect(parser.parse("abxy"), void(ParseError result2) {
+            assertEquals(result2.consumed, ['a', 'b', 'x']);
+            assertFalse(result2.message.empty);
+        });
 }
 
 test
 shared void testLetter() {
     for (item in ('a'..'z').append('A'..'Z')) {
-        assert (is ParseResult<{Character*}> result = letter().parse({ item }));
-        assertEquals(result.result, [item]);
-        assertEquals(result.parseLocation, [0, 1]);
-        assertEquals(result.consumed, [item]);
-        assertEquals(result.overConsumed, []);
+        expect(letter().parse({ item }), void(ParseResult<{Character*}> result) {
+                assertEquals(result.result, [item]);
+                assertEquals(result.parseLocation, [0, 1]);
+                assertEquals(result.consumed, [item]);
+                assertEquals(result.overConsumed, []);
+            });
     }
     for (item in ['\t', ' ', '?', '!', '%', '^', '&', '*']) {
-        assert (is ParseError result = letter().parse({ item }));
-        assertFalse(result.message.empty);
-        assertEquals(result.consumed, [item]);
+        expect(letter().parse({ item }), void(ParseError result) {
+                assertFalse(result.message.empty);
+                assertEquals(result.consumed, [item]);
+            });
     }
 }
 
 test
 shared void testSpace() {
-    assert (is ParseError result1 = space().parse(""));
-    assertFalse(result1.message.empty);
-    assertEquals(result1.consumed, []);
+    expect(space().parse(""), void(ParseError result1) {
+            assertFalse(result1.message.empty);
+            assertEquals(result1.consumed, []);
+        });
     
     for (item in spaceChars) {
-        value result = space().parse({ item });
-        if (is ParseResult<{Character*}> result) {
-            assertEquals(result.result, [item]);
-            if (item == '\n') {
-                assertEquals(result.parseLocation, [1, 0]);
-            } else {
-                assertEquals(result.parseLocation, [0, 1]);
-            }
-            assertEquals(result.consumed, [item]);
-            assertEquals(result.overConsumed, []);
-        } else {
-            fail("Result was ```result``");
-        }
+        expect(space().parse({ item }), void(ParseResult<{Character*}> result) {
+                assertEquals(result.result, [item]);
+                if (item == '\n') {
+                    assertEquals(result.parseLocation, [1, 0]);
+                } else {
+                    assertEquals(result.parseLocation, [0, 1]);
+                }
+                assertEquals(result.consumed, [item]);
+                assertEquals(result.overConsumed, []);
+            });
     }
     
-    assert (is ParseError result2 = space().parse("xy"));
-    assertFalse(result2.message.empty);
-    assertEquals(result2.consumed, ['x']);
+    expect(space().parse("xy"), void(ParseError result2) {
+            assertFalse(result2.message.empty);
+            assertEquals(result2.consumed, ['x']);
+        });
 }
 
 test
 shared void testAnyString() {
-    assert (is ParseResult<{String*}> result1 = anyStr().parse(""));
-    assertEquals(result1.result.sequence(), [""]);
-    assertEquals(result1.parseLocation, [0, 0]);
-    assertEquals(result1.consumed, []);
-    assertEquals(result1.overConsumed, []);
+    expect(anyStr().parse(""), void(ParseResult<{String*}> result1) {
+            assertEquals(result1.result.sequence(), [""]);
+            assertEquals(result1.parseLocation, [0, 0]);
+            assertEquals(result1.consumed, []);
+            assertEquals(result1.overConsumed, []);
+        });
     
-    assert (is ParseResult<{String*}> result2 = anyStr().parse("a"));
-    assertEquals(result2.result.sequence(), ["a"]);
-    assertEquals(result2.parseLocation, [0, 1]);
-    assertEquals(result2.consumed, ['a']);
-    assertEquals(result2.overConsumed, []);
+    expect(anyStr().parse("a"), void(ParseResult<{String*}> result2) {
+            assertEquals(result2.result.sequence(), ["a"]);
+            assertEquals(result2.parseLocation, [0, 1]);
+            assertEquals(result2.consumed, ['a']);
+            assertEquals(result2.overConsumed, []);
+        });
     
-    assert (is ParseResult<{String*}> result3 = anyStr().parse("xyz abc"));
-    assertEquals(result3.result.sequence(), ["xyz"]);
-    assertEquals(result3.parseLocation, [0, 3]);
-    assertEquals(result3.consumed, ['x', 'y', 'z']);
-    assertEquals(result3.overConsumed, [' ']);
+    expect(anyStr().parse("xyz abc"), void(ParseResult<{String*}> result3) {
+            assertEquals(result3.result.sequence(), ["xyz"]);
+            assertEquals(result3.parseLocation, [0, 3]);
+            assertEquals(result3.consumed, ['x', 'y', 'z']);
+            assertEquals(result3.overConsumed, [' ']);
+        });
 }
 
 test
 shared void testWord() {
-    value result1 = word().parse("");
-    if (is ParseError result1) {
-        assertFalse(result1.message.empty);
-        assertEquals(result1.consumed, []);
-    } else {
-        fail("Result was ```result1``");
-    }
+    expect(word().parse(""), void(ParseError result1) {
+            assertFalse(result1.message.empty);
+            assertEquals(result1.consumed, []);
+        });
     
-    value result2 = word().parse("a");
-    if (is ParseResult<{String*}> result2) {
-        assertEquals(result2.result.sequence(), ["a"]);
-        assertEquals(result2.parseLocation, [0, 1]);
-        assertEquals(result2.consumed, ['a']);
-        assertEquals(result2.overConsumed, []);
-    } else {
-        fail("Result was ```result2``");
-    }
+    expect(word().parse("a"), void(ParseResult<{String*}> result2) {
+            assertEquals(result2.result.sequence(), ["a"]);
+            assertEquals(result2.parseLocation, [0, 1]);
+            assertEquals(result2.consumed, ['a']);
+            assertEquals(result2.overConsumed, []);
+        });
     
-    value result3 = word().parse("xyz abc");
-    if (is ParseResult<{String*}> result3) {
-        assertEquals(result3.result.sequence(), ["xyz"]);
-        assertEquals(result3.parseLocation, [0, 3]);
-        assertEquals(result3.consumed, ['x', 'y', 'z']);
-        assertEquals(result3.overConsumed, [' ']);
-    } else {
-        fail("Result was ```result3``");
-    }
+    expect(word().parse("xyz abc"), void(ParseResult<{String*}> result3) {
+            assertEquals(result3.result.sequence(), ["xyz"]);
+            assertEquals(result3.parseLocation, [0, 3]);
+            assertEquals(result3.consumed, ['x', 'y', 'z']);
+            assertEquals(result3.overConsumed, [' ']);
+        });
     
-    value result4 = word().parse("abcd123");
-    if (is ParseResult<{String*}> result4) {
-        assertEquals(result4.result.sequence(), ["abcd"]);
-        assertEquals(result4.parseLocation, [0, 4]);
-        assertEquals(result4.consumed, ['a', 'b', 'c', 'd']);
-        assertEquals(result4.overConsumed, ['1']);
-    } else {
-        fail("Result was ```result4``");
-    }
+    expect(word().parse("abcd123"), void(ParseResult<{String*}> result4) {
+            assertEquals(result4.result.sequence(), ["abcd"]);
+            assertEquals(result4.parseLocation, [0, 4]);
+            assertEquals(result4.consumed, ['a', 'b', 'c', 'd']);
+            assertEquals(result4.overConsumed, ['1']);
+        });
 }
 
 test
 shared void testStr() {
-    value result1 = str("").parse("");
-    if (is ParseResult<{String+}> result1) {
-        assertEquals(result1.result.sequence(), [""]);
-        assertEquals(result1.parseLocation, [0, 0]);
-        assertEquals(result1.consumed, []);
-        assertEquals(result1.overConsumed, []);
-    } else {
-        fail("Result was ``result1``");
-    }
+    expect(str("").parse(""), void(ParseResult<{String+}> result1) {
+            assertEquals(result1.result.sequence(), [""]);
+            assertEquals(result1.parseLocation, [0, 0]);
+            assertEquals(result1.consumed, []);
+            assertEquals(result1.overConsumed, []);
+        });
     
-    value result2 = str("a").parse("a");
-    if (is ParseResult<{String+}> result2) {
-        assertEquals(result2.result.sequence(), ["a"]);
-        assertEquals(result2.parseLocation, [0, 1]);
-        assertEquals(result2.consumed, ['a']);
-        assertEquals(result2.overConsumed, []);
-    } else {
-        fail("Result was ``result2``");
-    }
+    expect(str("a").parse("a"), void(ParseResult<{String+}> result2) {
+            assertEquals(result2.result.sequence(), ["a"]);
+            assertEquals(result2.parseLocation, [0, 1]);
+            assertEquals(result2.consumed, ['a']);
+            assertEquals(result2.overConsumed, []);
+        });
     
-    value result3 = str("xyz").parse("xyz abc");
-    if (is ParseResult<{String+}> result3) {
-        assertEquals(result3.result.sequence(), ["xyz"]);
-        assertEquals(result3.parseLocation, [0, 3]);
-        assertEquals(result3.consumed, ['x', 'y', 'z']);
-        assertEquals(result3.overConsumed, []);
-    } else {
-        fail("Result was ``result3``");
-    }
+    expect(str("xyz").parse("xyz abc"), void(ParseResult<{String+}> result3) {
+            assertEquals(result3.result.sequence(), ["xyz"]);
+            assertEquals(result3.parseLocation, [0, 3]);
+            assertEquals(result3.consumed, ['x', 'y', 'z']);
+            assertEquals(result3.overConsumed, []);
+        });
     
-    value result4 = str("xyz").parse("xyab");
-    if (is ParseError result4) {
-        assertFalse(result4.message.empty);
-        assertEquals(result4.consumed, ['x', 'y', 'a']);
-    } else {
-        fail("Result was ``result4``");
-    }
+    expect(str("xyz").parse("xyab"), void(ParseError result4) {
+            assertFalse(result4.message.empty);
+            assertEquals(result4.consumed, ['x', 'y', 'a']);
+        });
     
-    value result5 = str("xyz").parse("abcxyz");
-    if (is ParseError result5) {
-        assertFalse(result5.message.empty);
-        assertEquals(result5.consumed, ['a']);
-    } else {
-        fail("Result was ``result5``");
-    }
+    expect(str("xyz").parse("abcxyz"), void(ParseError result5) {
+            assertFalse(result5.message.empty);
+            assertEquals(result5.consumed, ['a']);
+        });
 }
 
 test
@@ -253,48 +229,36 @@ shared void testStringDoesNotOverconsume() {
             }
         }
     };
-    value result = str("xyz").doParse(iterator, [4, 10], null);
-    if (is ParseResult<{String+}> result) {
-        assertEquals(result.result.sequence(), ["xyz"]);
-        assertEquals(result.parseLocation, [4, 13]);
-        assertEquals(result.consumed, ['x', 'y', 'z']);
-        assertEquals(result.overConsumed, []);
-    } else {
-        fail("Result was ``result``");
-    }
+    expect(str("xyz").doParse(iterator, [4, 10]), void(ParseResult<{String+}> result) {
+            assertEquals(result.result.sequence(), ["xyz"]);
+            assertEquals(result.parseLocation, [4, 13]);
+            assertEquals(result.consumed, ['x', 'y', 'z']);
+            assertEquals(result.overConsumed, []);
+        });
 }
 
 test
 shared void testOneOf() {
     value parser = oneOf({ 'x', 'a' });
     
-    value result1 = parser.parse("");
-    if (is ParseError result1) {
-        assertFalse(result1.message.empty);
-        assertEquals(result1.consumed, []);
-    } else {
-        fail("Result was ``result1``");
-    }
+    expect(parser.parse(""), void(ParseError result1) {
+            assertFalse(result1.message.empty);
+            assertEquals(result1.consumed, []);
+        });
     
     for (item in ['x', 'a']) {
-        value result = parser.parse({ item });
-        if (is ParseResult<{Character*}> result) {
-            assertEquals(result.result, [item]);
-            assertEquals(result.parseLocation, [0, 1]);
-            assertEquals(result.consumed, [item]);
-            assertEquals(result.overConsumed, []);
-        } else {
-            fail("Result was ``result``");
-        }
+        expect(parser.parse({ item }), void(ParseResult<{Character*}> result) {
+                assertEquals(result.result, [item]);
+                assertEquals(result.parseLocation, [0, 1]);
+                assertEquals(result.consumed, [item]);
+                assertEquals(result.overConsumed, []);
+            });
     }
     for (item in ('A'..'Z').append(['\t', ' ', '?', '!', '%', '^', '&', '*'])) {
-        value result = parser.parse({ item });
-        if (is ParseError result) {
-            assertFalse(result.message.empty);
-            assertEquals(result.consumed, [item]);
-        } else {
-            fail("Result was ``result``");
-        }
+        expect(parser.parse({ item }), void(ParseError result) {
+                assertFalse(result.message.empty);
+                assertEquals(result.consumed, [item]);
+            });
     }
 }
 
@@ -302,55 +266,55 @@ test
 shared void testNoneOf() {
     value parser = noneOf({ 'x', 'a' });
     
-    value result1 = parser.parse("");
-    if (is ParseError result1) {
-        assertFalse(result1.message.empty);
-        assertEquals(result1.consumed, []);
-    } else {
-        fail("Result was ``result1``");
-    }
+    expect(parser.parse(""), void(ParseError result1) {
+            assertFalse(result1.message.empty);
+            assertEquals(result1.consumed, []);
+        });
     
     for (item in ['x', 'a']) {
-        value result = parser.parse({ item });
-        if (is ParseError result) {
-            assertFalse(result.message.empty);
-            assertEquals(result.consumed, [item]);
-        } else {
-            fail("Result was ``result``");
-        }
+        expect(parser.parse({ item }), void(ParseError result) {
+                assertFalse(result.message.empty);
+                assertEquals(result.consumed, [item]);
+            });
     }
     for (item in ('A'..'Z').append(['\t', ' ', '?', '!', '%', '^', '&', '*'])) {
-        value result = parser.parse({ item });
-        if (is ParseResult<{Character*}> result) {
-            assertEquals(result.result, [item]);
-            assertEquals(result.parseLocation, [0, 1]);
-            assertEquals(result.consumed, [item]);
-            assertEquals(result.overConsumed, []);
-        } else {
-            fail("Result was ``result``");
-        }
+        expect(parser.parse({ item }), void(ParseResult<{Character*}> result) {
+                assertEquals(result.result, [item]);
+                assertEquals(result.parseLocation, [0, 1]);
+                assertEquals(result.consumed, [item]);
+                assertEquals(result.overConsumed, []);
+            });
     }
 }
 
 test
 shared void testDigit() {
     for (input in (0..9).map(Object.string)) {
-        assert (is ParseResult<{Character*}> result = digit().parse(input));
-        assertEquals(result.result, input.sequence());
-        assertEquals(result.parseLocation, [0, 1]);
-        assertEquals(result.consumed, input.sequence());
-        assertEquals(result.overConsumed, []);
+        expect(digit().parse(input), void(ParseResult<{Character*}> result) {
+                assertEquals(result.result, input.sequence());
+                assertEquals(result.parseLocation, [0, 1]);
+                assertEquals(result.consumed, input.sequence());
+                assertEquals(result.overConsumed, []);
+            });
     }
     
     for (input in ["a", "b", "z", "#", "%", "~", "@", "hello", "#0", "!22"]) {
-        assert (is ParseError result = digit().parse(input));
-        assertFalse(result.message.empty);
-        assertEquals(result.consumed, [input.first]);
+        expect(digit().parse(input), void(ParseError result) {
+                assertFalse(result.message.empty);
+                assertEquals(result.consumed, [input.first]);
+            });
     }
     
-    assert (is ParseError result = digit().parse(""));
-    assertFalse(result.message.empty);
-    assertEquals(result.consumed, []);
+    expect(digit().parse(""), void(ParseError result) {
+            assertFalse(result.message.empty);
+            assertEquals(result.consumed, []);
+        });
+}
+
+test
+shared void testInteger() {
+    // TODO
+    integer().parse("");
 }
 
 test
@@ -358,41 +322,32 @@ shared void simpleCombinationTest() {
     value lowerCasedLetter = oneOf('a'..'z');
     value underscore = char('_');
     value identifier = seq({
-        either { lowerCasedLetter, underscore },
-        many(either { letter(), underscore })
-    }, "identifier");
+            either { lowerCasedLetter, underscore },
+            many(either { letter(), underscore })
+        }, "identifier");
     
     for (input in ["a", "_", "_a", "___", "_x_y_z", "abc___", "__xx__"]) {
-        value result = identifier.parse(input);
-        if (is ParseResult<{Character*}> result) {
-            assertEquals(result.result.sequence(), input.sequence());
-            assertEquals(result.parseLocation, [0, input.size]);
-            assertEquals(result.consumed, input.sequence());
-            assertEquals(result.overConsumed, []);
-        } else {
-            fail("Result was ``result``");
-        }
+        expect(identifier.parse(input), void(ParseResult<{Character*}> result) {
+                assertEquals(result.result.sequence(), input.sequence());
+                assertEquals(result.parseLocation, [0, input.size]);
+                assertEquals(result.consumed, input.sequence());
+                assertEquals(result.overConsumed, []);
+            });
     }
     
     for (input in ["", " ", "1", "@"]) {
-        value result = identifier.parse(input);
-        if (is ParseError result) {
-            assertFalse(result.message.empty);
-            assertEquals(result.consumed, input.sequence());
-        } else {
-            fail("Result was ``result``");
-        }
+        expect(identifier.parse(input), void(ParseError result) {
+                assertFalse(result.message.empty);
+                assertEquals(result.consumed, input.sequence());
+            });
     }
     
-    value result1 = identifier.parse("_abc ");
-    if (is ParseResult<{Character*}> result1) {
-        assertEquals(result1.result.sequence(), ['_', 'a', 'b', 'c']);
-        assertEquals(result1.parseLocation, [0, 4]);
-        assertEquals(result1.consumed, ['_', 'a', 'b', 'c']);
-        assertEquals(result1.overConsumed, [' ']);
-    } else {
-        fail("Result was ``result1``");
-    }
+    expect(identifier.parse("_abc "), void(ParseResult<{Character*}> result1) {
+            assertEquals(result1.result.sequence(), ['_', 'a', 'b', 'c']);
+            assertEquals(result1.parseLocation, [0, 4]);
+            assertEquals(result1.consumed, ['_', 'a', 'b', 'c']);
+            assertEquals(result1.overConsumed, [' ']);
+        });
 }
 
 test
@@ -409,33 +364,33 @@ shared void complexCombinationTest() {
     class Arg(Type type, String name) {
         string = "{``type`` ``name``}";
         equals(Object that) => if (is Arg that)
-        then this.name == that.name && this.type == that.type else false;
+        then this.name==that.name && this.type==that.type else false;
     }
     
     value capitalLetter = oneOf('A'..'Z');
     value lowerCasedLetter = oneOf('a'..'z');
     value underscore = char('_');
     value identifierStr = strParser(seq({
-            either { lowerCasedLetter, underscore },
-            many(either { letter(), underscore })
-        }, "identifier"));
+                either { lowerCasedLetter, underscore },
+                many(either { letter(), underscore })
+            }, "identifier"));
     value identifier = mapParser(identifierStr, Identifier);
     value typeStr = strParser(seq({
-            capitalLetter,
-            many(either { letter(), underscore })
-        }, "type identifier"));
+                capitalLetter,
+                many(either { letter(), underscore })
+            }, "type identifier"));
     value typeIdentifier = mapParser(typeStr, Type);
     value modifier = identifier;
     value argument = seq({
-        typeIdentifier,
-        spaces(1),
-        identifier
-    }, "argument");
+            typeIdentifier,
+            spaces(1),
+            identifier
+        }, "argument");
     value argumentList = seq({
-        skip(char('(')),
-        sepBy(around(spaces(), char(',')), argument),
-        skip(char(')'))
-    }, "argument list");
+            skip(char('(')),
+            sepBy(around(spaces(), char(',')), argument),
+            skip(char(')'))
+        }, "argument list");
     
     value ceylonFunctionSignature = seq {
         spaces(),
@@ -447,13 +402,12 @@ shared void complexCombinationTest() {
         argumentList
     };
     
-    value result = ceylonFunctionSignature.parse(" String hi(Boolean b, Integer i) ");
-    if (is ParseResult<{CeylonElement*}> result) {
-        assertEquals(result.result.sequence(),
-            [Type("String"), Identifier("hi"),
-             Type("Boolean"), Identifier("b"),
-             Type("Integer"), Identifier("i")]);
-    } else {
-        fail("Result was ``result``");
-    }
+    expect(ceylonFunctionSignature.parse(" String hi(Boolean b, Integer i) "),
+        void(ParseResult<{CeylonElement*}> result) {
+            assertEquals(result.result.sequence(), [
+                    Type("String"), Identifier("hi"),
+                    Type("Boolean"), Identifier("b"),
+                    Type("Integer"), Identifier("i")
+                ]);
+        });
 }
