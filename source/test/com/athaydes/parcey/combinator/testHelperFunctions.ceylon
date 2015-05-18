@@ -59,7 +59,7 @@ void assertResultsEqual(
     case (is ParseResult<{Character*}>) {
         if (is ParseResult<{Character*}> expectedResult) {
             assertEquals(actualResult.result.sequence(), expectedResult.result.sequence(), errorMessage);
-            assertEquals(actualResult.consumed, expectedResult.consumed, errorMessage);
+            assertEquals(actualResult.consumed.sequence(), expectedResult.consumed.sequence(), errorMessage);
             assertEquals(expectedResult.overConsumed, expectedResult.overConsumed, errorMessage);
         } else {
             fail("``errorMessage`` - Results have different types: ``actualResult``, ``expectedResult``");
@@ -67,7 +67,7 @@ void assertResultsEqual(
     }
     case (is ParseError) {
         if (is ParseError expectedResult) {
-            assertEquals(actualResult.consumed, expectedResult.consumed, errorMessage);
+            assertEquals(actualResult.consumed.sequence(), expectedResult.consumed.sequence(), errorMessage);
         } else {
             fail("``errorMessage`` - Results have different types: ``actualResult``, ``expectedResult``");
         }
@@ -92,13 +92,13 @@ ParseResult<{Character*}>|ParseError findExpectedResult(ParseResult<{Character*}
             return ParseResult(
                 result1.result.sequence().append(result2.result.sequence()),
                 result2.parseLocation,
-                result1.consumed.append(result2.consumed),
-                result1.overConsumed.append(result2.overConsumed));
+                result1.consumed.chain(result2.consumed),
+                result1.overConsumed.chain(result2.overConsumed));
         }
         case (is ParseError) {
             return ParseError(
                 result2.message,
-                result1.consumed.append(result2.consumed));
+                result1.consumed.chain(result2.consumed));
         }
     }
     case (is ParseError) {

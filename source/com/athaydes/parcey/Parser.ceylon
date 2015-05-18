@@ -17,7 +17,7 @@ import com.athaydes.parcey.internal {
 "An Object which has consumed a stream of characters."
 shared interface HasConsumed {
     "All characters that have been consumed."
-    shared formal Character[] consumed;
+    shared formal {Character*} consumed;
 }
 
 "[Row, Column] of the input that has been parsed."
@@ -25,10 +25,10 @@ shared alias ParsedLocation => [Integer, Integer];
 
 "Result of parsing an invalid input."
 shared class ParseError(
-    shared String message,
-    shared actual Character[] consumed)
+    shared String() message,
+    shared actual {Character*} consumed)
         satisfies HasConsumed {
-    string = "ParseError { message=``message``, consumed=``consumed`` }";
+    string => "ParseError { message=``message()``, consumed=``consumed`` }";
 }
 
 "Result of successfully parsing some input."
@@ -37,13 +37,13 @@ shared class ParseResult<out Result>(
     shared Result result,
     "Parsed location after parsing the input."
     shared ParsedLocation parseLocation,
-    shared actual Character[] consumed,
+    shared actual {Character*} consumed,
     "All characters that have been consumed but must be 'given back' to any
      consumer that runs after this."
-    shared Character[] overConsumed = [])
+    shared {Character*} overConsumed = [])
         satisfies HasConsumed {
     
-    string = "ParseResult { result=`` result else "null" ``, parsedLocation=``parseLocation``," +
+    string => "ParseResult { result=`` result else "null" ``, parsedLocation=``parseLocation``," +
             " consumed=``consumed``, overConsumed=``overConsumed`` }";
 }
 

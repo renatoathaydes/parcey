@@ -15,7 +15,7 @@ import com.athaydes.parcey.internal {
  
  For use with chain parsers (eg. [[Parser<{From*}>]]), prefer [[mapParser]]."
 see(`function mapParser`)
-shared Parser<To> mapValueParser<From,To>(Parser<From> parser, To(From) converter)
+shared Parser<To> mapValueParser<out From, out To>(Parser<From> parser, To(From) converter)
         => object satisfies Parser<To> {
     name = parser.name;
     shared actual ParseResult<To>|ParseError doParse(
@@ -47,7 +47,7 @@ shared Parser<To> mapValueParser<From,To>(Parser<From> parser, To(From) converte
  This function is convenient when using chain parsers. For single-value parsers,
  prefer to use [[mapValueParser]]."
 see(`function mapValueParser`)
-shared Parser<{To*}> mapParser<From,To>(Parser<{From*}> parser, To(From) converter)
+shared Parser<{To*}> mapParser<out From, out To>(Parser<{From*}> parser, To(From) converter)
         => mapValueParser(parser, ({From*} from) => from.map(converter));
 
 "Given several parsers *(ps)* and a function [[To({From*})]] *(f)*, return a new parser which delegates the parsing
@@ -69,7 +69,7 @@ shared Parser<{To*}> mapParser<From,To>(Parser<{From*}> parser, To(From) convert
          assert(is Integer element = elements.last);
          return key->element;
      }, \"namedInteger\");"
-shared Parser<{To*}> mapParsers<From, To>(
+shared Parser<{To*}> mapParsers<out From, out To>(
     {Parser<{From*}>+} parsers,
     To({From*}) converter,
     String name_ = "")
@@ -88,8 +88,15 @@ shared Parser<{To*}> mapParsers<From, To>(
 "Converts a [[{Item+}]] parser to an [[Item]] parser.
  
  Notice that the given parser may consume many [[Item]]s even if wrapped around this function."
-shared Parser<Item> first<Item>(Parser<{Item+}> parser)
-        => mapValueParser(parser, ({Item+} items) => items.first);
+shared Parser<Item> first<out Item>(Parser<{Item*}> parser)
+        => mapValueParser(parser, ({Item*} items) {
+        value result = items.first;
+        if (exists result) {
+            return result;
+        } else {
+            throw Exception("``parser.name`` - no first item found");
+        }
+    });
 
 "Converts an [[Item]] parser to a [[{Item+}]] parser which can be
  chained to other multi-value parsers.
@@ -97,7 +104,7 @@ shared Parser<Item> first<Item>(Parser<{Item+}> parser)
  The result of parsing some input, if successful, is an Iterable
  containing the single value returned by the given parser."
 see(`function seq`, `function seq1`)
-shared Parser<{Item+}> chainParser<Item>(Parser<Item> parser)
+shared Parser<{Item+}> chainParser<out Item>(Parser<Item> parser)
         => mapValueParser(parser, (Item result) => { result });
 
 "Converts a Parser of Characters to a [[{String+}]] Parser.
@@ -108,7 +115,7 @@ shared Parser<{String+}> strParser(Parser<{Character*}> parser)
         => chainParser(mapValueParser(parser, String));
 
 "Converts a Parser which may generate null values to one which will not."
-shared Parser<{Value*}> coallescedParser<Value>(
+shared Parser<{Value*}> coallescedParser<out Value>(
     Parser<{Value?*}> parser,
     String name_ = "")
         given Value satisfies Object

@@ -11,7 +11,7 @@ shared void run() {
     assert(contents.result.sequence() == [123]);
 
     assert(is ParseError error = parser.parse("hello"));
-    print(error.message);
+    print(error.message());
     
     value parser2 = seq {
         integer("latitude"), spaces(), integer(), spaces(), integer()
@@ -29,7 +29,7 @@ shared void run() {
     
     value error2 = parser2.parse("x y");
     assert(is ParseError error2);
-    print(error2.message);
+    print(error2.message());
 
     // helper functions example
     class Person(shared String name) {}

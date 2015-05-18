@@ -14,9 +14,9 @@ shared String chooseName(String name, String default)
 
 shared ParseError parseError(
     String errorMessage,
-    Character[] consumed,
+    {Character*} consumed,
     ParsedLocation parsedLocation)
-        => ParseError("``errorMessage`` at ``location(locationAfterParsing(consumed, parsedLocation))``", consumed);
+        => ParseError(() => "``errorMessage`` at ``location(locationAfterParsing(consumed, parsedLocation))``", consumed);
 
 shared ParseResult<Item> appendStreams<Item>(
     ParseResult<Item> first,
@@ -24,7 +24,7 @@ shared ParseResult<Item> appendStreams<Item>(
         => ParseResult(
         first.result,
         second.parseLocation,
-        first.consumed.append(second.consumed));
+        first.consumed.chain(second.consumed));
 
 shared ParseResult<{Item*}> append<Item>(
     ParseResult<{Item*}> first,
@@ -33,10 +33,10 @@ shared ParseResult<{Item*}> append<Item>(
         => ParseResult(
         first.result.chain(second.result),
         second.parseLocation,
-        first.consumed.append(second.consumed),
-        appendOverconsumed then first.overConsumed.append(second.overConsumed) else second.overConsumed);
+        first.consumed.chain(second.consumed),
+        appendOverconsumed then first.overConsumed.chain(second.overConsumed) else second.overConsumed);
 
-shared Iterator<Character> chain(Character[] consumed, Iterator<Character> rest)
+shared Iterator<Character> chain({Character*} consumed, Iterator<Character> rest)
         => object satisfies Iterator<Character> {
     
     value firstIter = consumed.iterator();
