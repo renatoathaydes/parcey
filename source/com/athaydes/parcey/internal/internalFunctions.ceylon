@@ -55,6 +55,9 @@ shared Boolean negate(Boolean b)
 shared String location(ParsedLocation parsedLocation)
         => "row ``parsedLocation[0] + 1``, column ``parsedLocation[1]``";
 
+shared ParsedLocation addColumnsToLocation(Integer columns, ParsedLocation location)
+        => [location[0], location[1] + columns];
+
 shared ParsedLocation locationAfterParsing({Character*} parsed, ParsedLocation parsedLocation) {
     variable Integer row = parsedLocation[0];
     variable Integer column = parsedLocation[1];

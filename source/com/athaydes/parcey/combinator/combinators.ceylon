@@ -139,21 +139,21 @@ shared Parser<{Item*}> many<Item>(Parser<{Item*}> parser, Integer minOccurrences
                     result = mandatoryResult;
                 }    
             }
+            value ignoreLocation = [0, 0];
             for (optional in parsers) {
-                value location = locationAfterParsing(result.consumed, parsedLocation);
                 value optionalResult = optional.doParse(
-                    chain(result.overConsumed, input), location, name);
+                    chain(result.overConsumed, input), ignoreLocation, name);
                 
                 switch (optionalResult)
                 case (is ParseError) {
-                    return ParseResult(result.result, result.parseLocation,
+                    return ParseResult(result.result, locationAfterParsing(result.consumed, parsedLocation),
                         result.consumed, optionalResult.consumed);
                 }
                 case (is ParseResult<{Item*}>) {
                     result = append(result, optionalResult, false);
                     if (optionalResult.consumed.empty) {
                         // did not consume anything, stop or there will be an infinite loop
-                        return ParseResult(result.result, result.parseLocation,
+                        return ParseResult(result.result, locationAfterParsing(result.consumed, parsedLocation),
                             result.consumed, result.overConsumed);
                     }
                 }

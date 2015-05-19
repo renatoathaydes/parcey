@@ -21,6 +21,7 @@ shared test void performanceTest() {
         for (i in 0..int) {
             builder.append(i.string).appendCharacter(' ');
         }
+        //value result = builder.string.split().collect(parseInteger).coalesced;
         value result = parser.parse(builder.string);
         //print(result);
         assert(is ParseResult<{Integer*}> result);

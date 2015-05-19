@@ -11,7 +11,8 @@ import com.athaydes.parcey.internal {
     chooseName,
     quote,
     asIterable,
-    negate
+    negate,
+    addColumnsToLocation
 }
 
 "An Object which has consumed a stream of characters."
@@ -211,7 +212,7 @@ shared Parser<{Integer+}> integer(String name_ = "") {
         function asInteger(Character c, Boolean negative)
                 => (negative then -1 else 1) * (c.integer - 48);
         
-        function overflow(Character[] consumed, ParsedLocation location)
+        function overflow({Character*} consumed, ParsedLocation location)
                 => parseError("``name``: overflow",
                 consumed, location);
 
@@ -222,9 +223,9 @@ shared Parser<{Integer+}> integer(String name_ = "") {
             value first = input.next();
             Boolean hasSign;
             Boolean negative;
-            variable Character[] consumed = [];
+            value consumed = StringBuilder();
             if (is Character first) {
-                consumed = consumed.append([first]);
+                consumed.appendCharacter(first);
                 if (validFirst(first)) {
                     hasSign = !first.digit;
                     negative = hasSign && first == '-';
@@ -241,7 +242,7 @@ shared Parser<{Integer+}> integer(String name_ = "") {
             variable Character[] overConsumed = [];
             for (next in asIterable(input)) {
                 if (next.digit) {
-                    consumed = consumed.append([next]);
+                    consumed.appendCharacter(next);
                     if (consumed.size > maxConsumeLength) {
                         return overflow(consumed, parsedLocation);
                     }
@@ -266,7 +267,7 @@ shared Parser<{Integer+}> integer(String name_ = "") {
                 }
             }
             return ParseResult({ result },
-                locationAfterParsing(consumed, parsedLocation),
+                addColumnsToLocation(consumed.size, parsedLocation),
                 consumed, overConsumed);
         }
     };
