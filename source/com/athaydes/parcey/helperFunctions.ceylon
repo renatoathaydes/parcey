@@ -24,16 +24,16 @@ shared Parser<To> mapValueParser<out From, out To>(Parser<From> parser, To(From)
         String? delegateName) {
         value result = parser.doParse(input, parsedLocation, delegateName);
         switch (result)
-        case (is ParseResult<From>) {
+        case (is ParseError) {
+            return result;
+        }
+        else {
             try {
                 return ParseResult(converter(result.result),
                     result.parseLocation, result.consumed, result.overConsumed);
             } catch(e) {
                 return parseError(e.message, result.consumed, parsedLocation);
             }
-        }
-        case (is ParseError) {
-            return result;
         }
     }
 };

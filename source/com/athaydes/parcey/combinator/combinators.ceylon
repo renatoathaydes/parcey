@@ -38,7 +38,7 @@ shared Parser<{Item*}> seq<Item>({Parser<{Item*}>+} parsers, String name_ = "")
                 return parseError("Expected ``delegateName else parser.name`` but found '``String(current.consumed)``'",
                     consumed, parsedLocation);
             }
-            case (is ParseResult<{Item*}>) {
+            else {
                 if (!current.overConsumed.empty) {
                     effectiveInput = chain(current.overConsumed, effectiveInput);
                 }
@@ -100,7 +100,7 @@ shared Parser<Item> either<Item>({Parser<Item>+} parsers, String name_ = "") {
                         current.consumed, parsedLocation);
                     effectiveInput = chain(error.consumed, effectiveInput);
                 }
-                case (is ParseResult<Item>) {
+                else {
                     return current;
                 }
             }
@@ -149,7 +149,7 @@ shared Parser<{Item*}> many<Item>(Parser<{Item*}> parser, Integer minOccurrences
                     return ParseResult(result.result, locationAfterParsing(result.consumed, parsedLocation),
                         result.consumed, optionalResult.consumed);
                 }
-                case (is ParseResult<{Item*}>) {
+                else {
                     result = append(result, optionalResult, false);
                     if (optionalResult.consumed.empty) {
                         // did not consume anything, stop or there will be an infinite loop
@@ -179,7 +179,7 @@ shared Parser<{Item*}> option<Item>(Parser<{Item*}> parser) {
             case (is ParseError) {
                 return ParseResult([], parsedLocation, [], result.consumed);
             }
-            case (is ParseResult<{Item*}>) {
+            else {
                 return result;
             }
         }
@@ -279,7 +279,7 @@ shared Parser<[]> skip(Parser<Anything> parser, String name_ = "") {
                 return parseError("Expected ``delegateName else name`` but was ``result.consumed``",
                     result.consumed, parsedLocation);
             }
-            case (is ParseResult<Anything>) {
+            else {
                 return ParseResult([], result.parseLocation, result.consumed, result.overConsumed);
             }
         }

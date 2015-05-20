@@ -25,7 +25,7 @@ shared interface HasConsumed {
 shared alias ParsedLocation => [Integer, Integer];
 
 "Result of parsing an invalid input."
-shared class ParseError(
+shared final class ParseError(
     shared String() message,
     shared actual {Character*} consumed)
         satisfies HasConsumed {
@@ -33,7 +33,7 @@ shared class ParseError(
 }
 
 "Result of successfully parsing some input."
-shared class ParseResult<out Result>(
+shared final class ParseResult<out Result>(
     "Result of parsing the input."
     shared Result result,
     "Parsed location after parsing the input."
