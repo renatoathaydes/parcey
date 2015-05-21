@@ -29,10 +29,11 @@ shared ParseResult<Item> appendStreams<Item>(
 shared ParseResult<{Item*}> append<Item>(
     ParseResult<{Item*}> first,
     ParseResult<{Item*}> second,
-    Boolean appendOverconsumed)
+    Boolean appendOverconsumed,
+    ParsedLocation? newLocation = null)
         => ParseResult(
         first.result.chain(second.result),
-        second.parseLocation,
+        newLocation else second.parseLocation,
         first.consumed.chain(second.consumed),
         appendOverconsumed then first.overConsumed.chain(second.overConsumed) else second.overConsumed);
 
@@ -57,6 +58,9 @@ shared String location(ParsedLocation parsedLocation)
 
 shared ParsedLocation addColumnsToLocation(Integer columns, ParsedLocation location)
         => [location[0], location[1] + columns];
+
+shared ParsedLocation addLocations(ParsedLocation first, ParsedLocation second)
+        => [first[0] + second[0], first[1] + second[1]];
 
 shared ParsedLocation locationAfterParsing({Character*} parsed, ParsedLocation parsedLocation) {
     variable Integer row = parsedLocation[0];

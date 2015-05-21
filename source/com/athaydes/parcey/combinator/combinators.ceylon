@@ -10,7 +10,8 @@ import com.athaydes.parcey.internal {
     append,
     simplePlural,
     parseError,
-    locationAfterParsing
+    locationAfterParsing,
+    addLocations
 }
 
 "Creates a Parser that applies each of the given parsers in sequence.
@@ -29,9 +30,10 @@ shared Parser<{Item*}> seq<Item>({Parser<{Item*}>+} parsers, String name_ = "")
         String? delegateName) {
         variable ParseResult<{Item*}> result = ParseResult([], parsedLocation, []);
         variable Iterator<Character> effectiveInput = input;
+        variable ParsedLocation currentLocation = parsedLocation;
+        value zeroLocation = [0, 0];
         for (parser in parsers) {
-            value current = parser.doParse(effectiveInput,
-                locationAfterParsing(result.consumed, parsedLocation));
+            value current = parser.doParse(effectiveInput, zeroLocation);
             switch (current)
             case (is ParseError) {
                 value consumed = result.consumed.chain(current.consumed);
@@ -39,10 +41,11 @@ shared Parser<{Item*}> seq<Item>({Parser<{Item*}>+} parsers, String name_ = "")
                     consumed, parsedLocation);
             }
             else {
+                currentLocation = addLocations(currentLocation, current.parseLocation);
                 if (!current.overConsumed.empty) {
                     effectiveInput = chain(current.overConsumed, effectiveInput);
                 }
-                result = append(result, current, false);
+                result = append(result, current, false, currentLocation);
             }
         }
         return result;
@@ -64,7 +67,7 @@ shared Parser<{Item+}> seq1<Item>({Parser<{Item*}>+} parsers, String name_ = "")
         ParsedLocation parsedLocation,
         String? delegateName) {
             value result = delegate.doParse(input, parsedLocation);
-            if (is ParseResult<{Item*}> result,
+            if (is ParseResult<Anything> result,
                 is {Item+} res = result.result) {
                 return ParseResult(res, result.parseLocation,
                     result.consumed, result.overConsumed);
