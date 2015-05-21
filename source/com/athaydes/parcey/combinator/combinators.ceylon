@@ -10,7 +10,6 @@ import com.athaydes.parcey.internal {
     append,
     simplePlural,
     parseError,
-    locationAfterParsing,
     addLocations
 }
 
@@ -126,7 +125,7 @@ shared Parser<{Item*}> many<Item>(Parser<{Item*}> parser, Integer minOccurrences
             + " ``simplePlural("occurrence", minOccurrences)`` of ``parser.name``");
 
         function minMany(Iterator<Character> input, ParsedLocation parsedLocation)
-                => seq({parser}.chain(parsers.take(minOccurrences - 1)), name)
+                => seq({parser}.chain(parsers.take(minOccurrences - 1)))
                     .doParse(input, parsedLocation, name);
         
         shared actual ParseResult<{Item*}>|ParseError doParse(
@@ -142,23 +141,23 @@ shared Parser<{Item*}> many<Item>(Parser<{Item*}> parser, Integer minOccurrences
                     result = mandatoryResult;
                 }    
             }
-            value ignoreLocation = [0, 0];
+            variable ParsedLocation currentLocation = result.parseLocation;
             for (optional in parsers) {
                 value optionalResult = optional.doParse(
-                    chain(result.overConsumed, input), ignoreLocation, name);
+                    chain(result.overConsumed, input), currentLocation);
                 
                 switch (optionalResult)
                 case (is ParseError) {
-                    return ParseResult(result.result, locationAfterParsing(result.consumed, parsedLocation),
+                    return ParseResult(result.result, currentLocation,
                         result.consumed, optionalResult.consumed);
                 }
                 else {
                     result = append(result, optionalResult, false);
                     if (optionalResult.consumed.empty) {
                         // did not consume anything, stop or there will be an infinite loop
-                        return ParseResult(result.result, locationAfterParsing(result.consumed, parsedLocation),
-                            result.consumed, result.overConsumed);
+                        return result;
                     }
+                    currentLocation = result.parseLocation;
                 }
             }
             throw; // looping an infinite stream, so this will never be reached
