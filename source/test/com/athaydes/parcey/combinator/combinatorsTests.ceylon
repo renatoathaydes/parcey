@@ -17,7 +17,8 @@ import com.athaydes.parcey {
     integer,
     spaces,
     chars,
-    digit
+    digit,
+    coalescedParser
 }
 import com.athaydes.parcey.combinator {
     either,
@@ -26,7 +27,11 @@ import com.athaydes.parcey.combinator {
     option,
     skip,
     sepBy,
-    around
+    around,
+    seq1
+}
+import ceylon.language.meta {
+    typeLiteral
 }
 
 test
@@ -46,6 +51,21 @@ shared void canParseNonStableStream() {
     } else {
         fail("Result was ``result``");
     }
+}
+
+test shared void seq1FailsWithEmptyResult() {
+    value parser = seq1 { coalescedParser(integer()) };
+    
+    expect(parser.parse(""), typeLiteral<ParseError>());
+    expect(parser.parse("x"), typeLiteral<ParseError>());
+}
+
+test shared void seq1AllowsNonEmptyResult()  {
+    value parser = seq1 { coalescedParser(integer()) };
+    
+    expect(parser.parse("33"), void(ParseResult<{Integer*}> result) {
+        assertEquals(result.result.sequence(), [33]);
+    });
 }
 
 test

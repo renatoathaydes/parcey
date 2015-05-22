@@ -218,6 +218,8 @@ shared void testStr() {
             assertFalse(result5.message().empty);
             assertEquals(result5.consumed.sequence(), ['a']);
         });
+    
+    expect(str("ab").parse(""), typeLiteral<ParseError>());
 }
 
 test

@@ -181,12 +181,16 @@ shared Parser<{String+}> str(String text, String name_ = "")
             }
         } else {
             value consumed = StringBuilder();
+            function fail() => parseError("Expected ``delegateName else name`` but was ``consumed``",
+                        consumed.sequence(), parsedLocation);
             for (expected->actual in zipEntries(text, asIterable(input))) {
                 consumed.appendCharacter(actual);
                 if (actual != expected) {
-                    return parseError("Expected ``delegateName else name`` but was ``consumed``",
-                        consumed.sequence(), parsedLocation);
+                    return fail();
                 }
+            }
+            if (consumed.size < text.size) {
+                return fail();
             }
             return ParseResult({text}, locationAfterParsing(consumed, parsedLocation), consumed.sequence());
         }
