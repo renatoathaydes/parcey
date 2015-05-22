@@ -60,6 +60,10 @@ assert(is ParseResult<{Integer*}> contents2);
 assert(contents2.result.sequence() == [10, 20, 30]);
 ```
 
+Notice that only the 3 first Integers are parsed, because once all the parsers are satisfied, they have no reason to continue parsing the input!
+
+> If you want to consume the whole input, just add an `eof` parser at the end of the Iterable given to `seq` so that the parser will fail if there's anything left in the input after parsing the first 3 Integers.
+
 The spaces are not included in the result because the `spaces` parser
 discards its results.
 
