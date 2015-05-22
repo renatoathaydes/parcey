@@ -36,7 +36,7 @@ shared Parser<{Item*}> seq<Item>({Parser<{Item*}>+} parsers, String name_ = "")
             switch (current)
             case (is ParseError) {
                 value consumed = result.consumed.chain(current.consumed);
-                return parseError("Expected ``delegateName else parser.name`` but found '``String(current.consumed)``'",
+                return parseError("Expected '``delegateName else parser.name``' but found '``String(current.consumed)``'",
                     consumed, parsedLocation);
             }
             else {
@@ -67,8 +67,9 @@ shared Parser<{Item+}> seq1<Item>({Parser<{Item*}>+} parsers, String name_ = "")
         String? delegateName) {
             value result = delegate.doParse(input, parsedLocation);
             if (is ParseResult<Anything> result,
-                is {Item+} res = result.result) {
-                return ParseResult(res, result.parseLocation,
+                exists res = result.result.first) {
+                return ParseResult({res}.chain(result.result.rest),
+                    result.parseLocation,
                     result.consumed, result.overConsumed);
             } else if (is ParseError result) {
                 return result;

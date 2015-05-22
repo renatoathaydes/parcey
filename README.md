@@ -131,6 +131,8 @@ Here's a full list of the available **parsers**:
 * `noneOf`: parses anything but the given characters.
 * `eof`: parses the empty String, ie. end of input.
 
+### Parser combinators
+
 And these are the parser **combinators**:
 
 * `seq`: applies one or more parsers in sequence, one after the other.
@@ -143,16 +145,30 @@ And these are the parser **combinators**:
 * `skip`: applies a parser but skips its result.
 * `around`: parses a parser around another parser.
 
-For a detailed description, check the CeylonDocs!
+> For a detailed description of each function, check the CeylonDocs!
+
+The `seq1` combinator is particularly useful when you know the result of another combinator must have at least one item. For example, consider this parser:
+
+```ceylon
+value parser = sepBy(spaces(), word(), 1);
+```
+
+Here, the parser will take up the type `Parser<{String*}>`, even though, because we specified that the `sepBy` parser must only succeed if at least one `word()` is found, we know that the type should be `Parser<{String+}>`. To fix this, we just need to wrap the parser with `seq1`:
+
+```ceylon
+Parser<{String+}> parser = seq1 { sepBy(spaces(), word(), 1) };
+```
 
 ### Helper functions
+
+Helper functions are used to transform parsers in some way.
 
 * `mapValueParser`: converts a parser of type `A` to a parser of type `B`.
 * `mapParser`: converts a parser of type `{A*}` to a parser of type `{B*}`.
 * `mapParsers`: converts a sequence of parsers of type `{A*}` to a parser of type `{B*}`.
 * `chainParser`: converts a parser of type `A` to a parser of type `{A+}`.
 * `strParser`: converts a parser of type `{Character*}` to a parser of type `{String+}`.
-* `coallescedParser`: converts a parser of type `{A?*}` to a parser of type `{A*}`.
+* `coalescedParser`: converts a parser of type `{A?*}` to a parser of type `{A*}`.
 * `first`: converts a parser of type `{A*}` to a parser of type `A`.
 
 These helper functions work together to let you create Parsers which can generate values of the types you're interested in, not just Strings and Characters.
