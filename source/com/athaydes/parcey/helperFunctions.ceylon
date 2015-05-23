@@ -10,7 +10,7 @@ import com.athaydes.parcey.internal {
 "Given a parser *(p)* and a function To(From) *(f)*, return a new parser which delegates the parsing
  to *p*, using *f* to convert the result from type *From* to *To*.
  
- If [[converter]] throws an Exception, it is caught and converted into a [[ParseError]], which is then
+ If [[converter]] throws a [[Throwable]], it is caught and converted into a [[ParseError]], which is then
  returned as the result of parsing the input.
  
  For use with chain parsers (eg. [[Parser<{From*}>]]), prefer [[mapParser]]."
@@ -32,7 +32,7 @@ shared Parser<To> mapValueParser<out From,out To>(
             try {
                 return ParseResult(converter(result.result),
                     result.parseLocation, result.consumed, result.overConsumed);
-            } catch (e) {
+            } catch (Throwable e) {
                 return parseError(e.message, result.consumed, parsedLocation);
             }
         }
@@ -42,7 +42,7 @@ shared Parser<To> mapValueParser<out From,out To>(
 "Given a parser *(p)* and a function [[To(From)]] *(f)*, return a new parser which delegates the parsing
  to *p*, using *f* to convert the result from type [[{From*}]] to [[{To*}]].
  
- If [[converter]] throws an Exception, it is caught and converted into a [[ParseError]], which is then
+ If [[converter]] throws a [[Throwable]], it is caught and converted into a [[ParseError]], which is then
  returned as the result of parsing the input.
  
  This function is convenient when using chain parsers. For single-value parsers,
@@ -54,7 +54,7 @@ shared Parser<{To*}> mapParser<out From,out To>(Parser<{From*}> parser, To(From)
 "Given several parsers *(ps)* and a function [[To({From*})]] *(f)*, return a new parser which delegates the parsing
  to a [[seq]] of *ps*, using *f* to convert the results from type [[{From*}]] to [[{To*}]].
  
- If [[converter]] throws an Exception, it is caught and converted into a [[ParseError]], which is then
+ If [[converter]] throws a [[Throwable]], it is caught and converted into a [[ParseError]], which is then
  returned as the result of parsing the input.
  
  This function allows mapping to types which take more than one argument in the constructor.
