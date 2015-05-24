@@ -1,9 +1,13 @@
+import ceylon.language.meta {
+    typeLiteral
+}
 import ceylon.test {
     test,
     assertEquals,
     assertFalse,
     assertTrue
 }
+
 import com.athaydes.parcey {
     anyChar,
     ParseResult,
@@ -28,19 +32,15 @@ import com.athaydes.parcey {
 import com.athaydes.parcey.combinator {
     ...
 }
+
 import test.com.athaydes.parcey.combinator {
-    expect,
-    extractLocation
-}
-import ceylon.language.meta {
-    typeLiteral
+    expect
 }
 
 test
 shared void testEof() {
     expect(eof().parse(""), void(ParseResult<[]> result) {
             assertEquals(result.result.sequence(), []);
-            assertEquals(result.parseLocation, [0, 0]);
             assertEquals(result.consumed.sequence(), []);
             assertEquals(result.overConsumed.sequence(), []);
         });
@@ -54,14 +54,12 @@ shared void testEof() {
 test
 shared void testAnyChar() {
     expect(anyChar().parse("a"), void(ParseResult<{Character*}> result) {
-            assertEquals(result.result, ['a']);
-            assertEquals(result.parseLocation, [0, 1]);
+            assertEquals(result.result.sequence(), ['a']);
             assertEquals(result.consumed.sequence(), ['a']);
             assertEquals(result.overConsumed.sequence(), []);
         });
     expect(anyChar().parse("xyz"), void(ParseResult<{Character*}> result) {
-            assertEquals(result.result, ['x']);
-            assertEquals(result.parseLocation, [0, 1]);
+            assertEquals(result.result.sequence(), ['x']);
             assertEquals(result.consumed.sequence(), ['x']);
             assertEquals(result.overConsumed.sequence(), []);
         });
@@ -78,7 +76,6 @@ shared void testChars() {
     
     expect(parser.parse('a'..'z'), void(ParseResult<{Character+}> result) {
             assertEquals(result.result.sequence(), ['a', 'b', 'c']);
-            assertEquals(result.parseLocation, [0, 3]);
             assertEquals(result.consumed.sequence(), ['a', 'b', 'c']);
             assertEquals(result.overConsumed.sequence(), []);
         });
@@ -93,8 +90,7 @@ test
 shared void testLetter() {
     for (item in ('a'..'z').append('A'..'Z')) {
         expect(letter().parse({ item }), void(ParseResult<{Character*}> result) {
-                assertEquals(result.result, [item]);
-                assertEquals(result.parseLocation, [0, 1]);
+                assertEquals(result.result.sequence(), [item]);
                 assertEquals(result.consumed.sequence(), [item]);
                 assertEquals(result.overConsumed.sequence(), []);
             });
@@ -116,12 +112,7 @@ shared void testSpace() {
     
     for (item in spaceChars) {
         expect(space().parse({ item }), void(ParseResult<{Character*}> result) {
-                assertEquals(result.result, [item]);
-                if (item == '\n') {
-                    assertEquals(result.parseLocation, [1, 0]);
-                } else {
-                    assertEquals(result.parseLocation, [0, 1]);
-                }
+                assertEquals(result.result.sequence(), [item]);
                 assertEquals(result.consumed.sequence(), [item]);
                 assertEquals(result.overConsumed.sequence(), []);
             });
@@ -137,21 +128,18 @@ test
 shared void testAnyString() {
     expect(anyStr().parse(""), void(ParseResult<{String*}> result1) {
             assertEquals(result1.result.sequence(), [""]);
-            assertEquals(result1.parseLocation, [0, 0]);
             assertEquals(result1.consumed.sequence(), []);
             assertEquals(result1.overConsumed.sequence(), []);
         });
     
     expect(anyStr().parse("a"), void(ParseResult<{String*}> result2) {
             assertEquals(result2.result.sequence(), ["a"]);
-            assertEquals(result2.parseLocation, [0, 1]);
             assertEquals(result2.consumed.sequence(), ['a']);
             assertEquals(result2.overConsumed.sequence(), []);
         });
     
     expect(anyStr().parse("xyz abc"), void(ParseResult<{String*}> result3) {
             assertEquals(result3.result.sequence(), ["xyz"]);
-            assertEquals(result3.parseLocation, [0, 3]);
             assertEquals(result3.consumed.sequence(), ['x', 'y', 'z']);
             assertEquals(result3.overConsumed.sequence(), [' ']);
         });
@@ -166,21 +154,18 @@ shared void testWord() {
     
     expect(word().parse("a"), void(ParseResult<{String*}> result2) {
             assertEquals(result2.result.sequence(), ["a"]);
-            assertEquals(result2.parseLocation, [0, 1]);
             assertEquals(result2.consumed.sequence(), ['a']);
             assertEquals(result2.overConsumed.sequence(), []);
         });
     
     expect(word().parse("xyz abc"), void(ParseResult<{String*}> result3) {
             assertEquals(result3.result.sequence(), ["xyz"]);
-            assertEquals(result3.parseLocation, [0, 3]);
             assertEquals(result3.consumed.sequence(), ['x', 'y', 'z']);
             assertEquals(result3.overConsumed.sequence(), [' ']);
         });
     
     expect(word().parse("abcd123"), void(ParseResult<{String*}> result4) {
             assertEquals(result4.result.sequence(), ["abcd"]);
-            assertEquals(result4.parseLocation, [0, 4]);
             assertEquals(result4.consumed.sequence(), ['a', 'b', 'c', 'd']);
             assertEquals(result4.overConsumed.sequence(), ['1']);
         });
@@ -190,21 +175,18 @@ test
 shared void testStr() {
     expect(str("").parse(""), void(ParseResult<{String+}> result1) {
             assertEquals(result1.result.sequence(), [""]);
-            assertEquals(result1.parseLocation, [0, 0]);
             assertEquals(result1.consumed.sequence(), []);
             assertEquals(result1.overConsumed.sequence(), []);
         });
     
     expect(str("a").parse("a"), void(ParseResult<{String+}> result2) {
             assertEquals(result2.result.sequence(), ["a"]);
-            assertEquals(result2.parseLocation, [0, 1]);
             assertEquals(result2.consumed.sequence(), ['a']);
             assertEquals(result2.overConsumed.sequence(), []);
         });
     
     expect(str("xyz").parse("xyz abc"), void(ParseResult<{String+}> result3) {
             assertEquals(result3.result.sequence(), ["xyz"]);
-            assertEquals(result3.parseLocation, [0, 3]);
             assertEquals(result3.consumed.sequence(), ['x', 'y', 'z']);
             assertEquals(result3.overConsumed.sequence(), []);
         });
@@ -236,10 +218,9 @@ shared void testStringDoesNotOverconsume() {
             }
         }
     };
-    expect(str("xyz").doParse(iterator, [4, 10]), void(ParseResult<{String+}> result) {
+    expect(str("xyz").doParse(iterator, "abc"), void(ParseResult<{String+}> result) {
             assertEquals(result.result.sequence(), ["xyz"]);
-            assertEquals(result.parseLocation, [4, 13]);
-            assertEquals(result.consumed.sequence(), ['x', 'y', 'z']);
+            assertEquals(result.consumed.sequence(), ['a', 'b', 'c', 'x', 'y', 'z']);
             assertEquals(result.overConsumed.sequence(), []);
         });
 }
@@ -255,9 +236,7 @@ shared void testOneOf() {
     
     for (item in ['x', 'a']) {
         expect(parser.parse({ item }), void(ParseResult<{Character*}> result) {
-                assertEquals(result.result, [item]);
-                assertEquals(result.parseLocation, [0, 1]);
-                assertEquals(result.consumed.sequence(), [item]);
+                assertEquals(result.result.sequence(), [item]);
                 assertEquals(result.overConsumed.sequence(), []);
             });
     }
@@ -286,8 +265,7 @@ shared void testNoneOf() {
     }
     for (item in ('A'..'Z').append(['\t', ' ', '?', '!', '%', '^', '&', '*'])) {
         expect(parser.parse({ item }), void(ParseResult<{Character*}> result) {
-                assertEquals(result.result, [item]);
-                assertEquals(result.parseLocation, [0, 1]);
+                assertEquals(result.result.sequence(), [item]);
                 assertEquals(result.consumed.sequence(), [item]);
                 assertEquals(result.overConsumed.sequence(), []);
             });
@@ -298,8 +276,7 @@ test
 shared void testDigit() {
     for (input in (0..9).map(Object.string)) {
         expect(digit().parse(input), void(ParseResult<{Character*}> result) {
-                assertEquals(result.result, input.sequence());
-                assertEquals(result.parseLocation, [0, 1]);
+                assertEquals(result.result.sequence(), input.sequence());
                 assertEquals(result.consumed.sequence(), input.sequence());
                 assertEquals(result.overConsumed.sequence(), []);
             });
@@ -324,7 +301,6 @@ shared void testInteger() {
     for (input in (0..9).map(Object.string)) {
         expect(integer().parse(input), void(ParseResult<{Integer*}> result) {
                 assertEquals(result.result.sequence(), [parseInteger(input)]);
-                assertEquals(result.parseLocation, [0, 1]);
                 assertEquals(result.consumed.sequence(), input.sequence());
                 assertEquals(result.overConsumed.sequence(), []);
             });
@@ -332,14 +308,12 @@ shared void testInteger() {
     for (input in (-1 .. -9).map(Object.string)) {
         expect(integer().parse(input), void(ParseResult<{Integer*}> result) {
                 assertEquals(result.result.sequence(), [parseInteger(input)]);
-                assertEquals(result.parseLocation, [0, 2]);
                 assertEquals(result.consumed.sequence(), input.sequence());
                 assertEquals(result.overConsumed.sequence(), []);
             });
     }
     expect(integer().parse("9876543210"), void(ParseResult<{Integer*}> result) {
             assertEquals(result.result.sequence(), [9876543210]);
-            assertEquals(result.parseLocation, [0, 10]);
             assertEquals(result.consumed.sequence(), ('9'..'0').sequence());
             assertEquals(result.overConsumed.sequence(), []);
         });
@@ -355,7 +329,7 @@ shared void testInteger() {
         });
     expect(integer().parse(['9'].cycled.take(100)),
         void(ParseError error) {
-            value location = extractLocation(error.message());
+            value location = error.location;
             assertTrue(location.last < 25,
                 "Parsed too many digits before overflowing: ``location``");
         });
@@ -373,7 +347,6 @@ shared void simpleCombinationTest() {
     for (input in ["a", "_", "_a", "___", "_x_y_z", "abc___", "__xx__"]) {
         expect(identifier.parse(input), void(ParseResult<{Character*}> result) {
                 assertEquals(result.result.sequence(), input.sequence());
-                assertEquals(result.parseLocation, [0, input.size]);
                 assertEquals(result.consumed.sequence(), input.sequence());
                 assertEquals(result.overConsumed.sequence(), []);
             });
@@ -388,7 +361,6 @@ shared void simpleCombinationTest() {
     
     expect(identifier.parse("_abc "), void(ParseResult<{Character*}> result1) {
             assertEquals(result1.result.sequence(), ['_', 'a', 'b', 'c']);
-            assertEquals(result1.parseLocation, [0, 4]);
             assertEquals(result1.consumed.sequence(), ['_', 'a', 'b', 'c']);
             assertEquals(result1.overConsumed.sequence(), [' ']);
         });

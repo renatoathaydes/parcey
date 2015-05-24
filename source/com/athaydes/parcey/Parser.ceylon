@@ -6,13 +6,11 @@ import com.athaydes.parcey.combinator {
     seq1
 }
 import com.athaydes.parcey.internal {
-    locationAfterParsing,
     parseError,
     chooseName,
     quote,
     asIterable,
-    negate,
-    addColumnsToLocation
+    negate
 }
 
 "An Object which has consumed a stream of characters."
@@ -27,24 +25,24 @@ shared alias ParsedLocation => [Integer, Integer];
 "Result of parsing an invalid input."
 shared final class ParseError(
     shared String() message,
-    shared actual {Character*} consumed)
+    shared actual {Character*} consumed,
+    shared ParsedLocation location)
         satisfies HasConsumed {
-    string => "ParseError { message=``message()``, consumed=``consumed`` }";
+    string => "ParseError { message=``message()``, consumed=``consumed``" +
+            " location=``location``";
 }
 
 "Result of successfully parsing some input."
 shared final class ParseResult<out Result>(
     "Result of parsing the input."
     shared Result result,
-    "Parsed location after parsing the input."
-    shared ParsedLocation parseLocation,
     shared actual {Character*} consumed,
     "All characters that have been consumed but must be 'given back' to any
      consumer that runs after this."
-    shared {Character*} overConsumed = [])
+    shared {Character*} overConsumed = {})
         satisfies HasConsumed {
     
-    string => "ParseResult { result=`` result else "null" ``, parsedLocation=``parseLocation``," +
+    string => "ParseResult { result=`` result else "null" ``," +
             " consumed=``consumed``, overConsumed=``overConsumed`` }";
 }
 
@@ -59,16 +57,14 @@ shared interface Parser<out Parsed> {
           a chain of parsers."
     see (`function seq`)
     shared default ParseResult<Parsed>|ParseError parse(
-        {Character*} input,
-        ParsedLocation parsedLocation = [0, 0])
-            => doParse(input.iterator(), parsedLocation);
+        {Character*} input)
+            => doParse(input.iterator(), {});
     
     "Parses the contents given by the iterator. Normally, [[Parser.parse]] should just
      delegate to this method."
     shared formal ParseResult<Parsed>|ParseError doParse(
         Iterator<Character> input,
-        ParsedLocation parsedLocation,
-        String? delegateName = null);
+        {Character*} consumed);
 }
 
 "Parser that expects an empty stream.
@@ -86,15 +82,13 @@ shared Parser<{Character+}> anyChar(String name_ = "")
     name => chooseName(name_, "any character");
     shared actual ParseResult<{Character+}>|ParseError doParse(
         Iterator<Character> input,
-        ParsedLocation parsedLocation,
-        String? delegateName) {
+        {Character*} consumed) {
         value first = input.next();
         if (is Character first) {
-            value consumed = [first];
-            return ParseResult(consumed, locationAfterParsing(consumed, parsedLocation), consumed);
+            value result = { first };
+            return ParseResult(result, consumed.chain(result), {});
         }
-        return parseError("Expected ``delegateName else name`` but found EOF",
-            [], parsedLocation);
+        return parseError(input, this, consumed);
     }
 };
 
@@ -170,29 +164,26 @@ shared Parser<{String+}> str(String text, String name_ = "")
     name = chooseName(name_, "string ``quote(text)``");
     shared actual ParseResult<{String+}>|ParseError doParse(
         Iterator<Character> input,
-        ParsedLocation parsedLocation,
-        String? delegateName) {
+        {Character*} consumed) {
         if (text.empty) {
             if (is Character next = input.next()) {
-                return parseError("Expected ``delegateName else name`` but found '``next``'",
-                    [next], parsedLocation);
+                return parseError(input, this, consumed.chain { next });
             } else {
-                return ParseResult({""}, parsedLocation, []);
+                return ParseResult({text}, consumed, {});
             }
         } else {
-            value consumed = StringBuilder();
-            function fail() => parseError("Expected ``delegateName else name`` but was ``consumed``",
-                        consumed.sequence(), parsedLocation);
+            value consuming = StringBuilder();
+            function fail() => parseError(input, this, consumed.chain(consuming));
             for (expected->actual in zipEntries(text, asIterable(input))) {
-                consumed.appendCharacter(actual);
+                consuming.appendCharacter(actual);
                 if (actual != expected) {
                     return fail();
                 }
             }
-            if (consumed.size < text.size) {
+            if (consuming.size < text.size) {
                 return fail();
             }
-            return ParseResult({text}, locationAfterParsing(consumed, parsedLocation), consumed.sequence());
+            return ParseResult({text}, consumed.chain(consuming), {});
         }
     }
 };
@@ -216,49 +207,41 @@ shared Parser<{Integer+}> integer(String name_ = "") {
         function asInteger(Character c, Boolean negative)
                 => (negative then -1 else 1) * (c.integer - 48);
         
-        function overflow({Character*} consumed, ParsedLocation location)
-                => parseError("``name``: overflow",
-                consumed, location);
-
         shared actual ParseResult<{Integer+}>|ParseError doParse(
             Iterator<Character> input,
-            ParsedLocation parsedLocation,
-            String? delegateName) {
+            {Character*} consumed) {
             value first = input.next();
             Boolean hasSign;
             Boolean negative;
-            value consumed = StringBuilder();
+            value consuming = StringBuilder();
             if (is Character first) {
-                consumed.appendCharacter(first);
+                consuming.appendCharacter(first);
                 if (validFirst(first)) {
                     hasSign = !first.digit;
                     negative = hasSign && first == '-';
                 } else {
-                    return parseError("Expected ``name`` but found '``first``'",
-                        [first], parsedLocation);
+                    return parseError(input, this, consumed.chain { first });
                 }
             } else {
-                return parseError("Expected ``name`` but found nothing",
-                    [], parsedLocation);
+                return parseError(input, this, consumed);
             }
             value maxConsumeLength = runtime.maxIntegerValue.string.size +
                     (hasSign then 1 else 0);
             variable Character[] overConsumed = [];
             for (next in asIterable(input)) {
                 if (next.digit) {
-                    consumed.appendCharacter(next);
-                    if (consumed.size > maxConsumeLength) {
-                        return overflow(consumed, parsedLocation);
+                    consuming.appendCharacter(next);
+                    if (consuming.size > maxConsumeLength) {
+                        return parseError(input, this, consumed.chain(consuming));
                     }
                 } else {
                     overConsumed = [next];
                     break;
                 }
             }
-            value digits = hasSign then consumed.rest else consumed;
+            value digits = hasSign then consuming.rest else consuming;
             if (digits.empty) {
-                return parseError("Expected ``name`` but found '``consumed.first else ""``'",
-                        consumed, parsedLocation);
+                return parseError(input, this, consumed.chain(consuming));
             }
             variable Integer result = 0;
             value overflowGuard = negative
@@ -267,12 +250,11 @@ shared Parser<{Integer+}> integer(String name_ = "") {
                 value current = result;
                 result += asInteger(next, negative) * 10^exponent;
                 if (overflowGuard(result)(current)) {
-                    return overflow(consumed, parsedLocation);
+                    return parseError(input, this, consumed.chain(consuming));
                 }
             }
             return ParseResult({ result },
-                addColumnsToLocation(consumed.size, parsedLocation),
-                consumed, overConsumed);
+                consumed.chain(consuming), overConsumed);
         }
     };
 }
@@ -281,22 +263,19 @@ class OneOf(shared actual String name, Boolean includingChars, {Character+} char
         satisfies Parser<{Character+}> {
     shared actual ParseResult<{Character+}>|ParseError doParse(
         Iterator<Character> input,
-        ParsedLocation parsedLocation,
-        String? delegateName) {
+        {Character*} consumed) {
         value first = input.next();
         switch (first)
         case (is Finished) {
-            return parseError("Expected ``delegateName else name`` but was EOF",
-                [], parsedLocation);
+            return parseError(input, this, consumed);
         }
         case (is Character) {
-            value consumed = [first];
+            value consuming = { first };
             value boolFun = includingChars then identity<Boolean> else negate;
             if (boolFun(first in chars)) {
-                return ParseResult(consumed, locationAfterParsing(consumed, parsedLocation), consumed);
+                return ParseResult(consuming, consumed.chain(consuming));
             }
-            return parseError("Expected ``delegateName else name`` but was '``first``'",
-                consumed, parsedLocation);
+            return parseError(input, this, consuming);
         }
     }
 }

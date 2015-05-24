@@ -1,16 +1,14 @@
 import com.athaydes.parcey {
     Parser,
     ParseResult,
-    ParseError,
-    ParsedLocation
+    ParseError
 }
 import com.athaydes.parcey.internal {
     chooseName,
     chain,
     append,
     simplePlural,
-    parseError,
-    addLocations
+    parseError
 }
 
 "Creates a Parser that applies each of the given parsers in sequence.
@@ -25,26 +23,20 @@ shared Parser<{Item*}> seq<Item>({Parser<{Item*}>+} parsers, String name_ = "")
     name => chooseName(name_, parsers.map(Parser.name).interpose("->").fold("")(plus));
     shared actual ParseResult<{Item*}>|ParseError doParse(
         Iterator<Character> input,
-        ParsedLocation parsedLocation,
-        String? delegateName) {
-        variable ParseResult<{Item*}> result = ParseResult([], parsedLocation, []);
+        {Character*} consumed) {
+        variable ParseResult<{Item*}> result = ParseResult({}, consumed, {});
         variable Iterator<Character> effectiveInput = input;
-        variable ParsedLocation currentLocation = parsedLocation;
-        value zeroLocation = [0, 0];
         for (parser in parsers) {
-            value current = parser.doParse(effectiveInput, zeroLocation);
+            value current = parser.doParse(effectiveInput, consumed);
             switch (current)
             case (is ParseError) {
-                value consumed = result.consumed.chain(current.consumed);
-                return parseError("Expected '``delegateName else parser.name``' but found '``String(current.consumed)``'",
-                    consumed, parsedLocation);
+                return parseError(input, this, result.consumed.chain(current.consumed));
             }
             else {
-                currentLocation = addLocations(currentLocation, current.parseLocation);
                 if (!current.overConsumed.empty) {
                     effectiveInput = chain(current.overConsumed, effectiveInput);
                 }
-                result = append(result, current, false, currentLocation);
+                result = append(result, current, false);
             }
         }
         return result;
@@ -59,24 +51,22 @@ shared Parser<{Item*}> seq<Item>({Parser<{Item*}>+} parsers, String name_ = "")
 see(`function seq`)
 shared Parser<{Item+}> seq1<Item>({Parser<{Item*}>+} parsers, String name_ = "")
         => object satisfies Parser<{Item+}> {
-    value delegate = seq(parsers, name_);
-    name => delegate.name;
+    value delegate = seq(parsers);
+    name => chooseName(name_, delegate.name);
     shared actual ParseResult<{Item+}>|ParseError doParse(
         Iterator<Character> input,
-        ParsedLocation parsedLocation,
-        String? delegateName) {
-            value result = delegate.doParse(input, parsedLocation);
+        {Character*} consumed) {
+            value result = delegate.doParse(input, consumed);
             if (is ParseResult<Anything> result,
                 exists res = result.result.first) {
                 return ParseResult({res}.chain(result.result.rest),
-                    result.parseLocation,
-                    result.consumed, result.overConsumed);
+                    consumed.chain(result.consumed),
+                    result.overConsumed);
             } else if (is ParseError result) {
                 return result;
-            } else {
-                value consumed = result.consumed.chain(result.overConsumed);
-                return parseError("Empty result from ``name``",
-                    consumed, parsedLocation);
+            } else { // not even one result found
+                return parseError(input, this,
+                    result.consumed.chain(result.overConsumed));
             }
         }
     };
@@ -91,16 +81,14 @@ shared Parser<Item> either<Item>({Parser<Item>+} parsers, String name_ = "") {
         name => chooseName(name_, "either ``parsers.map(Parser.name).interpose(" or ").fold("")(plus)``");
         shared actual ParseResult<Item>|ParseError doParse(
             Iterator<Character> input,
-            ParsedLocation parsedLocation,
-            String? delegateName) {
+            {Character*} consumed) {
             variable ParseError error;
             variable Iterator<Character> effectiveInput = input;
             for (parser in parsers) {
-                value current = parser.doParse(effectiveInput, parsedLocation);
+                value current = parser.doParse(effectiveInput, consumed);
                 switch (current)
                 case (is ParseError) {
-                    error = parseError("Expected '``delegateName else name``' but found '``String(current.consumed)``'",
-                        current.consumed, parsedLocation);
+                    error = parseError(input, this, current.consumed);
                     effectiveInput = chain(error.consumed, effectiveInput);
                 }
                 else {
@@ -125,31 +113,29 @@ shared Parser<{Item*}> many<Item>(Parser<{Item*}> parser, Integer minOccurrences
         name => chooseName(name_, (minOccurrences <= 0 then "many" else "at least ``minOccurrences``")
             + " ``simplePlural("occurrence", minOccurrences)`` of ``parser.name``");
 
-        function minMany(Iterator<Character> input, ParsedLocation parsedLocation)
+        function minMany(Iterator<Character> input, {Character*} consumed)
                 => seq({parser}.chain(parsers.take(minOccurrences - 1)))
-                    .doParse(input, parsedLocation, name);
+                    .doParse(input, consumed);
         
         shared actual ParseResult<{Item*}>|ParseError doParse(
             Iterator<Character> input,
-            ParsedLocation parsedLocation,
-            String? delegateName) {
-            variable ParseResult<{Item*}> result = ParseResult([], parsedLocation, []);
+            {Character*} consumed) {
+            variable ParseResult<{Item*}> result = ParseResult({}, consumed, {});
             if (minOccurrences > 0) {
-                value mandatoryResult = minMany(input, parsedLocation);
+                value mandatoryResult = minMany(input, consumed);
                 if (is ParseError mandatoryResult) {
                     return mandatoryResult;
                 } else {
                     result = mandatoryResult;
                 }    
             }
-            variable ParsedLocation currentLocation = result.parseLocation;
             for (optional in parsers) {
                 value optionalResult = optional.doParse(
-                    chain(result.overConsumed, input), currentLocation);
+                    chain(result.overConsumed, input), consumed);
                 
                 switch (optionalResult)
                 case (is ParseError) {
-                    return ParseResult(result.result, currentLocation,
+                    return ParseResult(result.result,
                         result.consumed, optionalResult.consumed);
                 }
                 else {
@@ -158,7 +144,6 @@ shared Parser<{Item*}> many<Item>(Parser<{Item*}> parser, Integer minOccurrences
                         // did not consume anything, stop or there will be an infinite loop
                         return result;
                     }
-                    currentLocation = result.parseLocation;
                 }
             }
             throw; // looping an infinite stream, so this will never be reached
@@ -175,12 +160,11 @@ shared Parser<{Item*}> option<Item>(Parser<{Item*}> parser) {
         name = "option"; // this parser cannot produce errors so a name is unnecessary
         shared actual ParseResult<{Item*}> doParse(
             Iterator<Character> input,
-            ParsedLocation parsedLocation,
-            String? delegateName) {
-            value result = parser.doParse(input, parsedLocation);
+            {Character*} consumed) {
+            value result = parser.doParse(input, consumed);
             switch (result)
             case (is ParseError) {
-                return ParseResult([], parsedLocation, [], result.consumed);
+                return ParseResult({}, {}, result.consumed);
             }
             else {
                 return result;
@@ -274,16 +258,14 @@ shared Parser<[]> skip(Parser<Anything> parser, String name_ = "") {
         name => chooseName(name_, "to skip ``parser.name``");
         shared actual ParseResult<[]>|ParseError doParse(
             Iterator<Character> input,
-            ParsedLocation parsedLocation,
-            String? delegateName) {
-            value result = parser.doParse(input, parsedLocation);
+            {Character*} consumed) {
+            value result = parser.doParse(input, consumed);
             switch (result)
             case (is ParseError) {
-                return parseError("Expected ``delegateName else name`` but was ``result.consumed``",
-                    result.consumed, parsedLocation);
+                return parseError(input, this, result.consumed);
             }
             else {
-                return ParseResult([], result.parseLocation, result.consumed, result.overConsumed);
+                return ParseResult([], result.consumed, result.overConsumed);
             }
         }
     };

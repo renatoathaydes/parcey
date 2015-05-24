@@ -1,7 +1,8 @@
 import com.athaydes.parcey {
     ParsedLocation,
     ParseError,
-    ParseResult
+    ParseResult,
+    Parser
 }
 
 shared {T*} asIterable<T>(Iterator<T> iter)
@@ -12,28 +13,29 @@ shared {T*} asIterable<T>(Iterator<T> iter)
 shared String chooseName(String name, String default)
         => "(``name.empty then default else name``)";
 
-shared ParseError parseError(
-    String errorMessage,
-    {Character*} consumed,
-    ParsedLocation parsedLocation)
-        => ParseError(() => "``errorMessage`` at ``location(locationAfterParsing(consumed, parsedLocation))``", consumed);
+String unexpected(Iterator<Character> input, {Character*} consumed) {
+    value last = consumed.last?.string else "";
+    value next = String(asIterable(input).take(10));
+    return "``quote(last)`` in ``quote(last + next)``";
+}
 
-shared ParseResult<Item> appendStreams<Item>(
-    ParseResult<Item> first,
-    ParseResult<Anything> second)
-        => ParseResult(
-        first.result,
-        second.parseLocation,
-        first.consumed.chain(second.consumed));
+shared ParseError parseError(
+    Iterator<Character> iterator,
+    Parser<Anything> parser,
+    {Character*} consumed) {
+        value location = locationAfterParsing(consumed);
+        return ParseError(()
+            => "``readableLocation(location)``
+                Unexpected ``unexpected(iterator, consumed)``
+                Expecting ``parser.name``", consumed, location);
+    }
 
 shared ParseResult<{Item*}> append<Item>(
     ParseResult<{Item*}> first,
     ParseResult<{Item*}> second,
-    Boolean appendOverconsumed,
-    ParsedLocation? newLocation = null)
+    Boolean appendOverconsumed)
         => ParseResult(
         first.result.chain(second.result),
-        newLocation else second.parseLocation,
         first.consumed.chain(second.consumed),
         appendOverconsumed then first.overConsumed.chain(second.overConsumed) else second.overConsumed);
 
@@ -53,8 +55,8 @@ shared Boolean negate(Boolean b)
         => !b;
 
 "Returns a String showing the location with 1-based indexes."
-shared String location(ParsedLocation parsedLocation)
-        => "row ``parsedLocation[0] + 1``, column ``parsedLocation[1]``";
+shared String readableLocation(ParsedLocation parsedLocation)
+        => "line ``parsedLocation[0]``, column ``parsedLocation[1]``";
 
 shared ParsedLocation addColumnsToLocation(Integer columns, ParsedLocation location)
         => [location[0], location[1] + columns];
@@ -62,10 +64,10 @@ shared ParsedLocation addColumnsToLocation(Integer columns, ParsedLocation locat
 shared ParsedLocation addLocations(ParsedLocation first, ParsedLocation second)
         => [first[0] + second[0], first[1] + second[1]];
 
-shared ParsedLocation locationAfterParsing({Character*} parsed, ParsedLocation parsedLocation) {
-    variable Integer row = parsedLocation[0];
-    variable Integer column = parsedLocation[1];
-    for (char in parsed) {
+shared ParsedLocation locationAfterParsing({Character*} consumed) {
+    variable Integer row = 1;
+    variable Integer column = 0;
+    for (char in consumed) {
         if (char == '\n') {
             row++;
             column = 0;

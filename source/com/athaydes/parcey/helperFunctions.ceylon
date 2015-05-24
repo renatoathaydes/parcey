@@ -21,9 +21,8 @@ shared Parser<To> mapValueParser<out From,out To>(
     name = parser.name;
     shared actual ParseResult<To>|ParseError doParse(
         Iterator<Character> input,
-        ParsedLocation parsedLocation,
-        String? delegateName) {
-        value result = parser.doParse(input, parsedLocation, delegateName);
+        {Character*} consumed) {
+        value result = parser.doParse(input, consumed);
         switch (result)
         case (is ParseError) {
             return result;
@@ -31,9 +30,9 @@ shared Parser<To> mapValueParser<out From,out To>(
         else {
             try {
                 return ParseResult(converter(result.result),
-                    result.parseLocation, result.consumed, result.overConsumed);
+                    result.consumed, result.overConsumed);
             } catch (Throwable e) {
-                return parseError(e.message, result.consumed, parsedLocation);
+                return parseError(input, this, result.consumed);
             }
         }
     }
@@ -75,15 +74,12 @@ shared Parser<{To*}> mapParsers<in From,out To>(
     To({From*}) converter,
     String name_ = "")
         => object satisfies Parser<{To*}> {
-    name => name_;
+    value parser = mapValueParser(seq(parsers), converter);
+    name => chooseName(name_, parser.name);
     shared actual ParseResult<{To*}>|ParseError doParse(
         Iterator<Character> input,
-        ParsedLocation parsedLocation,
-        String? delegateName) {
-        value parser = mapValueParser(seq(parsers), converter);
-        return chainParser(parser)
-            .doParse(input, parsedLocation, chooseName(delegateName else name, name));
-    }
+        {Character*} consumed)
+            => chainParser(parser).doParse(input, consumed);
 };
 
 "Converts a [[{Item*}]] parser to an Item parser by returning only the first
