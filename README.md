@@ -41,9 +41,16 @@ If something goes wrong, you'll get a good error message:
 ```ceylon
 assert(is ParseError error = parser.parse("hello"));
 print(error.message);
-
-// prints: Expected integer but found 'h' at row 1, column 1
 ```
+
+Prints:
+
+```
+line 1, column 1
+Unexpected 'hello'
+Expecting (integer)
+```
+
 
 An example of a parser combinator is `seq`, which takes a sequence of parsers
 and applies each one in turn.
@@ -89,7 +96,7 @@ A nice default is provided for all parsers, but you can use that to improve erro
 For example, using `parser2` defined above (which expects 3 integers separated by spaces):
 
 ```ceylon
-value error2 = parser2.parse("x y");
+value error2 = parser2.parse("0 x y");
 assert(is ParseError error2);
 print(error2.message);
 ```
@@ -97,13 +104,15 @@ print(error2.message);
 Prints:
 
 ```
-Expected integer but found 'x' at row 1, column 1
+line 1, column 3
+Unexpected 'x y'
+Expecting (integer)
 ```
 
 If we created the integer parsers using names:
 
 ```ceylon
-value parser2 = seq {
+value parser2a = seq {
     integer("latitude"), spaces(),
     integer("longitude"), spaces(),
     integer("elevation")
@@ -113,7 +122,9 @@ value parser2 = seq {
 The error message would have been:
 
 ```
-Expected latitude but found 'x' at row 1, column 1
+line 1, column 3
+Unexpected 'x y'
+Expecting (longitude)
 ```
 
 ### List of parsers

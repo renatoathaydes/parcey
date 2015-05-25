@@ -14,7 +14,7 @@ shared void run() {
     print(error.message());
     
     value parser2 = seq {
-        integer("latitude"), spaces(), integer(), spaces(), integer()
+        integer(), spaces(), integer(), spaces(), integer()
     };
     
     value contents2 = parser2.parse("10  20 30 40  50");
@@ -27,9 +27,16 @@ shared void run() {
     assert(is ParseResult<{Integer*}> contents3);
     assert(contents3.result.sequence() == [10, 20, 30, 40, 50]);
     
-    value error2 = parser2.parse("x y");
+    value error2 = parser2.parse("0 x y");
     assert(is ParseError error2);
     print(error2.message());
+    
+    value parser2a = seq {
+        integer("latitude"), spaces(),
+        integer("longitude"), spaces(),
+        integer("elevation")
+    };
+    print(parser2a.parse("0 x y"));
 
     // helper functions example
     class Person(shared String name) {}
@@ -152,15 +159,15 @@ shared void run() {
     };
     
     // parsing a simple json value
-    assert(is ParseResult<{JsonNumber*}> contents7
-        = jsonParser.parse("10"));
+    value contents7 = jsonParser.parse("10");
+    assert(is ParseResult<Anything> contents7);
     assert(exists n = contents7.result.first,
         n == JsonNumber(10));
     
     // parsing a json Object
     value jsonObj = jsonParser.parse("{\"int\": 1, \"array\": [\"item1\", 2] }");
     print(jsonObj);
-    assert(is ParseResult<{JsonElement*}> jsonObj); 
+    assert(is ParseResult<Anything> jsonObj); 
     assert(is JsonObject obj = jsonObj.result.first);
     value fields = obj.entries.sequence();
     assert(exists intField = fields[0]);

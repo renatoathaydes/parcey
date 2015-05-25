@@ -21,7 +21,7 @@ shared interface HasConsumed {
     shared actual default String string {
        value partial = consumed.take(500);
        value tookAll = (partial.size == 500);
-       return String(partial.chain(tookAll then "" else "..."));
+       return String(partial.chain(tookAll then "..." else ""));
     }
 
 }
