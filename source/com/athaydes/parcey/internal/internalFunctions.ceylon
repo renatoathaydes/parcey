@@ -10,24 +10,30 @@ shared {T*} asIterable<T>(Iterator<T> iter)
     iterator() => iter;
 };
 
+String inBrackets(String text)
+        => if (text.startsWith("(") &&
+    text.endsWith(")")) then text else "(``text``)";
+
 shared String chooseName(String name, String default)
-        => "(``name.empty then default else name``)";
+        => inBrackets(name.empty then default else name);
 
 String unexpected(Iterator<Character> input, {Character*} consumed) {
-    value last = consumed.last?.string else "";
     value next = String(asIterable(input).take(10));
-    return "``quote(last)`` in ``quote(last + next)``";
+    value end = input.next() is Finished then "" else "...";
+    return quote(String(consumed) + next + end);
 }
 
 shared ParseError parseError(
     Iterator<Character> iterator,
     Parser<Anything> parser,
+    {Character*} previousInput,
     {Character*} consumed) {
-        value location = locationAfterParsing(consumed);
+        value totalConsumed = previousInput.chain(consumed);
+        value location = locationAfterParsing(totalConsumed);
         return ParseError(()
             => "``readableLocation(location)``
                 Unexpected ``unexpected(iterator, consumed)``
-                Expecting ``parser.name``", consumed, location);
+                Expecting ``parser.name``", totalConsumed, location);
     }
 
 shared ParseResult<{Item*}> append<Item>(

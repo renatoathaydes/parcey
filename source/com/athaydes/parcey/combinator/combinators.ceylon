@@ -24,13 +24,14 @@ shared Parser<{Item*}> seq<Item>({Parser<{Item*}>+} parsers, String name_ = "")
     shared actual ParseResult<{Item*}>|ParseError doParse(
         Iterator<Character> input,
         {Character*} consumed) {
-        variable ParseResult<{Item*}> result = ParseResult({}, consumed, {});
+        variable ParseResult<{Item*}> result = ParseResult({}, {}, {});
         variable Iterator<Character> effectiveInput = input;
         for (parser in parsers) {
-            value current = parser.doParse(effectiveInput, consumed);
+            value current = parser.doParse(effectiveInput, {});
             switch (current)
             case (is ParseError) {
-                return parseError(input, this, result.consumed.chain(current.consumed));
+                return parseError(input, name_.empty then parser else this,
+                    consumed.chain(result.consumed), current.consumed);
             }
             else {
                 if (!current.overConsumed.empty) {
@@ -39,7 +40,9 @@ shared Parser<{Item*}> seq<Item>({Parser<{Item*}>+} parsers, String name_ = "")
                 result = append(result, current, false);
             }
         }
-        return result;
+        return ParseResult(result.result,
+            consumed.chain(result.consumed),
+            result.overConsumed);
     }
 };
 
@@ -66,7 +69,7 @@ shared Parser<{Item+}> seq1<Item>({Parser<{Item*}>+} parsers, String name_ = "")
                 return result;
             } else { // not even one result found
                 return parseError(input, this,
-                    result.consumed.chain(result.overConsumed));
+                    result.consumed, result.overConsumed);
             }
         }
     };
@@ -82,20 +85,25 @@ shared Parser<Item> either<Item>({Parser<Item>+} parsers, String name_ = "") {
         shared actual ParseResult<Item>|ParseError doParse(
             Iterator<Character> input,
             {Character*} consumed) {
-            variable ParseError error;
+            variable {{Character*}*} consumedPerParser = {};
             variable Iterator<Character> effectiveInput = input;
             for (parser in parsers) {
-                value current = parser.doParse(effectiveInput, consumed);
+                value current = parser.doParse(effectiveInput, {});
                 switch (current)
                 case (is ParseError) {
-                    error = parseError(input, this, current.consumed);
-                    effectiveInput = chain(error.consumed, effectiveInput);
+                    consumedPerParser = consumedPerParser.chain { current.consumed };
+                    effectiveInput = chain(current.consumed, effectiveInput);
                 }
                 else {
-                    return current;
+                    return ParseResult(current.result,
+                        consumed.chain(current.consumed), current.overConsumed);
                 }
             }
-            return error;
+            
+            value longestConsumed = [ for (c in consumedPerParser) [c, c.size] ]
+                    .sort((first, sec) => sec[1] <=> first[1])
+                    .first?.first else {};
+            return parseError(input, this, consumed, longestConsumed);
         }
     };
 }
@@ -113,36 +121,38 @@ shared Parser<{Item*}> many<Item>(Parser<{Item*}> parser, Integer minOccurrences
         name => chooseName(name_, (minOccurrences <= 0 then "many" else "at least ``minOccurrences``")
             + " ``simplePlural("occurrence", minOccurrences)`` of ``parser.name``");
 
-        function minMany(Iterator<Character> input, {Character*} consumed)
+        function minMany(Iterator<Character> input)
                 => seq({parser}.chain(parsers.take(minOccurrences - 1)))
-                    .doParse(input, consumed);
+                    .doParse(input, {});
         
         shared actual ParseResult<{Item*}>|ParseError doParse(
             Iterator<Character> input,
             {Character*} consumed) {
-            variable ParseResult<{Item*}> result = ParseResult({}, consumed, {});
+            variable ParseResult<{Item*}> result = ParseResult({}, {}, {});
             if (minOccurrences > 0) {
-                value mandatoryResult = minMany(input, consumed);
+                value mandatoryResult = minMany(input);
                 if (is ParseError mandatoryResult) {
-                    return mandatoryResult;
+                    return parseError(input, this, consumed, mandatoryResult.consumed);
                 } else {
                     result = mandatoryResult;
                 }    
             }
             for (optional in parsers) {
                 value optionalResult = optional.doParse(
-                    chain(result.overConsumed, input), consumed);
-                
+                    chain(result.overConsumed, input), {});
                 switch (optionalResult)
                 case (is ParseError) {
                     return ParseResult(result.result,
-                        result.consumed, optionalResult.consumed);
+                        consumed.chain(result.consumed),
+                        optionalResult.consumed);
                 }
                 else {
                     result = append(result, optionalResult, false);
                     if (optionalResult.consumed.empty) {
                         // did not consume anything, stop or there will be an infinite loop
-                        return result;
+                        return ParseResult(result.result,
+                                consumed.chain(result.consumed),
+                                result.overConsumed);
                     }
                 }
             }
@@ -259,13 +269,13 @@ shared Parser<[]> skip(Parser<Anything> parser, String name_ = "") {
         shared actual ParseResult<[]>|ParseError doParse(
             Iterator<Character> input,
             {Character*} consumed) {
-            value result = parser.doParse(input, consumed);
+            value result = parser.doParse(input, {});
             switch (result)
             case (is ParseError) {
-                return parseError(input, this, result.consumed);
+                return parseError(input, this, consumed, result.consumed);
             }
             else {
-                return ParseResult([], result.consumed, result.overConsumed);
+                return ParseResult([], consumed.chain(result.consumed), result.overConsumed);
             }
         }
     };

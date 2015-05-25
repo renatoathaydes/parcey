@@ -17,6 +17,13 @@ import com.athaydes.parcey.internal {
 shared interface HasConsumed {
     "All characters that have been consumed."
     shared formal {Character*} consumed;
+    
+    shared actual default String string {
+       value partial = consumed.take(500);
+       value tookAll = (partial.size == 500);
+       return String(partial.chain(tookAll then "" else "..."));
+    }
+
 }
 
 "[Row, Column] of the input that has been parsed."
@@ -28,7 +35,7 @@ shared final class ParseError(
     shared actual {Character*} consumed,
     shared ParsedLocation location)
         satisfies HasConsumed {
-    string => "ParseError { message=``message()``, consumed=``consumed``" +
+    string => "ParseError { message=``message()``, consumed=``super.string``" +
             " location=``location``";
 }
 
@@ -43,7 +50,7 @@ shared final class ParseResult<out Result>(
         satisfies HasConsumed {
     
     string => "ParseResult { result=`` result else "null" ``," +
-            " consumed=``consumed``, overConsumed=``overConsumed`` }";
+            " consumed=``super.string``, overConsumed=``overConsumed`` }";
 }
 
 "A Parser which can parse a stream of Characters."
@@ -88,7 +95,7 @@ shared Parser<{Character+}> anyChar(String name_ = "")
             value result = { first };
             return ParseResult(result, consumed.chain(result), {});
         }
-        return parseError(input, this, consumed);
+        return parseError(input, this, consumed, {});
     }
 };
 
@@ -167,13 +174,13 @@ shared Parser<{String+}> str(String text, String name_ = "")
         {Character*} consumed) {
         if (text.empty) {
             if (is Character next = input.next()) {
-                return parseError(input, this, consumed.chain { next });
+                return parseError(input, this, consumed, { next });
             } else {
-                return ParseResult({text}, consumed, {});
+                return ParseResult({ text }, consumed, {});
             }
         } else {
             value consuming = StringBuilder();
-            function fail() => parseError(input, this, consumed.chain(consuming));
+            function fail() => parseError(input, this, consumed, consuming);
             for (expected->actual in zipEntries(text, asIterable(input))) {
                 consuming.appendCharacter(actual);
                 if (actual != expected) {
@@ -183,7 +190,7 @@ shared Parser<{String+}> str(String text, String name_ = "")
             if (consuming.size < text.size) {
                 return fail();
             }
-            return ParseResult({text}, consumed.chain(consuming), {});
+            return ParseResult({ text }, consumed.chain(consuming), {});
         }
     }
 };
@@ -220,10 +227,10 @@ shared Parser<{Integer+}> integer(String name_ = "") {
                     hasSign = !first.digit;
                     negative = hasSign && first == '-';
                 } else {
-                    return parseError(input, this, consumed.chain { first });
+                    return parseError(input, this, consumed, { first });
                 }
             } else {
-                return parseError(input, this, consumed);
+                return parseError(input, this, consumed, {});
             }
             value maxConsumeLength = runtime.maxIntegerValue.string.size +
                     (hasSign then 1 else 0);
@@ -232,7 +239,7 @@ shared Parser<{Integer+}> integer(String name_ = "") {
                 if (next.digit) {
                     consuming.appendCharacter(next);
                     if (consuming.size > maxConsumeLength) {
-                        return parseError(input, this, consumed.chain(consuming));
+                        return parseError(input, this, consumed, consuming);
                     }
                 } else {
                     overConsumed = [next];
@@ -241,7 +248,7 @@ shared Parser<{Integer+}> integer(String name_ = "") {
             }
             value digits = hasSign then consuming.rest else consuming;
             if (digits.empty) {
-                return parseError(input, this, consumed.chain(consuming));
+                return parseError(input, this, consumed, consuming);
             }
             variable Integer result = 0;
             value overflowGuard = negative
@@ -250,7 +257,7 @@ shared Parser<{Integer+}> integer(String name_ = "") {
                 value current = result;
                 result += asInteger(next, negative) * 10^exponent;
                 if (overflowGuard(result)(current)) {
-                    return parseError(input, this, consumed.chain(consuming));
+                    return parseError(input, this, consumed, consuming);
                 }
             }
             return ParseResult({ result },
@@ -267,7 +274,7 @@ class OneOf(shared actual String name, Boolean includingChars, {Character+} char
         value first = input.next();
         switch (first)
         case (is Finished) {
-            return parseError(input, this, consumed);
+            return parseError(input, this, consumed, {});
         }
         case (is Character) {
             value consuming = { first };
@@ -275,7 +282,7 @@ class OneOf(shared actual String name, Boolean includingChars, {Character+} char
             if (boolFun(first in chars)) {
                 return ParseResult(consuming, consumed.chain(consuming));
             }
-            return parseError(input, this, consuming);
+            return parseError(input, this, consumed, consuming);
         }
     }
 }

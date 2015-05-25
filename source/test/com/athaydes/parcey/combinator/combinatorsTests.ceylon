@@ -2,7 +2,8 @@ import ceylon.test {
     test,
     assertEquals,
     fail,
-    assertFalse
+    assertFalse,
+    assertTrue
 }
 
 import com.athaydes.parcey {
@@ -18,7 +19,9 @@ import com.athaydes.parcey {
     spaces,
     chars,
     digit,
-    coalescedParser
+    coalescedParser,
+    word,
+    eof
 }
 import com.athaydes.parcey.combinator {
     either,
@@ -666,4 +669,33 @@ shared void sepByWithComplexCombinationTest() {
     } else {
         fail("Result was ``result4``");
     }
+}
+
+test shared void errorMessageShouldComeFromDeepestParserAttempted() {
+    value parser = seq {
+        char('#'), many(digit()), either {
+            seq { char('.'), word() },
+            seq { char('!'), many(digit(), 1) }
+        }, eof()
+    };
+    // make sure valid input passes
+    expect(parser.parse("#123.hi"), typeLiteral<ParseResult<Anything>>());
+    expect(parser.parse("#1!23"), typeLiteral<ParseResult<Anything>>());
+    
+    // error message should show the exact unexpected input
+    expect(parser.parse("#1.4"), void(ParseError error) {
+        assertTrue(error.message().contains("Unexpected '.4'"), error.string);
+    });
+    expect(parser.parse("abc"), void(ParseError error) {
+        assertTrue(error.message().contains("Unexpected 'abc'"), error.string);
+    });
+    expect(parser.parse("#1!hi"), void(ParseError error) {
+        assertTrue(error.message().contains("Unexpected '!hi'"), error.string);
+    });
+    expect(parser.parse("#1!012ABC"), void(ParseError error) {
+        assertTrue(error.message().contains("Unexpected 'ABC'"), error.string);
+    });
+    expect(parser.parse("#Fghijk"), void(ParseError error) {
+        assertTrue(error.message().contains("Unexpected 'Fghijk'"), error.string);
+    });
 }

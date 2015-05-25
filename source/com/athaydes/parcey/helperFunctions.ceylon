@@ -18,21 +18,22 @@ see (`function mapParser`)
 shared Parser<To> mapValueParser<out From,out To>(
     Parser<From> parser, To(From) converter)
         => object satisfies Parser<To> {
-    name = parser.name;
+    name => parser.name;
     shared actual ParseResult<To>|ParseError doParse(
         Iterator<Character> input,
         {Character*} consumed) {
-        value result = parser.doParse(input, consumed);
+        value result = parser.doParse(input, {});
         switch (result)
         case (is ParseError) {
-            return result;
+            return parseError(input, parser, consumed, result.consumed);
         }
         else {
             try {
                 return ParseResult(converter(result.result),
-                    result.consumed, result.overConsumed);
+                    consumed.chain(result.consumed), result.overConsumed);
             } catch (Throwable e) {
-                return parseError(input, this, result.consumed);
+                return parseError(input, parser,
+                    consumed, result.consumed.chain(result.overConsumed));
             }
         }
     }
