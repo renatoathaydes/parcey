@@ -17,12 +17,12 @@ shared class CharacterConsumer(shared Iterator<Character> input) {
     function col() => internalLocation[1] else 0;
     
     variable Integer backtrackCount = -1;
-    
+
     shared variable Integer consumedByLatestParser = 0;
     
     variable String? errorName = null;
 
-    shared default Character|Finished next() {
+    shared Character|Finished next() {
         Character|Finished char;
         if (backtrackCount >= 0) {
             char = consumed.getFromLast(backtrackCount) else finished;
@@ -38,7 +38,7 @@ shared class CharacterConsumer(shared Iterator<Character> input) {
         return char;
     }
     
-    shared default void startParser() {
+    shared void startParser() {
         if (errorName is Null) {
             updateLocation(latestConsumed());
         }
@@ -78,37 +78,12 @@ shared class CharacterConsumer(shared Iterator<Character> input) {
     shared ParsedLocation location()
         => [row(), col()];
     
-    shared actual default String string {
+    shared actual String string {
        value partial = consumed.take(500);
        value tookAll = (partial.size == 500);
        return String(partial.chain(tookAll then "..." else ""));
     }
 
-}
-
-shared class GroupConsumer(CharacterConsumer consumer)
-    extends CharacterConsumer(consumer.input) {
-    
-    variable Integer consumedByLastParser = 0;
-    
-    shared actual void startParser() {
-        consumedByLastParser = 0;
-    }
-    
-    shared actual Character|Finished next() {
-        value char = super.next();
-        print("GroupConsumer calling next with ``char``");
-        if (char is Character) {
-            consumedByLastParser++;
-        }
-        return char;
-    }
-    
-    shared void abortLastParser() {
-        print("Aborting last Parser ``consumedByLastParser``");
-        takeBack(consumedByLatestParser);
-    }
-    
 }
 
 "[Row, Column] of the input that has been parsed."
