@@ -3,7 +3,6 @@ import com.athaydes.parcey.combinator {
     seq1
 }
 import com.athaydes.parcey.internal {
-    parseError,
     chooseName
 }
 
@@ -15,28 +14,22 @@ import com.athaydes.parcey.internal {
  
  For use with chain parsers (eg. [[Parser<{From*}>]]), prefer [[mapParser]]."
 see (`function mapParser`)
-shared Parser<To> mapValueParser<out From,out To>(
+shared Parser<To> mapValueParser<out From, out To>(
     Parser<From> parser, To(From) converter)
         => object satisfies Parser<To> {
     name => parser.name;
-    shared actual ParseResult<To>|ParseError doParse(
-        Iterator<Character> input,
-        {Character*} consumed) {
-        value result = parser.doParse(input, {});
-        switch (result)
-        case (is ParseError) {
-            return parseError(input, parser, consumed, result.consumed);
+    
+    shared actual ParseOutcome<To> doParse(
+        CharacterConsumer consumer) {
+        switch(result = parser.doParse(consumer))
+        case (is String) {
+            return result;
         }
         else {
-            try {
-                return ParseResult(converter(result.result),
-                    consumed.chain(result.consumed), result.overConsumed);
-            } catch (Throwable e) {
-                return parseError(input, parser,
-                    consumed, result.consumed.chain(result.overConsumed));
-            }
+            return ParseResult(converter(result.result));
         }
     }
+    
 };
 
 "Given a parser *(p)* and a function [[To(From)]] *(f)*, return a new parser which delegates the parsing
@@ -75,12 +68,9 @@ shared Parser<{To*}> mapParsers<in From,out To>(
     To({From*}) converter,
     String name_ = "")
         => object satisfies Parser<{To*}> {
-    value parser = mapValueParser(seq(parsers), converter);
+    value parser = chainParser(mapValueParser(seq(parsers), converter));
     name => chooseName(name_, parser.name);
-    shared actual ParseResult<{To*}>|ParseError doParse(
-        Iterator<Character> input,
-        {Character*} consumed)
-            => chainParser(parser).doParse(input, consumed);
+    doParse = parser.doParse;
 };
 
 "Converts a [[{Item*}]] parser to an Item parser by returning only the first

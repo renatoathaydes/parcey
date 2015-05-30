@@ -1,14 +1,13 @@
 import com.athaydes.parcey {
     Parser,
     ParseResult,
-    ParseError
+    ParseError,
+    CharacterConsumer,
+    ParseOutcome
 }
 import com.athaydes.parcey.internal {
     chooseName,
-    chain,
-    append,
-    simplePlural,
-    parseError
+    simplePlural
 }
 
 "Creates a Parser that applies each of the given parsers in sequence.
@@ -21,29 +20,22 @@ see(`function seq1`)
 shared Parser<{Item*}> seq<Item>({Parser<{Item*}>+} parsers, String name_ = "")
         => object satisfies Parser<{Item*}> {
     name => chooseName(name_, parsers.map(Parser.name).interpose("->").fold("")(plus));
-    shared actual ParseResult<{Item*}>|ParseError doParse(
-        Iterator<Character> input,
-        {Character*} consumed) {
-        variable ParseResult<{Item*}> result = ParseResult({}, {}, {});
-        variable Iterator<Character> effectiveInput = input;
-        for (parser in parsers) {
-            value current = parser.doParse(effectiveInput, {});
-            switch (current)
-            case (is ParseError) {
-                return parseError(input, name_.empty then parser else this,
-                    consumed.chain(result.consumed), current.consumed);
-            }
-            else {
-                if (!current.overConsumed.empty) {
-                    effectiveInput = chain(current.overConsumed, effectiveInput);
-                }
-                result = append(result, current, false);
-            }
+    shared actual ParseOutcome<{Item*}> doParse(
+        CharacterConsumer consumer) {
+        variable Parser<{Item*}>? badParser = null;
+        function setBadParser(Parser<{Item*}> parser) {
+            badParser = parser;
+            return null;
         }
-        return ParseResult(result.result,
-            consumed.chain(result.consumed),
-            result.overConsumed);
+        value results = expand({ 
+            for (p in parsers)
+            if (!is String outcome = p.doParse(consumer))
+            then outcome.result else setBadParser(p)
+        }.takeWhile((result) => result exists)
+                .coalesced).sequence();
+        return badParser?.name else ParseResult(results);
     }
+    
 };
 
 "Creates a Parser that applies each of the given parsers in sequence, ensuring at least
@@ -56,20 +48,16 @@ shared Parser<{Item+}> seq1<Item>({Parser<{Item*}>+} parsers, String name_ = "")
         => object satisfies Parser<{Item+}> {
     value delegate = seq(parsers);
     name => chooseName(name_, delegate.name);
-    shared actual ParseResult<{Item+}>|ParseError doParse(
-        Iterator<Character> input,
-        {Character*} consumed) {
-            value result = delegate.doParse(input, consumed);
+    shared actual ParseOutcome<{Item+}> doParse(
+        CharacterConsumer consumer) {
+            value result = delegate.doParse(consumer);
             if (is ParseResult<Anything> result,
-                exists res = result.result.first) {
-                return ParseResult({res}.chain(result.result.rest),
-                    consumed.chain(result.consumed),
-                    result.overConsumed);
+                exists first = result.result.first) {
+                return ParseResult({ first }.chain(result.result.rest));
             } else if (is ParseError result) {
                 return result;
             } else { // not even one result found
-                return parseError(input, this,
-                    result.consumed, result.overConsumed);
+                return name;
             }
         }
     };
@@ -77,33 +65,27 @@ shared Parser<{Item+}> seq1<Item>({Parser<{Item*}>+} parsers, String name_ = "")
 "Creates a Parser which attempts to parse input using the first of the given parsers, and in case it fails,
  attempts to use the next parser and so on until there is no more available parsers.
  
- If any Parser fails, the [[com.athaydes.parcey::HasConsumed.consumed]] stream from its result is chained to the actual input
+ If any Parser fails, the [[com.athaydes.parcey::CharacterConsumer.consumed]] stream from its result is chained to the actual input
  before being passed to the next parser, such that the next parser will 'see' exactly the same input as the previous Parser."
 shared Parser<Item> either<Item>({Parser<Item>+} parsers, String name_ = "") {
     return object satisfies Parser<Item> {
         name => chooseName(name_, "either ``parsers.map(Parser.name).interpose(" or ").fold("")(plus)``");
-        shared actual ParseResult<Item>|ParseError doParse(
-            Iterator<Character> input,
-            {Character*} consumed) {
-            variable {{Character*}*} consumedPerParser = {};
-            variable Iterator<Character> effectiveInput = input;
-            for (parser in parsers) {
-                value current = parser.doParse(effectiveInput, {});
-                switch (current)
-                case (is ParseError) {
-                    consumedPerParser = consumedPerParser.chain { current.consumed };
-                    effectiveInput = chain(current.consumed, effectiveInput);
+        shared actual ParseOutcome<Item> doParse(
+            CharacterConsumer consumer) {
+            variable [Parser<Item>, Integer] worstParser = [parsers.first, 0];
+            function setBadParser(Parser<Item> parser) {
+                if (consumer.consumedByLatestParser > worstParser[1]) {
+                    worstParser = [parser, consumer.consumedByLatestParser];
                 }
-                else {
-                    return ParseResult(current.result,
-                        consumed.chain(current.consumed), current.overConsumed);
-                }
+                return null;
             }
-            
-            value longestConsumed = [ for (c in consumedPerParser) [c, c.size] ]
-                    .sort((first, sec) => sec[1] <=> first[1])
-                    .first?.first else {};
-            return parseError(input, this, consumed, longestConsumed);
+            value result = {
+                for (p in parsers)
+                if (!is String outcome = p.doParse(consumer))
+                then outcome else setBadParser(p)
+            }.filter((item) => item exists).first;
+            return if (exists result)
+            then result else worstParser.first.name;
         }
     };
 }
@@ -114,6 +96,7 @@ shared Parser<Item> either<Item>({Parser<Item>+} parsers, String name_ = "") {
  For this Parser to succeed, the given parser must succeed at least 'minOcurrences' times."
 see (`function skip`)
 shared Parser<{Item*}> many<Item>(Parser<{Item*}> parser, Integer minOccurrences = 0, String name_ = "") {
+    
     value parsers = [parser].cycled;
 
     return object satisfies Parser<{Item*}> {
@@ -121,60 +104,38 @@ shared Parser<{Item*}> many<Item>(Parser<{Item*}> parser, Integer minOccurrences
         name => chooseName(name_, (minOccurrences <= 0 then "many" else "at least ``minOccurrences``")
             + " ``simplePlural("occurrence", minOccurrences)`` of ``parser.name``");
 
-        function minMany(Iterator<Character> input)
-                => seq({parser}.chain(parsers.take(minOccurrences - 1)))
-                    .doParse(input, {});
-        
-        shared actual ParseResult<{Item*}>|ParseError doParse(
-            Iterator<Character> input,
-            {Character*} consumed) {
-            variable ParseResult<{Item*}> result = ParseResult({}, {}, {});
-            if (minOccurrences > 0) {
-                value mandatoryResult = minMany(input);
-                if (is ParseError mandatoryResult) {
-                    return parseError(input, this, consumed, mandatoryResult.consumed);
-                } else {
-                    result = mandatoryResult;
-                }    
-            }
-            for (optional in parsers) {
-                value optionalResult = optional.doParse(
-                    chain(result.overConsumed, input), {});
-                switch (optionalResult)
-                case (is ParseError) {
-                    return ParseResult(result.result,
-                        consumed.chain(result.consumed),
-                        optionalResult.consumed);
-                }
-                else {
-                    result = append(result, optionalResult, false);
-                    if (optionalResult.consumed.empty) {
-                        // did not consume anything, stop or there will be an infinite loop
-                        return ParseResult(result.result,
-                                consumed.chain(result.consumed),
-                                result.overConsumed);
-                    }
-                }
-            }
-            throw; // looping an infinite stream, so this will never be reached
+        shared actual ParseOutcome<{Item*}> doParse(
+            CharacterConsumer consumer) {
+            value results = {
+                for (p in parsers) p.doParse(consumer)
+             }.takeWhile((result) {
+                 return if (!is String result, !result.result.empty)
+                 then true else false;
+             }).sequence();
+             if (results.size < minOccurrences) {
+                 return name;
+             } else {
+                 return ParseResult(expand {
+                     for (r in results) if (!is String r) r.result
+                 });
+             }
         }
     };
 }
 
-"Creates a Parser that applies the given parser if it succeeds.
+"Creates a Parser that applies the given parser only if it succeeds.
  
  In case of failure, this Parser backtracks and returns an empty result."
 see (`function many`, `function either`)
 shared Parser<{Item*}> option<Item>(Parser<{Item*}> parser) {
     return object satisfies Parser<{Item*}> {
-        name = "option"; // this parser cannot produce errors so a name is unnecessary
-        shared actual ParseResult<{Item*}> doParse(
-            Iterator<Character> input,
-            {Character*} consumed) {
-            value result = parser.doParse(input, consumed);
+        name => "(option ``parser.name``)";
+        shared actual ParseOutcome<{Item*}> doParse(
+            CharacterConsumer consumer) {
+            value result = parser.doParse(consumer);
             switch (result)
-            case (is ParseError) {
-                return ParseResult({}, {}, result.consumed);
+            case (is String) {
+                return ParseResult({});
             }
             else {
                 return result;
@@ -266,16 +227,15 @@ see (`function many`, `function either`)
 shared Parser<[]> skip(Parser<Anything> parser, String name_ = "") {
     return object satisfies Parser<[]> {
         name => chooseName(name_, "to skip ``parser.name``");
-        shared actual ParseResult<[]>|ParseError doParse(
-            Iterator<Character> input,
-            {Character*} consumed) {
-            value result = parser.doParse(input, {});
+        shared actual ParseOutcome<[]> doParse(
+            CharacterConsumer consumer) {
+            value result = parser.doParse(consumer);
             switch (result)
-            case (is ParseError) {
-                return parseError(input, this, consumed, result.consumed);
+            case (is String) {
+                return result;
             }
             else {
-                return ParseResult([], consumed.chain(result.consumed), result.overConsumed);
+                return ParseResult([]);
             }
         }
     };

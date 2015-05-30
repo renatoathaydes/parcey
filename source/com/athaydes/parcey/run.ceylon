@@ -11,13 +11,14 @@ shared void run() {
     assert(contents.result.sequence() == [123]);
 
     assert(is ParseError error = parser.parse("hello"));
-    print(error.message());
+    print(error.message);
     
     value parser2 = seq {
         integer(), spaces(), integer(), spaces(), integer()
     };
     
     value contents2 = parser2.parse("10  20 30 40  50");
+    print(contents2);
     assert(is ParseResult<{Integer*}> contents2);
     assert(contents2.result.sequence() == [10, 20, 30]);
     
@@ -29,7 +30,7 @@ shared void run() {
     
     value error2 = parser2.parse("0 x y");
     assert(is ParseError error2);
-    print(error2.message());
+    print(error2.message);
     
     value parser2a = seq {
         integer("latitude"), spaces(),

@@ -1,8 +1,10 @@
+import ceylon.language.meta {
+    typeLiteral
+}
 import ceylon.test {
     test,
     assertEquals,
     fail,
-    assertFalse,
     assertTrue
 }
 
@@ -13,15 +15,14 @@ import com.athaydes.parcey {
     char,
     str,
     space,
-    noneOf,
-    spaceChars,
     integer,
     spaces,
     chars,
     digit,
     coalescedParser,
     word,
-    eof
+    eof,
+    CharacterConsumer
 }
 import com.athaydes.parcey.combinator {
     either,
@@ -33,8 +34,9 @@ import com.athaydes.parcey.combinator {
     around,
     seq1
 }
-import ceylon.language.meta {
-    typeLiteral
+
+import test.com.athaydes.parcey {
+    error
 }
 
 test
@@ -76,26 +78,17 @@ shared void eitherCombinatorCanParseAllAlternatives() {
         char('a'), chars(['h', 'i']), space()
     };
     
-    value result1 = parser.parse("a");
-    if (is ParseResult<{Character*}> result1) {
+    expect(parser.parse("a"), void(ParseResult<{Character*}> result1) {
         assertEquals(result1.result.sequence(), ['a']);
-    } else {
-        fail("Result was ``result1``");
-    }
+    });
     
-    value result2 = parser.parse("hi");
-    if (is ParseResult<{Character+}> result2) {
+    expect(parser.parse("hi"), void(ParseResult<{Character+}> result2) {
         assertEquals(result2.result.sequence(), ['h', 'i']);
-    } else {
-        fail("Result was ``result2``");
-    }
+    });
     
-    value result3 = parser.parse(" ");
-    if (is ParseResult<{Character*}> result3) {
+    expect(parser.parse(" "), void(ParseResult<{Character*}> result3) {
         assertEquals(result3.result.sequence(), [' ']);
-    } else {
-        fail("Result was ``result3``");
-    }
+    });
 }
 
 test
@@ -138,7 +131,6 @@ shared void eitherCombinatorCanBacktrackThrice() {
     
     if (is ParseResult<{String+}> result) {
         assertEquals(result.result.sequence(), ["abceg"]);
-        assertEquals(result.overConsumed.sequence(), []);
     } else {
         fail("Result was ``result``");
     }
@@ -147,173 +139,97 @@ shared void eitherCombinatorCanBacktrackThrice() {
 test
 shared void eitherCombinatorDoesNotConsumeNextToken() {
     value parser = either { str("ab"), str("ac") };
+    value iterator = "ade".iterator();
+    expect(parser.doParse(CharacterConsumer(iterator)), typeLiteral<String>());
     
-    value result = parser.parse("ade");
-    
-    if (is ParseError result) {
-        assertEquals(result.consumed.sequence(), ['a', 'd']);
-        assertFalse(result.message().empty);
-    } else {
-        fail("Result was ``result``");
-    }
+    assertEquals(iterator.next(), 'e');
 }
 
 test
 shared void manyCombinatorSimpleTest() {
-    value result = many(char('a')).parse("aaa");
-    
-    if (is ParseResult<{Character*}> result) {
+    expect(many(char('a')).parse("aaa"), void(ParseResult<{Character*}> result) {
         assertEquals(result.result.sequence(), ['a', 'a', 'a']);
-        assertEquals(result.consumed.sequence(), ['a', 'a', 'a']);
-        assertEquals(result.overConsumed.sequence(), []);
-    } else {
-        fail("Result was ``result``");
-    }
+    });
 }
 
 test
 shared void manyCombinatorEmptyInputTest() {
-    value result = many(char('a')).parse("b");
-    
-    if (is ParseResult<{Character*}> result) {
+    expect(many(char('a')).parse("b"), void(ParseResult<{Character*}> result) {
         assertEquals(result.result.sequence(), []);
-        assertEquals(result.consumed.sequence(), []);
-        assertEquals(result.overConsumed.sequence(), ['b']);
-    } else {
-        fail("Result was ``result``");
-    }
+    });
 }
 
 test
 shared void manyCombinatorDoesNotConsumeNextToken() {
-    value result = many(char('a')).parse("aab");
-    
-    if (is ParseResult<{Character*}> result) {
+    expect(many(char('a')).parse("aab"), void(ParseResult<{Character*}> result) {
         assertEquals(result.result.sequence(), ['a', 'a']);
-        assertEquals(result.consumed.sequence(), ['a', 'a']);
-        assertEquals(result.overConsumed.sequence(), ['b']);
-    } else {
-        fail("Result was ``result``");
-    }
+    });
 }
 
 test
 shared void manyCombinatorDoesNotConsumeNextTokenUsingMultiCharacterConsumer() {
-    value result = many(str("abc")).parse("abcabcabcdef");
-    
-    if (is ParseResult<{String*}> result) {
+    expect(many(str("abc")).parse("abcabcabcdef"), void(ParseResult<{String*}> result) {
         assertEquals(result.result.sequence(), ["abc", "abc", "abc"]);
-        assertEquals(result.consumed.sequence(), ['a', 'b', 'c', 'a', 'b', 'c', 'a', 'b', 'c']);
-        assertEquals(result.overConsumed.sequence(), ['d']);
-    } else {
-        fail("Result was ``result``");
-    }
+    });
 }
 
 test
 shared void many1CombinatorSimpleTest() {
-    value result = many(char('a'), 1).parse("aaa");
-    
-    if (is ParseResult<{Character*}> result) {
+    expect(many(char('a'), 1).parse("aaa"), void(ParseResult<{Character*}> result) {
         assertEquals(result.result.sequence(), ['a', 'a', 'a']);
-        assertEquals(result.consumed.sequence(), ['a', 'a', 'a']);
-        assertEquals(result.overConsumed.sequence(), []);
-    } else {
-        fail("Result was ``result``");
-    }
+    });
 }
 
 test
 shared void many1CombinatorTooShortInputTest() {
-    value result = many(char('a'), 1).parse("b");
-    
-    if (is ParseError result) {
-        assertEquals(result.consumed.sequence(), ['b']);
-        assertFalse(result.message().empty);
-    } else {
-        fail("Result was ``result``");
-    }
+    expect(many(char('a'), 1).parse("b"), error);
 }
 
 test
 shared void many1CombinatorDoesNotConsumeNextToken() {
-    value result = seq { many(char('a'), 1), char('b') }
-            .parse("aab");
-    
-    if (is ParseResult<{Character*}> result) {
-        assertEquals(result.result.sequence(), ['a', 'a', 'b']);
-        assertEquals(result.consumed.sequence(), ['a', 'a', 'b']);
-        assertEquals(result.overConsumed.sequence(), []);
-    } else {
-        fail("Result was ``result``");
-    }
+    value consumer = CharacterConsumer("aab".iterator());
+    expect(many(char('a'), 1)
+            .doParse(consumer), void(ParseResult<{Character*}> result) {
+        assertEquals(result.result.sequence(), ['a', 'a']);
+    });
+    assertEquals(consumer.next(), 'b');
 }
 
 test
 shared void many3CombinatorTooShortInputTest() {
-    value result = many(char('a'), 3).parse("aab");
-    
-    if (is ParseError result) {
-        assertEquals(result.consumed.sequence(), ['a', 'a', 'b']);
-        assertFalse(result.message().empty);
-    } else {
-        fail("Result was ``result``");
-    }
+    expect(many(char('a'), 3).parse("aab"), error);
 }
 
 test
 shared void many3CombinatorDoesNotConsumeNextToken() {
-    value result = seq({
+    expect(seq({
         many(char('a'), 3), char('b')
-    }).parse("aaaab");
-    
-    if (is ParseResult<{Character*}> result) {
+    }).parse("aaaab"), void(ParseResult<{Character*}> result) {
         assertEquals(result.result.sequence(), ['a', 'a', 'a', 'a', 'b']);
-        assertEquals(result.consumed.sequence(), ['a', 'a', 'a', 'a', 'b']);
-        assertEquals(result.overConsumed.sequence(), []);
-    } else {
-        fail("Result was ``result``");
-    }
+    });
 }
 
 test
 shared void manySeqCombinationTest() {
-    value manySeq = many(seq { char('x'), skip(char(',')) });
-    
-    value result1 = manySeq.parse("x,x,x!");
-    if (is ParseResult<{Character*}> result1) {
+    expect(many(seq { char('x'), skip(char(',')) }).parse("x,x,x!"),
+        void(ParseResult<{Character*}> result1) {
         assertEquals(result1.result.sequence(), ['x', 'x']);
-        assertEquals(result1.consumed.sequence(), ['x', ',', 'x', ',']);
-        assertEquals(result1.overConsumed.sequence(), ['x', '!']);
-    } else {
-        fail("Result was ``result1``");
-    }
+    });
 }
 
 test
 shared void manySeqManyCombinationTest() {
-    value parser = many(seq { skip(char('.')), many(char('x')) });
-    
-    value result1 = parser.parse(".x.xxx..x!x");
-    if (is ParseResult<{Character*}> result1) {
+    expect(many(seq { skip(char('.')), many(char('x')) })
+        .parse(".x.xxx.x!x"), void(ParseResult<{Character*}> result1) {
         assertEquals(result1.result.sequence(), ['x', 'x', 'x', 'x', 'x']);
-        assertEquals(result1.consumed.sequence(), ['.', 'x', '.', 'x', 'x', 'x', '.', '.', 'x']);
-        assertEquals(result1.overConsumed.sequence(), ['!']);
-    } else {
-        fail("Result was ``result1``");
-    }
+    });
 }
 test
 shared void skipManyCombinatorDoesNotConsumeNextTokenUsingMultiCharacterConsumer() {
-    value result = skip(many(str("abc"))).parse("abcabcabcdef");
-    
-    if (is ParseResult<{Character*}> result) {
+    expect(skip(many(str("abc"))).parse("abcabcabcdef"),
+        void(ParseResult<{Character*}> result) {
         assertEquals(result.result.sequence(), []);
-        assertEquals(result.consumed.sequence(), ['a', 'b', 'c', 'a', 'b', 'c', 'a', 'b', 'c']);
-        assertEquals(result.overConsumed.sequence(), ['d']);
-    } else {
-        fail("Result was ``result``");
-    }
+    });
 }
 
 test
@@ -322,8 +238,6 @@ shared void skipManyCombinatorSimpleTest() {
     
     if (is ParseResult<[]> result) {
         assertEquals(result.result, []);
-        assertEquals(result.consumed.sequence(), ['a', 'a', 'a']);
-        assertEquals(result.overConsumed.sequence(), []);
     } else {
         fail("Result was ``result``");
     }
@@ -335,8 +249,6 @@ shared void skipManyCombinatorEmptyInputTest() {
     
     if (is ParseResult<[]> result) {
         assertEquals(result.result, []);
-        assertEquals(result.consumed.sequence(), []);
-        assertEquals(result.overConsumed.sequence(), ['b']);
     } else {
         fail("Result was ``result``");
     }
@@ -347,8 +259,6 @@ shared void skipManyCombinatorDoesNotConsumeNextToken() {
     value result1 = skip(many(char('a'))).parse("axy");
     if (is ParseResult<[]> result1) {
         assertEquals(result1.result.sequence(), []);
-        assertEquals(result1.consumed.sequence(), ['a']);
-        assertEquals(result1.overConsumed.sequence(), ['x']);
     } else {
         fail("Result was ``result1``");
     }
@@ -357,8 +267,6 @@ shared void skipManyCombinatorDoesNotConsumeNextToken() {
             .parse("aab");
     if (is ParseResult<{Character*}> result) {
         assertEquals(result.result.sequence(), ['b']);
-        assertEquals(result.consumed.sequence(), ['a', 'a', 'b']);
-        assertEquals(result.overConsumed.sequence(), []);
     } else {
         fail("Result was ``result``");
     }
@@ -370,8 +278,6 @@ shared void skipMany1CombinatorSimpleTest() {
     
     if (is ParseResult<{Character*}> result) {
         assertEquals(result.result.sequence(), []);
-        assertEquals(result.consumed.sequence(), ['a', 'a', 'a']);
-        assertEquals(result.overConsumed.sequence(), []);
     } else {
         fail("Result was ``result``");
     }
@@ -381,12 +287,7 @@ test
 shared void skipmany1CombinatorTooShortInputTest() {
     value result = skip(many(char('a'), 1)).parse("b");
     
-    if (is ParseError result) {
-        assertEquals(result.consumed.sequence(), ['b']);
-        assertFalse(result.message().empty);
-    } else {
-        fail("Result was ``result``");
-    }
+    expect(result, error);
 }
 
 test
@@ -395,25 +296,16 @@ shared void skipMany1CombinatorDoesNotConsumeNextToken() {
         skip(many(char('a'), 1)), char('b')
     }.parse("aab");
     
-    if (is ParseResult<{Character*}> result) {
+    expect(result, void(ParseResult<{Character*}> result) {
         assertEquals(result.result.sequence(), ['b']);
-        assertEquals(result.consumed.sequence(), ['a', 'a', 'b']);
-        assertEquals(result.overConsumed.sequence(), []);
-    } else {
-        fail("Result was ``result``");
-    }
+    });
 }
 
 test
 shared void skipMany3CombinatorTooShortInputTest() {
     value result = skip(many(char('a'), 3)).parse("aab");
     
-    if (is ParseError result) {
-        assertEquals(result.consumed.sequence(), ['a', 'a', 'b']);
-        assertFalse(result.message().empty);
-    } else {
-        fail("Result was ``result``");
-    }
+    expect(result, error);
 }
 
 test
@@ -424,8 +316,6 @@ shared void skipMany3CombinatorDoesNotConsumeNextToken() {
     
     if (is ParseResult<{Character*}> result) {
         assertEquals(result.result.sequence(), ['b']);
-        assertEquals(result.consumed.sequence(), ['a', 'a', 'a', 'a', 'b']);
-        assertEquals(result.overConsumed.sequence(), []);
     } else {
         fail("Result was ``result``");
     }
@@ -437,8 +327,6 @@ test shared void optionSimpleTest() {
     value result1 = parser.parse("");
     if (is ParseResult<{Character*}> result1) {
         assertEquals(result1.result, []);
-        assertEquals(result1.consumed.sequence(), []);
-        assertEquals(result1.overConsumed.sequence(), []);
     } else {
         fail("Result was ```result1``");
     }
@@ -446,8 +334,6 @@ test shared void optionSimpleTest() {
     value result2 = parser.parse("a");
     if (is ParseResult<{Character*}> result2) {
         assertEquals(result2.result.sequence(), ['a']);
-        assertEquals(result2.consumed.sequence(), ['a']);
-        assertEquals(result2.overConsumed.sequence(), []);
     } else {
         fail("Result was ```result2``");
     }
@@ -455,8 +341,6 @@ test shared void optionSimpleTest() {
     value result3 = parser.parse("b");
     if (is ParseResult<{Character*}> result3) {
         assertEquals(result3.result, []);
-        assertEquals(result3.consumed.sequence(), []);
-        assertEquals(result3.overConsumed.sequence(), ['b']);
     } else {
         fail("Result was ```result3``");
     }
@@ -466,13 +350,9 @@ test shared void aroundTest() {
     value parser = around(spaces(), char('c'));
     expect(parser.parse("c"), void(ParseResult<{Character*}> result) {
         assertEquals(result.result.sequence(), ['c']);
-        assertEquals(result.consumed.sequence(), ['c']);
-        assertEquals(result.overConsumed.sequence(), []);
     });
     expect(parser.parse("  c   !!"), void(ParseResult<{Character*}> result) {
         assertEquals(result.result.sequence(), ['c']);
-        assertEquals(result.consumed.sequence(), [' ', ' ', 'c', ' ', ' ', ' ' ]);
-        assertEquals(result.overConsumed.sequence(), ['!']);
     });
 }
 
@@ -482,8 +362,6 @@ test shared void optionMultivalueTest() {
     value result1 = parser.parse("hejdå");
     if (is ParseResult<{String*}> result1) {
         assertEquals(result1.result.sequence(), []);
-        assertEquals(result1.consumed.sequence(), []);
-        assertEquals(result1.overConsumed.sequence(), ['h', 'e', 'j', 'd']);
     } else {
         fail("Result was ```result1``");
     }
@@ -491,8 +369,6 @@ test shared void optionMultivalueTest() {
     value result2 = parser.parse("hejbye");
     if (is ParseResult<{String*}> result2) {
         assertEquals(result2.result.sequence(), ["hej", "bye"]);
-        assertEquals(result2.consumed.sequence(), ['h', 'e', 'j', 'b', 'y', 'e']);
-        assertEquals(result2.overConsumed.sequence(), []);
     } else {
         fail("Result was ```result2``");
     }
@@ -500,70 +376,8 @@ test shared void optionMultivalueTest() {
     value result3 = parser.parse("hell");
     if (is ParseResult<{String*}> result3) {
         assertEquals(result3.result.sequence(), []);
-        assertEquals(result3.consumed.sequence(), []);
-        assertEquals(result3.overConsumed.sequence(), ['h', 'e', 'l']);
     } else {
         fail("Result was ```result3``");
-    }
-}
-
-test
-shared void parserChainSimpleTest() {
-    for (index->singleParser in [char('a'), many(noneOf(spaceChars)), space()].indexed) {
-        for (input in ["", "0", "\n", " ", "a", "abc", "123", " xxx yyy"]) {
-            value result1 = singleParser.parse(input);
-            value result2 = seq({singleParser}).parse(input);
-            value errorMessage = "Parser index: ``index``, Input: ``input``";
-            assertResultsEqual(result1, result2, errorMessage);
-        }
-    }
-}
-
-test
-shared void parserChain2ParsersTest() {
-    for (index->parserPair in [[char('a'), char(' ')], [many(noneOf(spaceChars)), char(' ')], [space(), chars(['x', 'x', 'm'])]].indexed) {
-        for (input in ["", "0", "\n", " ", "a", "a b c", "123", " abc", " xxx yyy"]) {
-            value result1 = parserPair[0].parse(input);
-            value nonParsed = input.sublistFrom(result1.consumed.size);
-            value x = String(nonParsed);
-            value result2 = parserPair[1].parse(x);
-            value totalResult = seq(parserPair).parse(input);
-            value expectedResult = findExpectedResult(result1, result2);
-            value errorMessage = "Parser index: ``index``, Input: '``input``'";
-            assertResultsEqual(totalResult, expectedResult, errorMessage);
-        }
-    }
-}
-
-test
-shared void parserChainParsedLocationColumnTest() {
-    value parser = seq {
-        char('a'), char('b'), either { char('c'), char('d') }, str("xyz")
-    };
-    
-    for ([input, expected] in [["a", [1, 1]], ["abx", [1, 3]], ["abcd", [1, 4]], ["abcxym", [1, 6]]]) {
-        value result = parser.parse(input);
-        if (is ParseError result) {
-            assertEquals(result.location, expected, result.message());
-        } else {
-            fail("Result for input ``input`` was ``result``");
-        }    
-    }
-}
-
-test
-shared void parserChainParsedLocationRowTest() {
-    value parser = seq {
-        sepBy(spaces(), seq { str("hello"), digit() }, 4)
-    };
-    
-    for ([input, expected] in [["hello1\nhello2\nhellow", [3, 6]], ["hello2\nbye", [2, 1]]]) {
-        value result = parser.parse(input);
-        if (is ParseError result) {
-            assertEquals(result.location, expected, result.message());
-        } else {
-            fail("Result for input ``input`` was ``result``");
-        }    
     }
 }
 
@@ -581,8 +395,6 @@ shared void sepByTest() {
     value result2 = commaSeparated.parse("1,2,");
     if (is ParseResult<{Integer*}> result2) {
         assertEquals(result2.result.sequence(), [1, 2]);
-        assertEquals(result2.consumed.sequence(), ['1', ',', '2']);
-        assertEquals(result2.overConsumed.sequence(), [',']);
     } else {
         fail("Result was ``result2``");
     }
@@ -620,17 +432,10 @@ shared void sepByMin3Test() {
         fail("Result was ``result2``");
     }
     value result3 = commaSeparated.parse("1");
-    if (is ParseError result3) {
-        assertFalse(result3.message().empty);
-    } else {
-        fail("Result was ``result3``");
-    }
+    expect(result3, error);
+    
     value result4 = commaSeparated.parse("1,2");
-    if (is ParseError result4) {
-        assertFalse(result4.message().empty);
-    } else {
-        fail("Result was ``result4``");
-    }
+    expect(result4, error);
 }
 
 test
@@ -684,18 +489,18 @@ test shared void errorMessageShouldComeFromDeepestParserAttempted() {
     
     // error message should show the exact unexpected input
     expect(parser.parse("#1.4"), void(ParseError error) {
-        assertTrue(error.message().contains("Unexpected '.4'"), error.string);
+        assertTrue(error.message.contains("Unexpected '4'"), error.string);
     });
     expect(parser.parse("abc"), void(ParseError error) {
-        assertTrue(error.message().contains("Unexpected 'abc'"), error.string);
+        assertTrue(error.message.contains("Unexpected 'abc'"), error.string);
     });
     expect(parser.parse("#1!hi"), void(ParseError error) {
-        assertTrue(error.message().contains("Unexpected '!hi'"), error.string);
+        assertTrue(error.message.contains("Unexpected 'hi'"), error.string);
     });
     expect(parser.parse("#1!012ABC"), void(ParseError error) {
-        assertTrue(error.message().contains("Unexpected 'ABC'"), error.string);
+        assertTrue(error.message.contains("Unexpected 'ABC'"), error.string);
     });
     expect(parser.parse("#Fghijk"), void(ParseError error) {
-        assertTrue(error.message().contains("Unexpected 'Fghijk'"), error.string);
+        assertTrue(error.message.contains("Unexpected 'Fghijk'"), error.string);
     });
 }
