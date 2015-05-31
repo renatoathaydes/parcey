@@ -19,9 +19,10 @@ shared String chooseName(String name, String default)
         => inBrackets(name.empty then default else name);
 
 String unexpected(CharacterConsumer consumer) {
-    value next = String(asIterable(consumer).take(10));
-    value end = consumer.next() is Finished then "" else "...";
-    return quote(next + end);
+    value next = consumer.peekFromLatestStart(11);
+    return next.size == 11
+    then quote(String(next.exceptLast.chain("...")))
+    else quote(String(next));
 }
 
 shared ParseError parseError(CharacterConsumer consumer, String name) {

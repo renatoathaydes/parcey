@@ -6,21 +6,17 @@ import com.athaydes.parcey.internal {
 }
 
 "A Consumer of streams of Characters."
-shared class CharacterConsumer(shared Iterator<Character> input) {
+shared class CharacterConsumer(Iterator<Character> input) {
     
     value consumed = StringBuilder();
-    
-    value internalLocation = Array { 1, 1 };
-    
-    function row() => internalLocation[0] else 0;
-    
-    function col() => internalLocation[1] else 0;
     
     variable Integer backtrackCount = -1;
 
     shared variable Integer consumedByLatestParser = 0;
     
-    variable String? errorName = null;
+    variable Integer consumedAtLatestParserStart = 0;
+    
+    variable String? latestParserStarted = null;
 
     shared Character|Finished next() {
         Character|Finished char;
@@ -38,35 +34,39 @@ shared class CharacterConsumer(shared Iterator<Character> input) {
         return char;
     }
     
-    shared void startParser() {
-        if (errorName is Null) {
-            updateLocation(latestConsumed());
-        }
+    shared void startParser(String name) {
+        consumedAtLatestParserStart = currentlyParsed();
         consumedByLatestParser = 0;
-        errorName = null;
+        latestParserStarted = name;
     }
     
-    void updateLocation({Character*} characters) {
-        for (Character char in characters) {
-            if (char == '\n') {
-                internalLocation.set(0, row() + 1);
-                internalLocation.set(1, 1);
-            } else {
-                internalLocation.set(1, col() + 1);
-            }
-        }
-    }
-    
-    shared String abort(String error) {
-        errorName = error;
+    shared String abort() {
         takeBack(consumedByLatestParser);
-        return error;
+        return latestParserStarted else "Unknown Parser aborted";
     }
     
     shared void takeBack(Integer characterCount) {
         if (characterCount > 0) {
             backtrackCount += characterCount;
         }
+    }
+
+    shared {Character*} peekFromLatestStart(Integer characterCount) {
+        value characters = consumed[consumedAtLatestParserStart:characterCount];
+        value remaining = characterCount - characters.size;
+        if (remaining > 0) {
+            value extraCharacters = [ for (char in (1:remaining)
+                    .map((_) => input.next())) if (is Character char) char ];
+            consumed.append(String(extraCharacters));
+            backtrackCount += extraCharacters.size;
+            return characters.chain(extraCharacters);
+        } else {
+            return String(characters);
+        }
+    }
+    
+    shared void moveBackTo(Integer charactersConsumed) {
+        backtrackCount = consumed.size - charactersConsumed - 1;
     }
     
     shared {Character*} latestConsumed() {
@@ -75,8 +75,22 @@ shared class CharacterConsumer(shared Iterator<Character> input) {
         return consumed[firstIndex..lastIndex];
     }
     
-    shared ParsedLocation location()
-        => [row(), col()];
+    shared Integer currentlyParsed()
+            => consumed.size - (backtrackCount + 1);
+    
+    shared ParsedLocation location() {
+        variable Integer row = 1;
+        variable Integer col = 1;
+        for (Character char in consumed[0:consumedAtLatestParserStart]) {
+            if (char == '\n') {
+                row++;
+                col = 1;
+            } else {
+                col++;
+            }
+        }
+        return [row, col];
+    }
     
     shared actual String string {
        value partial = consumed.take(500);

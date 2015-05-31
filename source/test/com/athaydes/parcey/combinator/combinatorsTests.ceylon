@@ -75,11 +75,15 @@ test shared void seq1AllowsNonEmptyResult()  {
 test
 shared void eitherCombinatorCanParseAllAlternatives() {
     value parser = either {
-        char('a'), chars(['h', 'i']), space()
+        char('a'), char('b'), chars(['h', 'i']), space()
     };
     
     expect(parser.parse("a"), void(ParseResult<{Character*}> result1) {
         assertEquals(result1.result.sequence(), ['a']);
+    });
+
+    expect(parser.parse("b"), void(ParseResult<{Character*}> result1) {
+        assertEquals(result1.result.sequence(), ['b']);
     });
     
     expect(parser.parse("hi"), void(ParseResult<{Character+}> result2) {
@@ -489,12 +493,14 @@ test shared void errorMessageShouldComeFromDeepestParserAttempted() {
     
     // error message should show the exact unexpected input
     expect(parser.parse("#1.4"), void(ParseError error) {
-        assertTrue(error.message.contains("Unexpected '4'"), error.string);
+        // last tried parser is !d+, so .4 is unexpected
+        assertTrue(error.message.contains("Unexpected '.4'"), error.string);
     });
     expect(parser.parse("abc"), void(ParseError error) {
         assertTrue(error.message.contains("Unexpected 'abc'"), error.string);
     });
     expect(parser.parse("#1!hi"), void(ParseError error) {
+        // last tried parser is !d+
         assertTrue(error.message.contains("Unexpected 'hi'"), error.string);
     });
     expect(parser.parse("#1!012ABC"), void(ParseError error) {

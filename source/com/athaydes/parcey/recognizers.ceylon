@@ -1,14 +1,13 @@
+import com.athaydes.parcey.combinator {
+    seq1,
+    many,
+    skip
+}
 import com.athaydes.parcey.internal {
     asIterable,
     chooseName,
     quote,
     negate
-}
-import com.athaydes.parcey.combinator {
-    seq1,
-    either,
-    many,
-    skip
 }
 
 "Parser that expects an empty stream.
@@ -26,12 +25,12 @@ shared Parser<{Character+}> anyChar(String name_ = "")
     name => chooseName(name_, "any character");
     shared actual ParseOutcome<{Character+}> doParse(
         CharacterConsumer consumer) {
-        consumer.startParser();
+        consumer.startParser(name);
         value first = consumer.next();
         if (is Character first) {
             return ParseResult({ first });
         } else {
-            return consumer.abort(name);
+            return consumer.abort();
         }
     }
 
@@ -57,8 +56,7 @@ shared Parser<[]> spaces(Integer minOccurrences = 0, String name = "")
      value swedishLetter = either(letter, oneOf('ö', 'ä', 'å', 'Ö', 'Ä', 'Å'));
  "
 shared Parser<{Character+}> letter(String name = "")
-        => either({ oneOf('A'..'Z'), oneOf('a'..'z') },
-    chooseName(name, "letter"));
+        => oneOf(('A'..'Z').chain('a'..'z'), chooseName(name, "letter"));
 
 "Parser for one of the given characters.
  
@@ -76,11 +74,11 @@ shared Parser<{Character+}> char(Character char, String name_ = "")
             value goodResult = ParseResult({ char });
             
             shared actual ParseOutcome<{Character+}> doParse(CharacterConsumer consumer) {
-                consumer.startParser();
+                consumer.startParser(name);
                 if (is Character next = consumer.next(), next == char) {
                     return goodResult;
                 } else {
-                    return consumer.abort(name);
+                    return consumer.abort();
                 }
             }
             
@@ -108,11 +106,11 @@ shared Parser<{Character+}> digit(String name_ = "")
     name => chooseName(name_, "digit");
     
     shared actual ParseOutcome<{Character+}> doParse(CharacterConsumer consumer) {
-        consumer.startParser();
+        consumer.startParser(name);
         if (is Character next = consumer.next(), next.digit) {
             return ParseResult({ next });
         } else {
-            return consumer.abort(name);
+            return consumer.abort();
         }
     }
     
@@ -138,21 +136,21 @@ shared Parser<{String+}> str(String text, String name_ = "")
     
     shared actual ParseOutcome<{String+}> doParse(
         CharacterConsumer consumer) {
-        consumer.startParser();
+        consumer.startParser(name);
         if (text.empty) {
             if (is Character next = consumer.next()) {
-                return consumer.abort(name);
+                return consumer.abort();
             } else {
                 return goodResult;
             }
         } else {
             for (expected->actual in zipEntries(text, asIterable(consumer))) {
                 if (actual != expected) {
-                    return consumer.abort(name);
+                    return consumer.abort();
                 }
             }
             if (consumer.consumedByLatestParser < text.size) {
-                return consumer.abort(name);
+                return consumer.abort();
             } else {
                 return goodResult;
             }
@@ -182,7 +180,7 @@ shared Parser<{Integer+}> integer(String name_ = "") {
         
         shared actual ParseOutcome<{Integer+}> doParse(
             CharacterConsumer consumer) {
-            consumer.startParser();
+            consumer.startParser(name);
             value first = consumer.next();
             Boolean hasSign;
             Boolean negative;
@@ -191,17 +189,17 @@ shared Parser<{Integer+}> integer(String name_ = "") {
                     hasSign = !first.digit;
                     negative = hasSign && first == '-';
                 } else {
-                    return consumer.abort(name);
+                    return consumer.abort();
                 }
             } else {
-                return consumer.abort(name);
+                return consumer.abort();
             }
             value maxConsumeLength = runtime.maxIntegerValue.string.size +
                     (hasSign then 1 else 0);
             for (next in asIterable(consumer)) {
                 if ('0' <= next <= '9') {
                     if (consumer.consumedByLatestParser > maxConsumeLength) {
-                        return consumer.abort(name);
+                        return consumer.abort();
                     }
                 } else {
                     consumer.takeBack(1);
@@ -211,7 +209,7 @@ shared Parser<{Integer+}> integer(String name_ = "") {
             value consuming = consumer.latestConsumed().sequence();
             value digits = hasSign then consuming.rest else consuming;
             if (digits.empty) {
-                return consumer.abort(name);
+                return consumer.abort();
             }
             variable Integer result = 0;
             value overflowGuard = negative
@@ -220,7 +218,7 @@ shared Parser<{Integer+}> integer(String name_ = "") {
                 value current = result;
                 result += asInteger(next, negative) * 10^exponent;
                 if (overflowGuard(result)(current)) {
-                    return consumer.abort(name);
+                    return consumer.abort();
                 }
             }
             return ParseResult({ result });
@@ -232,16 +230,16 @@ class OneOf(shared actual String name, Boolean includingChars, {Character+} char
         satisfies Parser<{Character+}> {
     shared actual ParseOutcome<{Character+}> doParse(
         CharacterConsumer consumer) {
-        consumer.startParser();
+        consumer.startParser(name);
         value first = consumer.next();
         switch (first)
         case (is Finished) {
-            return consumer.abort(name);
+            return consumer.abort();
         }
         case (is Character) {
             value boolFun = includingChars then identity<Boolean> else negate;
             if (!boolFun(first in chars)) {
-                return consumer.abort(name);
+                return consumer.abort();
             } else {
                 return ParseResult({ first });
             }

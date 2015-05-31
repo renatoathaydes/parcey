@@ -19,9 +19,10 @@ import com.athaydes.parcey.internal {
 see(`function seq1`)
 shared Parser<{Item*}> seq<Item>({Parser<{Item*}>+} parsers, String name_ = "")
         => object satisfies Parser<{Item*}> {
-    name => chooseName(name_, parsers.map(Parser.name).interpose("->").fold("")(plus));
+    name => chooseName(name_, "seq");//parsers.map(Parser.name).interpose("->").fold("")(plus));
     shared actual ParseOutcome<{Item*}> doParse(
         CharacterConsumer consumer) {
+        value startPosition = consumer.currentlyParsed();
         variable Parser<{Item*}>? badParser = null;
         function setBadParser(Parser<{Item*}> parser) {
             badParser = parser;
@@ -33,7 +34,12 @@ shared Parser<{Item*}> seq<Item>({Parser<{Item*}>+} parsers, String name_ = "")
             then outcome.result else setBadParser(p)
         }.takeWhile((result) => result exists)
                 .coalesced).sequence();
-        return badParser?.name else ParseResult(results);
+        if (exists failedParser = badParser) {
+            consumer.moveBackTo(startPosition);
+            return failedParser.name;
+        } else {
+            return ParseResult(results);
+        }
     }
     
 };
@@ -50,6 +56,7 @@ shared Parser<{Item+}> seq1<Item>({Parser<{Item*}>+} parsers, String name_ = "")
     name => chooseName(name_, delegate.name);
     shared actual ParseOutcome<{Item+}> doParse(
         CharacterConsumer consumer) {
+            value startLocation = consumer.currentlyParsed();
             value result = delegate.doParse(consumer);
             if (is ParseResult<Anything> result,
                 exists first = result.result.first) {
@@ -57,6 +64,7 @@ shared Parser<{Item+}> seq1<Item>({Parser<{Item*}>+} parsers, String name_ = "")
             } else if (is ParseError result) {
                 return result;
             } else { // not even one result found
+                consumer.moveBackTo(startLocation);
                 return name;
             }
         }
@@ -69,23 +77,16 @@ shared Parser<{Item+}> seq1<Item>({Parser<{Item*}>+} parsers, String name_ = "")
  before being passed to the next parser, such that the next parser will 'see' exactly the same input as the previous Parser."
 shared Parser<Item> either<Item>({Parser<Item>+} parsers, String name_ = "") {
     return object satisfies Parser<Item> {
-        name => chooseName(name_, "either ``parsers.map(Parser.name).interpose(" or ").fold("")(plus)``");
+        name => chooseName(name_, "either");// "either ``parsers.map(Parser.name).interpose(" or ").fold("")(plus)``");
         shared actual ParseOutcome<Item> doParse(
             CharacterConsumer consumer) {
-            variable [Parser<Item>, Integer] worstParser = [parsers.first, 0];
-            function setBadParser(Parser<Item> parser) {
-                if (consumer.consumedByLatestParser > worstParser[1]) {
-                    worstParser = [parser, consumer.consumedByLatestParser];
-                }
-                return null;
-            }
             value result = {
                 for (p in parsers)
                 if (!is String outcome = p.doParse(consumer))
-                then outcome else setBadParser(p)
+                then outcome else null
             }.filter((item) => item exists).first;
             return if (exists result)
-            then result else worstParser.first.name;
+            then result else name;
         }
     };
 }
@@ -106,6 +107,7 @@ shared Parser<{Item*}> many<Item>(Parser<{Item*}> parser, Integer minOccurrences
 
         shared actual ParseOutcome<{Item*}> doParse(
             CharacterConsumer consumer) {
+            value startLocation = consumer.currentlyParsed();
             value results = {
                 for (p in parsers) p.doParse(consumer)
              }.takeWhile((result) {
@@ -113,6 +115,7 @@ shared Parser<{Item*}> many<Item>(Parser<{Item*}> parser, Integer minOccurrences
                  then true else false;
              }).sequence();
              if (results.size < minOccurrences) {
+                 consumer.moveBackTo(startLocation);
                  return name;
              } else {
                  return ParseResult(expand {
@@ -132,9 +135,11 @@ shared Parser<{Item*}> option<Item>(Parser<{Item*}> parser) {
         name => "(option ``parser.name``)";
         shared actual ParseOutcome<{Item*}> doParse(
             CharacterConsumer consumer) {
+            value startLocation = consumer.currentlyParsed();
             value result = parser.doParse(consumer);
             switch (result)
             case (is String) {
+                consumer.moveBackTo(startLocation);
                 return ParseResult({});
             }
             else {

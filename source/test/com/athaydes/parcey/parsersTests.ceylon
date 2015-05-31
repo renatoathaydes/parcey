@@ -252,6 +252,18 @@ shared void testInteger() {
 }
 
 test
+shared void canBacktrackAcrossManyParsers() {
+    value parser = seq {
+        option(seq { skip(char('.')), strParser(many(digit(), 1)) }),
+        str(".x")
+    };
+    
+    expect(parser.parse(".x"), void(ParseResult<{String*}> result) {
+        assertEquals(result.result.sequence(), [".x"]);
+    });
+}
+
+test
 shared void simpleCombinationTest() {
     value lowerCasedLetter = oneOf('a'..'z');
     value underscore = char('_');

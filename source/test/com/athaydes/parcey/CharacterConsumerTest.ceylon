@@ -13,7 +13,7 @@ shared class CharacterConsumerTest() {
        value consumer = CharacterConsumer("abcdefghijklmnopqrstuvxz".iterator());
        assertEquals(consumer.next(), 'a');
        assertEquals(consumer.latestConsumed().sequence(), ['a']);
-       consumer.startParser();
+       consumer.startParser("");
        assertEquals(consumer.next(), 'b');
        assertEquals(consumer.next(), 'c');
        assertEquals(consumer.latestConsumed().sequence(), ['b', 'c']);
@@ -23,11 +23,11 @@ shared class CharacterConsumerTest() {
        value consumer = CharacterConsumer("abcdefghijklmnopqrstuvxz".iterator());
        assertEquals(consumer.next(), 'a');
        assertEquals(consumer.latestConsumed().sequence(), ['a']);
-       consumer.startParser();
+       consumer.startParser("");
        assertEquals(consumer.next(), 'b');
        assertEquals(consumer.next(), 'c');
-       consumer.abort("Test error");
-       consumer.startParser();
+       consumer.abort();
+       consumer.startParser("");
        assertEquals(consumer.next(), 'b');
        assertEquals(consumer.next(), 'c');
        assertEquals(consumer.next(), 'd');
@@ -41,27 +41,28 @@ shared class CharacterConsumerTest() {
        assertEquals(next10().sequence(), ('a'..'z').take(10).sequence());
        consumer.takeBack(5);
        assertEquals(consumer.consumedByLatestParser, 10);
-       consumer.startParser();
+       consumer.startParser("");
        assertEquals(next10().sequence(), ('a'..'z').skip(5).take(10).sequence());
    }
    
    test shared void knowLocation() {
        value consumer = CharacterConsumer("a \nbc\n\nd\t  e\nf".iterator());
+       
+       assertEquals(consumer.location(), [1, 1]);
        assertEquals(consumer.next(), 'a');
        assertEquals(consumer.next(), ' ');
-       assertEquals(consumer.location(), [1, 1]);
-       consumer.startParser();
+       consumer.startParser("");
        assertEquals(consumer.location(), [1, 3]);
        assertEquals(consumer.next(), '\n');
        assertEquals(consumer.next(), 'b');
        assertEquals(consumer.location(), [1, 3]);
-       consumer.startParser();
+       consumer.startParser("");
        assertEquals(consumer.location(), [2, 2]);
        assertEquals(consumer.next(), 'c');
-       consumer.startParser();
+       consumer.startParser("");
        assertEquals(consumer.location(), [2, 3]);
        assertEquals(consumer.next(), '\n');
-       consumer.startParser();
+       consumer.startParser("");
        assertEquals(consumer.location(), [3, 1]);
        assertEquals(consumer.next(), '\n');
        assertEquals(consumer.next(), 'd');
@@ -69,13 +70,13 @@ shared class CharacterConsumerTest() {
        assertEquals(consumer.next(), ' ');
        assertEquals(consumer.next(), ' ');
        assertEquals(consumer.next(), 'e');
-       consumer.startParser();
+       consumer.startParser("");
        assertEquals(consumer.location(), [4, 6]);
        assertEquals(consumer.next(), '\n');
-       consumer.startParser();
+       consumer.startParser("");
        assertEquals(consumer.location(), [5, 1]);
        assertEquals(consumer.next(), 'f');
-       consumer.startParser();
+       consumer.startParser("");
        assertEquals(consumer.location(), [5, 2]);
    }
 
@@ -84,18 +85,42 @@ shared class CharacterConsumerTest() {
        assertEquals(consumer.next(), 'a');
        assertEquals(consumer.next(), '\n');
        assertEquals(consumer.next(), 'b');
-       consumer.abort("");
+       consumer.abort();
+       assertEquals(consumer.currentlyParsed(), 0);
        assertEquals(consumer.location(), [1, 1]);
-       consumer.startParser();
-       assertEquals(consumer.location(), [1, 1]);
+       consumer.startParser("");
        assertEquals(consumer.next(), 'a');
        (1..5).collect((_) => consumer.next());
-       consumer.startParser();
+       consumer.startParser("");
        assertEquals(consumer.location(), [3, 2]);
        assertEquals(consumer.next(), 'e');
-       consumer.abort("");
-       consumer.startParser();
+       consumer.abort();
+       consumer.startParser("");
        assertEquals(consumer.location(), [3, 2]);
+    }
+    
+    test shared void knowsHowToMoveBack() {
+        value consumer = CharacterConsumer("abcdefghijklmnopqrstuvxz".iterator());
+        (1..5).collect((_) => consumer.next());
+        consumer.startParser("");
+        (1..5).collect((_) => consumer.next());
+        assertEquals(consumer.next(), 'k');
+        consumer.moveBackTo(3);
+        assertEquals((1..10).collect((_) => consumer.next()), "defghijklm".sequence());
+    }
+    
+    test shared void knowsHowToMoveBackAfterAborting() {
+        value consumer = CharacterConsumer("abcdefghijklmnopqrstuvxz".iterator());
+        (1..5).collect((_) => consumer.next());
+        consumer.startParser("");
+        (1..5).collect((_) => consumer.next());
+        consumer.abort();
+        assertEquals(consumer.next(), 'f');
+        consumer.moveBackTo(3);
+        assertEquals((1..10).collect((_) => consumer.next()), "defghijklm".sequence());
+        
+        consumer.moveBackTo(0);
+        assertEquals(consumer.next(), 'a');
     }
     
 }
