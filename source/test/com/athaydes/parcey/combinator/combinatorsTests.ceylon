@@ -493,20 +493,23 @@ test shared void errorMessageShouldComeFromDeepestParserAttempted() {
     
     // error message should show the exact unexpected input
     expect(parser.parse("#1.4"), void(ParseError error) {
-        // last tried parser is !d+, so .4 is unexpected
-        assertTrue(error.message.contains("Unexpected '.4'"), error.string);
+        assertTrue(error.message.contains("Unexpected '4'"), error.string);
+        assertEquals(error.location, [1, 4]);
     });
     expect(parser.parse("abc"), void(ParseError error) {
         assertTrue(error.message.contains("Unexpected 'abc'"), error.string);
+        assertEquals(error.location, [1, 1]);
     });
     expect(parser.parse("#1!hi"), void(ParseError error) {
-        // last tried parser is !d+
         assertTrue(error.message.contains("Unexpected 'hi'"), error.string);
+        assertEquals(error.location, [1, 4]);
     });
     expect(parser.parse("#1!012ABC"), void(ParseError error) {
         assertTrue(error.message.contains("Unexpected 'ABC'"), error.string);
+        assertEquals(error.location, [1, 7]);
     });
     expect(parser.parse("#Fghijk"), void(ParseError error) {
         assertTrue(error.message.contains("Unexpected 'Fghijk'"), error.string);
+        assertEquals(error.location, [1, 2]);
     });
 }

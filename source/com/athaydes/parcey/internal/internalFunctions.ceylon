@@ -19,17 +19,18 @@ shared String chooseName(String name, String default)
         => inBrackets(name.empty then default else name);
 
 String unexpected(CharacterConsumer consumer) {
-    value next = consumer.peekFromLatestStart(11);
+    value next = consumer.peek(consumer.consumedAtDeepestParserStart, 11);
     return next.size == 11
     then quote(String(next.exceptLast.chain("...")))
     else quote(String(next));
 }
 
-shared ParseError parseError(CharacterConsumer consumer, String name) {
-    value message = "(``readableLocation(consumer.location())``)
+shared ParseError parseError(CharacterConsumer consumer, String errorName) {
+    value location = consumer.deepestParserStartLocation();
+    value message = "(``readableLocation(location)``)
                      Unexpected ``unexpected(consumer)``
-                     Expecting ``name``";
-    return ParseError(message, consumer.location());
+                     Expecting ``consumer.deepestError else errorName``";
+    return ParseError(message, location);
 }
 
 shared String quote(Anything s)

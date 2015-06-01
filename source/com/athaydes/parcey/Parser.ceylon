@@ -11,6 +11,10 @@ shared class CharacterConsumer(Iterator<Character> input) {
     value consumed = StringBuilder();
     
     variable Integer backtrackCount = -1;
+    
+    shared variable String? deepestError = null;
+    
+    shared variable Integer consumedAtDeepestParserStart = 0;
 
     shared variable Integer consumedByLatestParser = 0;
     
@@ -41,6 +45,11 @@ shared class CharacterConsumer(Iterator<Character> input) {
     }
     
     shared String abort() {
+        value current = consumedAtLatestParserStart;
+        if (current > consumedAtDeepestParserStart) {
+            consumedAtDeepestParserStart = current;
+            deepestError = latestParserStarted;
+        }
         takeBack(consumedByLatestParser);
         return latestParserStarted else "Unknown Parser aborted";
     }
@@ -51,8 +60,8 @@ shared class CharacterConsumer(Iterator<Character> input) {
         }
     }
 
-    shared {Character*} peekFromLatestStart(Integer characterCount) {
-        value characters = consumed[consumedAtLatestParserStart:characterCount];
+    shared {Character*} peek(Integer startIndex, Integer characterCount) {
+        value characters = consumed[startIndex:characterCount];
         value remaining = characterCount - characters.size;
         if (remaining > 0) {
             value extraCharacters = [ for (char in (1:remaining)
@@ -78,10 +87,13 @@ shared class CharacterConsumer(Iterator<Character> input) {
     shared Integer currentlyParsed()
             => consumed.size - (backtrackCount + 1);
     
-    shared ParsedLocation location() {
+    shared ParsedLocation deepestParserStartLocation()
+            => location(consumedAtDeepestParserStart);
+    
+    shared ParsedLocation location(Integer characterCount = consumedAtLatestParserStart) {
         variable Integer row = 1;
         variable Integer col = 1;
-        for (Character char in consumed[0:consumedAtLatestParserStart]) {
+        for (Character char in consumed[0:characterCount]) {
             if (char == '\n') {
                 row++;
                 col = 1;
