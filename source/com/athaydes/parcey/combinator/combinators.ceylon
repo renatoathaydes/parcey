@@ -7,7 +7,8 @@ import com.athaydes.parcey {
 }
 import com.athaydes.parcey.internal {
     chooseName,
-    simplePlural
+    simplePlural,
+    computeParserName
 }
 
 "Creates a Parser that applies each of the given parsers in sequence.
@@ -19,7 +20,9 @@ import com.athaydes.parcey.internal {
 see(`function seq1`)
 shared Parser<{Item*}> seq<Item>({Parser<{Item*}>+} parsers, String name_ = "")
         => object satisfies Parser<{Item*}> {
-    name => chooseName(name_, "seq");//parsers.map(Parser.name).interpose("->").fold("")(plus));
+    
+    name = chooseName(name_, computeParserName(parsers, "->"));
+            
     shared actual ParseOutcome<{Item*}> doParse(
         CharacterConsumer consumer) {
         value startPosition = consumer.currentlyParsed();
@@ -53,7 +56,7 @@ see(`function seq`)
 shared Parser<{Item+}> seq1<Item>({Parser<{Item*}>+} parsers, String name_ = "")
         => object satisfies Parser<{Item+}> {
     value delegate = seq(parsers);
-    name => chooseName(name_, delegate.name);
+    name = chooseName(name_, () => delegate.name);
     shared actual ParseOutcome<{Item+}> doParse(
         CharacterConsumer consumer) {
             value startLocation = consumer.currentlyParsed();
@@ -77,7 +80,9 @@ shared Parser<{Item+}> seq1<Item>({Parser<{Item*}>+} parsers, String name_ = "")
  before being passed to the next parser, such that the next parser will 'see' exactly the same input as the previous Parser."
 shared Parser<Item> either<Item>({Parser<Item>+} parsers, String name_ = "") {
     return object satisfies Parser<Item> {
-        name => chooseName(name_, "either");// "either ``parsers.map(Parser.name).interpose(" or ").fold("")(plus)``");
+        
+        name = chooseName(name_, computeParserName(parsers, " or "));
+        
         shared actual ParseOutcome<Item> doParse(
             CharacterConsumer consumer) {
             value result = {
@@ -102,8 +107,11 @@ shared Parser<{Item*}> many<Item>(Parser<{Item*}> parser, Integer minOccurrences
 
     return object satisfies Parser<{Item*}> {
 
-        name => chooseName(name_, (minOccurrences <= 0 then "many" else "at least ``minOccurrences``")
-            + " ``simplePlural("occurrence", minOccurrences)`` of ``parser.name``");
+        function computeName()
+                => (minOccurrences <= 0 then "many" else "at least ``minOccurrences``")
+            + " ``simplePlural("occurrence", minOccurrences)`` of ``parser.name``";
+
+        name = chooseName(name_, computeName);
 
         shared actual ParseOutcome<{Item*}> doParse(
             CharacterConsumer consumer) {
@@ -132,7 +140,7 @@ shared Parser<{Item*}> many<Item>(Parser<{Item*}> parser, Integer minOccurrences
 see (`function many`, `function either`)
 shared Parser<{Item*}> option<Item>(Parser<{Item*}> parser) {
     return object satisfies Parser<{Item*}> {
-        name => "(option ``parser.name``)";
+        name = "(option ``parser.name``)";
         shared actual ParseOutcome<{Item*}> doParse(
             CharacterConsumer consumer) {
             value startLocation = consumer.currentlyParsed();
@@ -231,7 +239,7 @@ shared Parser<{Item|Sep*}> sepWith<Item, Sep>(
 see (`function many`, `function either`)
 shared Parser<[]> skip(Parser<Anything> parser, String name_ = "") {
     return object satisfies Parser<[]> {
-        name => chooseName(name_, "to skip ``parser.name``");
+        name = chooseName(name_, () => "to skip ``parser.name``");
         shared actual ParseOutcome<[]> doParse(
             CharacterConsumer consumer) {
             value result = parser.doParse(consumer);

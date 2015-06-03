@@ -69,7 +69,7 @@ shared Parser<{To*}> mapParsers<in From,out To>(
     String name_ = "")
         => object satisfies Parser<{To*}> {
     value parser = chainParser(mapValueParser(seq(parsers), converter));
-    name => chooseName(name_, parser.name);
+    name = chooseName(name_, () => parser.name);
     doParse = parser.doParse;
 };
 

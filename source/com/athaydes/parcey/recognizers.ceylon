@@ -14,7 +14,7 @@ import com.athaydes.parcey.internal {
  
  It only succeeds if the input is empty."
 shared Parser<[]> eof(String name = "")
-        => mapValueParser(str("", chooseName(name, "EOF")),
+        => mapValueParser(str("", chooseName(name, () => "EOF")),
     ({String+} _) => []);
 
 "Parser for a single Character.
@@ -22,7 +22,7 @@ shared Parser<[]> eof(String name = "")
  It fails if the input is empty."
 shared Parser<{Character+}> anyChar(String name_ = "")
         => object satisfies Parser<{Character+}> {
-    name => chooseName(name_, "any character");
+    name = chooseName(name_, () => "any character");
     shared actual ParseOutcome<{Character+}> doParse(
         CharacterConsumer consumer) {
         consumer.startParser(name);
@@ -41,13 +41,13 @@ shared [Character+] spaceChars = [' ', '\f', '\t', '\r', '\n'];
 
 "A space parser. A space is defined by [[spaceChars]]."
 shared Parser<{Character+}> space(String name = "")
-        => oneOf(spaceChars, chooseName(name, "space"));
+        => oneOf(spaceChars, chooseName(name, () => "space"));
 
 "A space Parser which consumes as many spaces as possible, discarding its results
  and returning an [[Empty]] as a result in case it succeeds."
 see(`function space`)
 shared Parser<[]> spaces(Integer minOccurrences = 0, String name = "")
-        => skip(many(space(), minOccurrences), name);
+        => skip(many(space(), minOccurrences), chooseName(name, () => "spaces"));
 
 "A latin letter. Must be one of 'A'..'Z' or 'a'..'z'.
  
@@ -56,20 +56,20 @@ shared Parser<[]> spaces(Integer minOccurrences = 0, String name = "")
      value swedishLetter = either(letter, oneOf('ö', 'ä', 'å', 'Ö', 'Ä', 'Å'));
  "
 shared Parser<{Character+}> letter(String name = "")
-        => oneOf(('A'..'Z').chain('a'..'z'), chooseName(name, "letter"));
+        => oneOf(('A'..'Z').chain('a'..'z'), chooseName(name, () => "letter"));
 
 "Parser for one of the given characters.
  
  It fails if the input is empty."
 shared Parser<{Character+}> oneOf({Character+} chars, String name = "")
-        => OneOf(chooseName(name, "one of ``chars``"), true, chars);
+        => OneOf(chooseName(name, () => "one of ``chars``"), true, chars);
 
 "Parser for a single character.
  
  It fails if the input is empty."
 shared Parser<{Character+}> char(Character char, String name_ = "")
         => object satisfies Parser<{Character+}> {
-            name => chooseName(name_, char.string);
+            name = chooseName(name_, () => char.string);
             
             value goodResult = ParseResult({ char });
             
@@ -96,14 +96,14 @@ shared Parser<{Character+}> chars({Character+} characters, String name = "")
  
  It succeeds if the input is empty."
 shared Parser<{Character+}> noneOf({Character+} chars, String name = "")
-        => OneOf(chooseName(name, "none of ``chars``"), false, chars);
+        => OneOf(chooseName(name, () => "none of ``chars``"), false, chars);
 
 "Parser for a single digit (as defined by [[Character.digit]]).
  
  It fails if the input is empty."
 shared Parser<{Character+}> digit(String name_ = "")
         => object satisfies Parser<{Character+}> {
-    name => chooseName(name_, "digit");
+    name = chooseName(name_, () => "digit");
     
     shared actual ParseOutcome<{Character+}> doParse(CharacterConsumer consumer) {
         consumer.startParser(name);
@@ -119,18 +119,18 @@ shared Parser<{Character+}> digit(String name_ = "")
 "A word parser. A word is defined as a non-empty stream of continuous latin letters."
 see (`function letter`)
 shared Parser<{String+}> word(String name = "")
-        => strParser(many(letter(), 1, chooseName(name, "word")));
+        => strParser(many(letter(), 1, chooseName(name, () => "word")));
 
 "A String parser. A String is defined as a possibly empty stream of Characters
  without any spaces between them."
 see (`value spaceChars`)
 shared Parser<{String+}> anyStr(String name = "")
-        => strParser(many(noneOf(spaceChars), 0, chooseName(name, "any String")));
+        => strParser(many(noneOf(spaceChars), 0, chooseName(name, () => "any String")));
 
 "A String parser which parses only the given string."
 shared Parser<{String+}> str(String text, String name_ = "")
         => object satisfies Parser<{String+}> {
-    name => chooseName(name_, "string ``quote(text)``");
+    name = chooseName(name_, () => "string ``quote(text)``");
     
     value goodResult = ParseResult({ text });
     
@@ -170,7 +170,7 @@ shared Parser<{String+}> str(String text, String name_ = "")
 see (`function mapValueParser`)
 shared Parser<{Integer+}> integer(String name_ = "") {
     return object satisfies Parser<{Integer+}> {
-        name => chooseName(name_, "integer");
+        name = chooseName(name_, () => "integer");
         
         function validFirst(Character c)
                 => c.digit || c in ['+', '-'];

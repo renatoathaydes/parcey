@@ -1,7 +1,8 @@
 import com.athaydes.parcey {
     ParsedLocation,
     CharacterConsumer,
-    ParseError
+    ParseError,
+    Parser
 }
 
 shared {Character*} asIterable(CharacterConsumer consumer)
@@ -15,8 +16,8 @@ String inBrackets(String text)
         => if (text.startsWith("(") &&
     text.endsWith(")")) then text else "(``text``)";
 
-shared String chooseName(String name, String default)
-        => inBrackets(name.empty then default else name);
+shared String chooseName(String name, String() default)
+        => inBrackets(name.empty then default() else name);
 
 String unexpected(CharacterConsumer consumer) {
     value next = consumer.peek(consumer.consumedAtDeepestParserStart, 11);
@@ -45,3 +46,9 @@ shared String readableLocation(ParsedLocation parsedLocation)
 
 shared String simplePlural(String word, Integer count)
         => word + (count != 1 then "s" else "");
+
+shared String computeParserName({Parser<Anything>*} parsers, String separator)() {
+    return parsers.map(Parser.name)
+            .interpose(separator)
+            .fold("")(plus);
+}
