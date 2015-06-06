@@ -378,3 +378,7 @@ assert(exists first = array[0],
 assert(exists second = array[1],
     second == JsonNumber(2));
 ```
+
+*CSV Parser - comparison with Haskell's Parsec*
+
+[Click here](source/test/com/athaydes/parcey/csvParserTest.ceylon)
