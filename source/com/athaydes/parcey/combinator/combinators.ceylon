@@ -90,8 +90,12 @@ shared Parser<Item> either<Item>({Parser<Item>+} parsers, String name_ = "") {
                 if (!is String outcome = p.doParse(consumer))
                 then outcome else null
             }.filter((item) => item exists).first;
-            return if (exists result)
-            then result else name;
+            if (exists result) {
+                consumer.clearError();
+                return result;
+            } else {
+                return name;
+            }
         }
     };
 }
@@ -126,6 +130,7 @@ shared Parser<{Item*}> many<Item>(Parser<{Item*}> parser, Integer minOccurrences
                  consumer.moveBackTo(startLocation);
                  return name;
              } else {
+                 consumer.clearError();
                  return ParseResult(expand {
                      for (r in results) if (!is String r) r.result
                  });
@@ -148,6 +153,7 @@ shared Parser<{Item*}> option<Item>(Parser<{Item*}> parser) {
             switch (result)
             case (is String) {
                 consumer.moveBackTo(startLocation);
+                consumer.clearError();
                 return ParseResult({});
             }
             else {

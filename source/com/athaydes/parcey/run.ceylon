@@ -18,7 +18,7 @@ shared void run() {
     };
     
     value contents2 = parser2.parse("10  20 30 40  50");
-    print(contents2);
+    
     assert(is ParseResult<{Integer*}> contents2);
     assert(contents2.result.sequence() == [10, 20, 30]);
     
@@ -74,8 +74,8 @@ shared void run() {
     
     // arithmetics example
     value operator = oneOf { '+', '-', '*', '/', '^', '%' };
-    value calculation = many(sepWith(around(spaces(), operator), integer()), 2);
-    
+    value calculation = many(sepWith(around(spaces(), operator), integer(), 2));
+    print(calculation.parse("2+4"));
     assert(is ParseResult<{Integer|Character*}> contents6 =
         calculation.parse("2 + 4*60 / 2"));
     assert(contents6.result.sequence() == [2, '+', 4, '*', 60, '/', 2]);
@@ -116,7 +116,7 @@ shared void run() {
             => either { jsonStr(), jsonInt() };
     
     // a recursive definition needs explicit type
-    Parser<{JsonArray*}> jsonArray() => seq {
+    Parser<{JsonArray*}> jsonArray() => seq({
         skip(around(spaces(), char('['))),
         chainParser(
             mapValueParser(
@@ -127,13 +127,13 @@ shared void run() {
         ),
         spaces(),
         skip(char(']'))
-    };
+    }, "jsonArray");
     
     // Mutually referring parsers must be wrapped in a class or object
     object json {
     
         shared Parser<{JsonElement*}> jsonElement()
-                => either { jsonValue(), jsonObject(), jsonArray() };
+                => either({ jsonValue(), jsonObject(), jsonArray() }, "jsonElement");
     
         shared Parser<{JsonEntry*}> jsonEntry() => mapParsers({
             jsonStr(),

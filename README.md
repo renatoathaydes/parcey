@@ -7,7 +7,7 @@ Inspired by Haskell's [Parsec](http://hackage.haskell.org/package/parsec) librar
 
 Add this line to your `module.ceylon` file:
 
-> Note: Project not yet on Herd! Will upload once it is a little bit more battle tested.
+> Note: Project not yet on Herd! Will upload once it is a little bit more battle tested and Ceylon 1.2 is released (as this uses some new features already).
 
 ```ceylon
 import com.athaydes.parcey "0.0.1";
@@ -17,8 +17,9 @@ import com.athaydes.parcey "0.0.1";
 
 ### Basics
 
-Parcey is pretty simple to use. There are parsers and parser-combinators.
-Both are usually created using function calls.
+Parcey is pretty simple to use. There are parsers (or recognizers) and parser-combinators.
+
+Both are usually created using function calls (this allows recursive and mutually referring definitions!).
 
 For example, to get a parser of integers:
 
@@ -34,7 +35,7 @@ assert(is ParseResult<{Integer*}> contents =
 assert(contents.result.sequence() == [123]);
 ```
 
-> Notice that most parsers return a sequence of values, rather than a single value... that's because, most of the time, parsers are used to parse several values, not just one... but also because this allows us to combine the parsers much more easily, as we'll see later.
+> Notice that most parsers return a sequence of values, rather than a single value... that's because, most of the time, parsers are used to parse several values, not just one... additionally, this allows us to combine the parsers much more easily, as we'll see later.
 
 If something goes wrong, you'll get a good error message:
 
@@ -46,11 +47,10 @@ print(error.message);
 Prints:
 
 ```
-line 1, column 1
+(line 1, column 1)
 Unexpected 'hello'
 Expecting (integer)
 ```
-
 
 An example of a parser combinator is `seq`, which takes a sequence of parsers
 and applies each one in turn.
@@ -61,6 +61,8 @@ So, to parse 3 integers separated by spaces, we could do:
 value parser2 = seq {
     integer(), spaces(), integer(), spaces(), integer()
 };
+
+> spaces() parses white-spaces, including new lines and tabs, discarding the results
 
 value contents2 = parser2.parse("10  20 30 40  50");
 assert(is ParseResult<{Integer*}> contents2);
@@ -263,11 +265,11 @@ assert(result.result.sequence() == ["This", "is", "a", "sentence"]);
 
 ```ceylon
 value operator = oneOf { '+', '-', '*', '/', '^', '%' };
-value calculation = many(sepWith(around(spaces(), operator), integer()), 2);
-    
-assert(is ParseResult<{Integer|Character*}> contents2 =
+value calculation = many(sepWith(around(spaces(), operator), integer(), 2));
+
+assert(is ParseResult<{Integer|Character*}> contents6 =
     calculation.parse("2 + 4*60 / 2"));
-assert(contents2.result.sequence() == [2, '+', 4, '*', 60, '/', 2]);
+assert(contents6.result.sequence() == [2, '+', 4, '*', 60, '/', 2]);
 ```
 
 *A more complicated example: a simplified Json Parser*
@@ -308,7 +310,7 @@ function jsonValue()
         => either { jsonStr(), jsonInt() };
 
 // a recursive definition needs explicit type
-Parser<{JsonArray*}> jsonArray() => seq {
+Parser<{JsonArray*}> jsonArray() => seq({
     skip(around(spaces(), char('['))),
     chainParser(
         mapValueParser(
@@ -319,13 +321,13 @@ Parser<{JsonArray*}> jsonArray() => seq {
     ),
     spaces(),
     skip(char(']'))
-};
+}, "jsonArray");
 
 // Mutually referring parsers must be wrapped in a class or object
 object json {
 
     shared Parser<{JsonElement*}> jsonElement()
-            => either { jsonValue(), jsonObject(), jsonArray() };
+            => either({ jsonValue(), jsonObject(), jsonArray() }, "jsonElement");
 
     shared Parser<{JsonEntry*}> jsonEntry() => mapParsers({
         jsonStr(),
@@ -350,21 +352,17 @@ value jsonParser = either {
     jsonValue(),
     json.jsonObject()
 };
-```
 
-Now we can test the jsonParser with some Json input:
-
-```ceylon
 // parsing a simple json value
-assert(is ParseResult<{JsonNumber*}> contents7
-    = jsonParser.parse("10"));
+value contents7 = jsonParser.parse("10");
+assert(is ParseResult<Anything> contents7);
 assert(exists n = contents7.result.first,
     n == JsonNumber(10));
 
 // parsing a json Object
 value jsonObj = jsonParser.parse("{\"int\": 1, \"array\": [\"item1\", 2] }");
 print(jsonObj);
-assert(is ParseResult<{JsonElement*}> jsonObj); 
+assert(is ParseResult<Anything> jsonObj); 
 assert(is JsonObject obj = jsonObj.result.first);
 value fields = obj.entries.sequence();
 assert(exists intField = fields[0]);

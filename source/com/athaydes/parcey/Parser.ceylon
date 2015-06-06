@@ -8,19 +8,46 @@ import com.athaydes.parcey.internal {
 "A Consumer of streams of Characters."
 shared class CharacterConsumer(Iterator<Character> input) {
     
+    object errorManager {
+        variable String? prevDeepestError = null;
+        shared variable String? deepestError = null;
+        
+        variable Integer prevConsumedAtDeepestParserStart = 0;
+        shared variable Integer consumedAtDeepestParserStart = 0;
+
+        shared void startParser() {
+            prevConsumedAtDeepestParserStart = consumedAtDeepestParserStart;
+            prevDeepestError = deepestError;
+        }
+
+        shared void clearError() {
+            consumedAtDeepestParserStart = prevConsumedAtDeepestParserStart;
+            deepestError = prevDeepestError;
+        }
+        
+        shared void setError(Integer current, String? error) {
+            if (current > consumedAtDeepestParserStart) {
+                consumedAtDeepestParserStart = current;
+                deepestError = error;
+            }
+        }
+
+    }
+    
     value consumed = StringBuilder();
     
     variable Integer backtrackCount = -1;
     
-    shared variable String? deepestError = null;
-    
-    shared variable Integer consumedAtDeepestParserStart = 0;
-
     shared variable Integer consumedByLatestParser = 0;
+
+    shared Integer consumedAtDeepestParserStart
+            => errorManager.consumedAtDeepestParserStart;
     
     variable Integer consumedAtLatestParserStart = 0;
     
     variable String? latestParserStarted = null;
+    
+    shared String? deepestError => errorManager.deepestError;
 
     shared Character|Finished next() {
         Character|Finished char;
@@ -42,14 +69,16 @@ shared class CharacterConsumer(Iterator<Character> input) {
         consumedAtLatestParserStart = currentlyParsed();
         consumedByLatestParser = 0;
         latestParserStarted = name;
+        errorManager.startParser();
+    }
+    
+    shared void clearError() {
+        errorManager.clearError();
     }
     
     shared String abort() {
         value current = consumedAtLatestParserStart;
-        if (current > consumedAtDeepestParserStart) {
-            consumedAtDeepestParserStart = current;
-            deepestError = latestParserStarted;
-        }
+        errorManager.setError(current, latestParserStarted);
         takeBack(consumedByLatestParser);
         return latestParserStarted else "Unknown Parser aborted";
     }
@@ -88,7 +117,7 @@ shared class CharacterConsumer(Iterator<Character> input) {
             => consumed.size - (backtrackCount + 1);
     
     shared ParsedLocation deepestParserStartLocation()
-            => location(consumedAtDeepestParserStart);
+            => location(errorManager.consumedAtDeepestParserStart);
     
     shared ParsedLocation location(Integer characterCount = consumedAtLatestParserStart) {
         variable Integer row = 1;
