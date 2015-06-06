@@ -94,7 +94,7 @@ shared Parser<{Character+}> chars({Character+} characters, String name = "")
 
 "Parser for none of the given characters. It fails if the input is one of the given characters.
  
- It succeeds if the input is empty."
+ It fails if the input is empty."
 shared Parser<{Character+}> noneOf({Character+} chars, String name = "")
         => OneOf(chooseName(name, () => "none of ``chars``"), false, chars);
 
