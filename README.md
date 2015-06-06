@@ -30,7 +30,7 @@ value parser = integer();
 You can use the parser like this:
 
 ```ceylon
-assert(is ParseResult<{Integer*}> contents =
+assert(is ParseSuccess<{Integer*}> contents =
         parser.parse("123"));
 assert(contents.result.sequence() == [123]);
 ```
@@ -65,7 +65,7 @@ value parser2 = seq {
 > spaces() parses white-spaces, including new lines and tabs, discarding the results
 
 value contents2 = parser2.parse("10  20 30 40  50");
-assert(is ParseResult<{Integer*}> contents2);
+assert(is ParseSuccess<{Integer*}> contents2);
 assert(contents2.result.sequence() == [10, 20, 30]);
 ```
 
@@ -86,7 +86,7 @@ possible, not just the first 3, we could use a powerful combinator called `sepBy
 value parser3 = sepBy(spaces(), integer());
 
 value contents3 = parser3.parse("10  20 30 40  50");
-assert(is ParseResult<{Integer*}> contents3);
+assert(is ParseSuccess<{Integer*}> contents3);
 assert(contents3.result.sequence() == [10, 20, 30, 40, 50]);
 ```
 
@@ -200,7 +200,7 @@ class Person(shared String name) {}
 Parser<Person> personParser =
     mapValueParser(first(word()), Person);
 
-assert(is ParseResult<Person> contents3 =
+assert(is ParseSuccess<Person> contents3 =
     personParser.parse("Mikael"));
 Person mikael = contents3.result;
 assert(mikael.name == "Mikael");
@@ -213,7 +213,7 @@ assert(mikael.name == "Mikael");
 Parser<{Person*}> peopleParser =
     sepBy(spaces(), chainParser(personParser));
 
-assert(is ParseResult<{Person*}> contents4 =
+assert(is ParseSuccess<{Person*}> contents4 =
     peopleParser.parse("Mary John"));
 value people = contents4.result.sequence();
 assert((people[0]?.name else "") == "Mary");
@@ -255,7 +255,7 @@ value sentence = seq {
     skip(oneOf { '.', '!', '?' })
 };
 
-assert(is ParseResult<{String*}> result =
+assert(is ParseSuccess<{String*}> result =
     sentence.parse("This is a sentence!"));
 
 assert(result.result.sequence() == ["This", "is", "a", "sentence"]);
@@ -267,7 +267,7 @@ assert(result.result.sequence() == ["This", "is", "a", "sentence"]);
 value operator = oneOf { '+', '-', '*', '/', '^', '%' };
 value calculation = many(sepWith(around(spaces(), operator), integer(), 2));
 
-assert(is ParseResult<{Integer|Character*}> contents6 =
+assert(is ParseSuccess<{Integer|Character*}> contents6 =
     calculation.parse("2 + 4*60 / 2"));
 assert(contents6.result.sequence() == [2, '+', 4, '*', 60, '/', 2]);
 ```
@@ -355,14 +355,14 @@ value jsonParser = either {
 
 // parsing a simple json value
 value contents7 = jsonParser.parse("10");
-assert(is ParseResult<Anything> contents7);
+assert(is ParseSuccess<Anything> contents7);
 assert(exists n = contents7.result.first,
     n == JsonNumber(10));
 
 // parsing a json Object
 value jsonObj = jsonParser.parse("{\"int\": 1, \"array\": [\"item1\", 2] }");
 print(jsonObj);
-assert(is ParseResult<Anything> jsonObj); 
+assert(is ParseSuccess<Anything> jsonObj); 
 assert(is JsonObject obj = jsonObj.result.first);
 value fields = obj.entries.sequence();
 assert(exists intField = fields[0]);

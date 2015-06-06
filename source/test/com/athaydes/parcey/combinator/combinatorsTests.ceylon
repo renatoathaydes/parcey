@@ -9,7 +9,7 @@ import ceylon.test {
 }
 
 import com.athaydes.parcey {
-    ParseResult,
+    ParseSuccess,
     anyChar,
     ParseError,
     char,
@@ -50,7 +50,7 @@ shared void canParseNonStableStream() {
             iterator() => data;
         });
     
-    if (is ParseResult<{Character*}> result) {
+    if (is ParseSuccess<{Character*}> result) {
         assertEquals(result.result.sequence(), ['a', ' ', 'b']);
     } else {
         fail("Result was ``result``");
@@ -67,7 +67,7 @@ test shared void seq1FailsWithEmptyResult() {
 test shared void seq1AllowsNonEmptyResult()  {
     value parser = seq1 { coalescedParser(integer()) };
     
-    expect(parser.parse("33"), void(ParseResult<{Integer*}> result) {
+    expect(parser.parse("33"), void(ParseSuccess<{Integer*}> result) {
         assertEquals(result.result.sequence(), [33]);
     });
 }
@@ -78,19 +78,19 @@ shared void eitherCombinatorCanParseAllAlternatives() {
         char('a'), char('b'), chars(['h', 'i']), space()
     };
     
-    expect(parser.parse("a"), void(ParseResult<{Character*}> result1) {
+    expect(parser.parse("a"), void(ParseSuccess<{Character*}> result1) {
         assertEquals(result1.result.sequence(), ['a']);
     });
 
-    expect(parser.parse("b"), void(ParseResult<{Character*}> result1) {
+    expect(parser.parse("b"), void(ParseSuccess<{Character*}> result1) {
         assertEquals(result1.result.sequence(), ['b']);
     });
     
-    expect(parser.parse("hi"), void(ParseResult<{Character+}> result2) {
+    expect(parser.parse("hi"), void(ParseSuccess<{Character+}> result2) {
         assertEquals(result2.result.sequence(), ['h', 'i']);
     });
     
-    expect(parser.parse(" "), void(ParseResult<{Character*}> result3) {
+    expect(parser.parse(" "), void(ParseSuccess<{Character*}> result3) {
         assertEquals(result3.result.sequence(), [' ']);
     });
 }
@@ -103,7 +103,7 @@ shared void eitherCombinatorCanBacktrackOnce() {
     
     value result = parser.parse("b");
     
-    if (is ParseResult<{Character*}> result) {
+    if (is ParseSuccess<{Character*}> result) {
         assertEquals(result.result.sequence(), ['b']);
     } else {
         fail("Result was ``result``");
@@ -118,7 +118,7 @@ shared void eitherCombinatorCanBacktrackTwice() {
     
     value result = parser.parse("c");
     
-    if (is ParseResult<{Character*}> result) {
+    if (is ParseSuccess<{Character*}> result) {
         assertEquals(result.result.sequence(), ['c']);
     } else {
         fail("Result was ``result``");
@@ -133,7 +133,7 @@ shared void eitherCombinatorCanBacktrackThrice() {
     
     value result = parser.parse("abcegh");
     
-    if (is ParseResult<{String+}> result) {
+    if (is ParseSuccess<{String+}> result) {
         assertEquals(result.result.sequence(), ["abceg"]);
     } else {
         fail("Result was ``result``");
@@ -151,35 +151,35 @@ shared void eitherCombinatorDoesNotConsumeNextToken() {
 
 test
 shared void manyCombinatorSimpleTest() {
-    expect(many(char('a')).parse("aaa"), void(ParseResult<{Character*}> result) {
+    expect(many(char('a')).parse("aaa"), void(ParseSuccess<{Character*}> result) {
         assertEquals(result.result.sequence(), ['a', 'a', 'a']);
     });
 }
 
 test
 shared void manyCombinatorEmptyInputTest() {
-    expect(many(char('a')).parse("b"), void(ParseResult<{Character*}> result) {
+    expect(many(char('a')).parse("b"), void(ParseSuccess<{Character*}> result) {
         assertEquals(result.result.sequence(), []);
     });
 }
 
 test
 shared void manyCombinatorDoesNotConsumeNextToken() {
-    expect(many(char('a')).parse("aab"), void(ParseResult<{Character*}> result) {
+    expect(many(char('a')).parse("aab"), void(ParseSuccess<{Character*}> result) {
         assertEquals(result.result.sequence(), ['a', 'a']);
     });
 }
 
 test
 shared void manyCombinatorDoesNotConsumeNextTokenUsingMultiCharacterConsumer() {
-    expect(many(str("abc")).parse("abcabcabcdef"), void(ParseResult<{String*}> result) {
+    expect(many(str("abc")).parse("abcabcabcdef"), void(ParseSuccess<{String*}> result) {
         assertEquals(result.result.sequence(), ["abc", "abc", "abc"]);
     });
 }
 
 test
 shared void many1CombinatorSimpleTest() {
-    expect(many(char('a'), 1).parse("aaa"), void(ParseResult<{Character*}> result) {
+    expect(many(char('a'), 1).parse("aaa"), void(ParseSuccess<{Character*}> result) {
         assertEquals(result.result.sequence(), ['a', 'a', 'a']);
     });
 }
@@ -193,7 +193,7 @@ test
 shared void many1CombinatorDoesNotConsumeNextToken() {
     value consumer = CharacterConsumer("aab".iterator());
     expect(many(char('a'), 1)
-            .doParse(consumer), void(ParseResult<{Character*}> result) {
+            .doParse(consumer), void(ParseSuccess<{Character*}> result) {
         assertEquals(result.result.sequence(), ['a', 'a']);
     });
     assertEquals(consumer.next(), 'b');
@@ -208,7 +208,7 @@ test
 shared void many3CombinatorDoesNotConsumeNextToken() {
     expect(seq({
         many(char('a'), 3), char('b')
-    }).parse("aaaab"), void(ParseResult<{Character*}> result) {
+    }).parse("aaaab"), void(ParseSuccess<{Character*}> result) {
         assertEquals(result.result.sequence(), ['a', 'a', 'a', 'a', 'b']);
     });
 }
@@ -216,7 +216,7 @@ shared void many3CombinatorDoesNotConsumeNextToken() {
 test
 shared void manySeqCombinationTest() {
     expect(many(seq { char('x'), skip(char(',')) }).parse("x,x,x!"),
-        void(ParseResult<{Character*}> result1) {
+        void(ParseSuccess<{Character*}> result1) {
         assertEquals(result1.result.sequence(), ['x', 'x']);
     });
 }
@@ -224,14 +224,14 @@ shared void manySeqCombinationTest() {
 test
 shared void manySeqManyCombinationTest() {
     expect(many(seq { skip(char('.')), many(char('x')) })
-        .parse(".x.xxx.x!x"), void(ParseResult<{Character*}> result1) {
+        .parse(".x.xxx.x!x"), void(ParseSuccess<{Character*}> result1) {
         assertEquals(result1.result.sequence(), ['x', 'x', 'x', 'x', 'x']);
     });
 }
 test
 shared void skipManyCombinatorDoesNotConsumeNextTokenUsingMultiCharacterConsumer() {
     expect(skip(many(str("abc"))).parse("abcabcabcdef"),
-        void(ParseResult<{Character*}> result) {
+        void(ParseSuccess<{Character*}> result) {
         assertEquals(result.result.sequence(), []);
     });
 }
@@ -240,7 +240,7 @@ test
 shared void skipManyCombinatorSimpleTest() {
     value result = skip(many(char('a'))).parse("aaa");
     
-    if (is ParseResult<[]> result) {
+    if (is ParseSuccess<[]> result) {
         assertEquals(result.result, []);
     } else {
         fail("Result was ``result``");
@@ -251,7 +251,7 @@ test
 shared void skipManyCombinatorEmptyInputTest() {
     value result = skip(many(char('a'))).parse("b");
     
-    if (is ParseResult<[]> result) {
+    if (is ParseSuccess<[]> result) {
         assertEquals(result.result, []);
     } else {
         fail("Result was ``result``");
@@ -261,7 +261,7 @@ shared void skipManyCombinatorEmptyInputTest() {
 test
 shared void skipManyCombinatorDoesNotConsumeNextToken() {
     value result1 = skip(many(char('a'))).parse("axy");
-    if (is ParseResult<[]> result1) {
+    if (is ParseSuccess<[]> result1) {
         assertEquals(result1.result.sequence(), []);
     } else {
         fail("Result was ``result1``");
@@ -269,7 +269,7 @@ shared void skipManyCombinatorDoesNotConsumeNextToken() {
     
     value result = seq({skip(many(char('a'))), char('b')})
             .parse("aab");
-    if (is ParseResult<{Character*}> result) {
+    if (is ParseSuccess<{Character*}> result) {
         assertEquals(result.result.sequence(), ['b']);
     } else {
         fail("Result was ``result``");
@@ -280,7 +280,7 @@ test
 shared void skipMany1CombinatorSimpleTest() {
     value result = skip(many(char('a'), 1)).parse("aaa");
     
-    if (is ParseResult<{Character*}> result) {
+    if (is ParseSuccess<{Character*}> result) {
         assertEquals(result.result.sequence(), []);
     } else {
         fail("Result was ``result``");
@@ -300,7 +300,7 @@ shared void skipMany1CombinatorDoesNotConsumeNextToken() {
         skip(many(char('a'), 1)), char('b')
     }.parse("aab");
     
-    expect(result, void(ParseResult<{Character*}> result) {
+    expect(result, void(ParseSuccess<{Character*}> result) {
         assertEquals(result.result.sequence(), ['b']);
     });
 }
@@ -318,7 +318,7 @@ shared void skipMany3CombinatorDoesNotConsumeNextToken() {
         skip(many(char('a'), 3)), char('b')
     }.parse("aaaab");
     
-    if (is ParseResult<{Character*}> result) {
+    if (is ParseSuccess<{Character*}> result) {
         assertEquals(result.result.sequence(), ['b']);
     } else {
         fail("Result was ``result``");
@@ -329,21 +329,21 @@ test shared void optionSimpleTest() {
     value parser = option(char('a'));
     
     value result1 = parser.parse("");
-    if (is ParseResult<{Character*}> result1) {
+    if (is ParseSuccess<{Character*}> result1) {
         assertEquals(result1.result, []);
     } else {
         fail("Result was ```result1``");
     }
     
     value result2 = parser.parse("a");
-    if (is ParseResult<{Character*}> result2) {
+    if (is ParseSuccess<{Character*}> result2) {
         assertEquals(result2.result.sequence(), ['a']);
     } else {
         fail("Result was ```result2``");
     }
     
     value result3 = parser.parse("b");
-    if (is ParseResult<{Character*}> result3) {
+    if (is ParseSuccess<{Character*}> result3) {
         assertEquals(result3.result, []);
     } else {
         fail("Result was ```result3``");
@@ -352,10 +352,10 @@ test shared void optionSimpleTest() {
 
 test shared void aroundTest() {
     value parser = around(spaces(), char('c'));
-    expect(parser.parse("c"), void(ParseResult<{Character*}> result) {
+    expect(parser.parse("c"), void(ParseSuccess<{Character*}> result) {
         assertEquals(result.result.sequence(), ['c']);
     });
-    expect(parser.parse("  c   !!"), void(ParseResult<{Character*}> result) {
+    expect(parser.parse("  c   !!"), void(ParseSuccess<{Character*}> result) {
         assertEquals(result.result.sequence(), ['c']);
     });
 }
@@ -364,21 +364,21 @@ test shared void optionMultivalueTest() {
     value parser = option(seq { str("hej"), str("bye") });
     
     value result1 = parser.parse("hejdå");
-    if (is ParseResult<{String*}> result1) {
+    if (is ParseSuccess<{String*}> result1) {
         assertEquals(result1.result.sequence(), []);
     } else {
         fail("Result was ```result1``");
     }
     
     value result2 = parser.parse("hejbye");
-    if (is ParseResult<{String*}> result2) {
+    if (is ParseSuccess<{String*}> result2) {
         assertEquals(result2.result.sequence(), ["hej", "bye"]);
     } else {
         fail("Result was ```result2``");
     }
     
     value result3 = parser.parse("hell");
-    if (is ParseResult<{String*}> result3) {
+    if (is ParseSuccess<{String*}> result3) {
         assertEquals(result3.result.sequence(), []);
     } else {
         fail("Result was ```result3``");
@@ -390,28 +390,28 @@ shared void sepByTest() {
     value commaSeparated = sepBy(char(','), integer());
     
     value result1 = commaSeparated.parse("");
-    if (is ParseResult<{Integer*}> result1) {
+    if (is ParseSuccess<{Integer*}> result1) {
         assertEquals(result1.result.sequence(), []);
     } else {
         fail("Result was ``result1``");
     }
     
     value result2 = commaSeparated.parse("1,2,");
-    if (is ParseResult<{Integer*}> result2) {
+    if (is ParseSuccess<{Integer*}> result2) {
         assertEquals(result2.result.sequence(), [1, 2]);
     } else {
         fail("Result was ``result2``");
     }
     
     value result3 = commaSeparated.parse("1");
-    if (is ParseResult<{Integer*}> result3) {
+    if (is ParseSuccess<{Integer*}> result3) {
         assertEquals(result3.result.sequence(), [1]);
     } else {
         fail("Result was ``result3``");
     }
     
     value result4 = commaSeparated.parse("1,2,3,4,5");
-    if (is ParseResult<{Integer*}> result4) {
+    if (is ParseSuccess<{Integer*}> result4) {
         assertEquals(result4.result.sequence(), [1, 2, 3, 4, 5]);
     } else {
         fail("Result was ``result4``");
@@ -423,14 +423,14 @@ shared void sepByMin3Test() {
     value commaSeparated = sepBy(char(','), integer(), 3);
     
     value result1 = commaSeparated.parse("100,200,53");
-    if (is ParseResult<{Integer*}> result1) {
+    if (is ParseSuccess<{Integer*}> result1) {
         assertEquals(result1.result.sequence(), [100, 200, 53]);
     } else {
         fail("Result was ``result1``");
     }
     
     value result2 = commaSeparated.parse("1,2,3,4,5");
-    if (is ParseResult<{Integer*}> result2) {
+    if (is ParseSuccess<{Integer*}> result2) {
         assertEquals(result2.result.sequence(), [1, 2, 3, 4, 5]);
     } else {
         fail("Result was ``result2``");
@@ -452,28 +452,28 @@ shared void sepByWithComplexCombinationTest() {
     };
     
     value result1 = args.parse("()");
-    if (is ParseResult<{String*}> result1) {
+    if (is ParseSuccess<{String*}> result1) {
         assertEquals(result1.result.sequence(), []);
     } else {
         fail("Result was ``result1``");
     }
     
     value result2 = args.parse("(shared)");
-    if (is ParseResult<{String*}> result2) {
+    if (is ParseSuccess<{String*}> result2) {
         assertEquals(result2.result.sequence(), ["shared"]);
     } else {
         fail("Result was ``result2``");
     }
     
     value result3 = args.parse("(shared, actual)");
-    if (is ParseResult<{String*}> result3) {
+    if (is ParseSuccess<{String*}> result3) {
         assertEquals(result3.result.sequence(), ["shared", "actual"]);
     } else {
         fail("Result was ``result3``");
     }
     
     value result4 = args.parse("(shared   ,    actual,shared)");
-    if (is ParseResult<{String*}> result4) {
+    if (is ParseSuccess<{String*}> result4) {
         assertEquals(result4.result.sequence(), ["shared", "actual", "shared"]);
     } else {
         fail("Result was ``result4``");
@@ -488,8 +488,8 @@ test shared void errorMessageShouldComeFromDeepestParserAttempted() {
         }, eof()
     };
     // make sure valid input passes
-    expect(parser.parse("#123.hi"), typeLiteral<ParseResult<Anything>>());
-    expect(parser.parse("#1!23"), typeLiteral<ParseResult<Anything>>());
+    expect(parser.parse("#123.hi"), typeLiteral<ParseSuccess<Anything>>());
+    expect(parser.parse("#1!23"), typeLiteral<ParseSuccess<Anything>>());
     
     // error message should show the exact unexpected input
     expect(parser.parse("#1.4"), void(ParseError error) {

@@ -1,9 +1,9 @@
 import com.athaydes.parcey {
     Parser,
-    ParseResult,
+    ParseSuccess,
     ParseError,
     CharacterConsumer,
-    ParseOutcome
+    ParseResult
 }
 import com.athaydes.parcey.internal {
     chooseName,
@@ -23,7 +23,7 @@ shared Parser<{Item*}> seq<Item>({Parser<{Item*}>+} parsers, String name_ = "")
     
     name = chooseName(name_, computeParserName(parsers, "->"));
             
-    shared actual ParseOutcome<{Item*}> doParse(
+    shared actual ParseResult<{Item*}> doParse(
         CharacterConsumer consumer) {
         value startPosition = consumer.currentlyParsed();
         variable Parser<{Item*}>? badParser = null;
@@ -41,7 +41,7 @@ shared Parser<{Item*}> seq<Item>({Parser<{Item*}>+} parsers, String name_ = "")
             consumer.moveBackTo(startPosition);
             return failedParser.name;
         } else {
-            return ParseResult(results);
+            return ParseSuccess(results);
         }
     }
     
@@ -57,13 +57,13 @@ shared Parser<{Item+}> seq1<Item>({Parser<{Item*}>+} parsers, String name_ = "")
         => object satisfies Parser<{Item+}> {
     value delegate = seq(parsers);
     name = chooseName(name_, () => delegate.name);
-    shared actual ParseOutcome<{Item+}> doParse(
+    shared actual ParseResult<{Item+}> doParse(
         CharacterConsumer consumer) {
             value startLocation = consumer.currentlyParsed();
             value result = delegate.doParse(consumer);
-            if (is ParseResult<Anything> result,
+            if (is ParseSuccess<Anything> result,
                 exists first = result.result.first) {
-                return ParseResult({ first }.chain(result.result.rest));
+                return ParseSuccess({ first }.chain(result.result.rest));
             } else if (is ParseError result) {
                 return result;
             } else { // not even one result found
@@ -83,7 +83,7 @@ shared Parser<Item> either<Item>({Parser<Item>+} parsers, String name_ = "") {
         
         name = chooseName(name_, computeParserName(parsers, " or "));
         
-        shared actual ParseOutcome<Item> doParse(
+        shared actual ParseResult<Item> doParse(
             CharacterConsumer consumer) {
             value result = {
                 for (p in parsers)
@@ -117,7 +117,7 @@ shared Parser<{Item*}> many<Item>(Parser<{Item*}> parser, Integer minOccurrences
 
         name = chooseName(name_, computeName);
 
-        shared actual ParseOutcome<{Item*}> doParse(
+        shared actual ParseResult<{Item*}> doParse(
             CharacterConsumer consumer) {
             value startLocation = consumer.currentlyParsed();
             value results = {
@@ -131,7 +131,7 @@ shared Parser<{Item*}> many<Item>(Parser<{Item*}> parser, Integer minOccurrences
                  return name;
              } else {
                  consumer.clearError();
-                 return ParseResult(expand {
+                 return ParseSuccess(expand {
                      for (r in results) if (!is String r) r.result
                  });
              }
@@ -146,7 +146,7 @@ see (`function many`, `function either`)
 shared Parser<{Item*}> option<Item>(Parser<{Item*}> parser) {
     return object satisfies Parser<{Item*}> {
         name = "(option ``parser.name``)";
-        shared actual ParseOutcome<{Item*}> doParse(
+        shared actual ParseResult<{Item*}> doParse(
             CharacterConsumer consumer) {
             value startLocation = consumer.currentlyParsed();
             value result = parser.doParse(consumer);
@@ -154,7 +154,7 @@ shared Parser<{Item*}> option<Item>(Parser<{Item*}> parser) {
             case (is String) {
                 consumer.moveBackTo(startLocation);
                 consumer.clearError();
-                return ParseResult({});
+                return ParseSuccess({});
             }
             else {
                 return result;
@@ -246,7 +246,7 @@ see (`function many`, `function either`)
 shared Parser<[]> skip(Parser<Anything> parser, String name_ = "") {
     return object satisfies Parser<[]> {
         name = chooseName(name_, () => "to skip ``parser.name``");
-        shared actual ParseOutcome<[]> doParse(
+        shared actual ParseResult<[]> doParse(
             CharacterConsumer consumer) {
             value result = parser.doParse(consumer);
             switch (result)
@@ -254,7 +254,7 @@ shared Parser<[]> skip(Parser<Anything> parser, String name_ = "") {
                 return result;
             }
             else {
-                return ParseResult([]);
+                return ParseSuccess([]);
             }
         }
     };

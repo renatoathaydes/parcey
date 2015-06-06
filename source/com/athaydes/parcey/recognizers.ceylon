@@ -23,12 +23,12 @@ shared Parser<[]> eof(String name = "")
 shared Parser<{Character+}> anyChar(String name_ = "")
         => object satisfies Parser<{Character+}> {
     name = chooseName(name_, () => "any character");
-    shared actual ParseOutcome<{Character+}> doParse(
+    shared actual ParseResult<{Character+}> doParse(
         CharacterConsumer consumer) {
         consumer.startParser(name);
         value first = consumer.next();
         if (is Character first) {
-            return ParseResult({ first });
+            return ParseSuccess({ first });
         } else {
             return consumer.abort();
         }
@@ -71,9 +71,9 @@ shared Parser<{Character+}> char(Character char, String name_ = "")
         => object satisfies Parser<{Character+}> {
             name = chooseName(name_, () => char.string);
             
-            value goodResult = ParseResult({ char });
+            value goodResult = ParseSuccess({ char });
             
-            shared actual ParseOutcome<{Character+}> doParse(CharacterConsumer consumer) {
+            shared actual ParseResult<{Character+}> doParse(CharacterConsumer consumer) {
                 consumer.startParser(name);
                 if (is Character next = consumer.next(), next == char) {
                     return goodResult;
@@ -105,10 +105,10 @@ shared Parser<{Character+}> digit(String name_ = "")
         => object satisfies Parser<{Character+}> {
     name = chooseName(name_, () => "digit");
     
-    shared actual ParseOutcome<{Character+}> doParse(CharacterConsumer consumer) {
+    shared actual ParseResult<{Character+}> doParse(CharacterConsumer consumer) {
         consumer.startParser(name);
         if (is Character next = consumer.next(), next.digit) {
-            return ParseResult({ next });
+            return ParseSuccess({ next });
         } else {
             return consumer.abort();
         }
@@ -132,9 +132,9 @@ shared Parser<{String+}> str(String text, String name_ = "")
         => object satisfies Parser<{String+}> {
     name = chooseName(name_, () => "string ``quote(text)``");
     
-    value goodResult = ParseResult({ text });
+    value goodResult = ParseSuccess({ text });
     
-    shared actual ParseOutcome<{String+}> doParse(
+    shared actual ParseResult<{String+}> doParse(
         CharacterConsumer consumer) {
         consumer.startParser(name);
         if (text.empty) {
@@ -178,7 +178,7 @@ shared Parser<{Integer+}> integer(String name_ = "") {
         function asInteger(Character? c, Boolean negative)
                 => (negative then -1 else 1) * ((c?.integer else '0'.integer) - 48);
         
-        shared actual ParseOutcome<{Integer+}> doParse(
+        shared actual ParseResult<{Integer+}> doParse(
             CharacterConsumer consumer) {
             consumer.startParser(name);
             value first = consumer.next();
@@ -229,14 +229,14 @@ shared Parser<{Integer+}> integer(String name_ = "") {
                 }
                 digits.deleteInitial(1);
             }
-            return ParseResult({ result });
+            return ParseSuccess({ result });
         }
     };
 }
 
 class OneOf(shared actual String name, Boolean includingChars, {Character+} chars)
         satisfies Parser<{Character+}> {
-    shared actual ParseOutcome<{Character+}> doParse(
+    shared actual ParseResult<{Character+}> doParse(
         CharacterConsumer consumer) {
         consumer.startParser(name);
         value first = consumer.next();
@@ -249,7 +249,7 @@ class OneOf(shared actual String name, Boolean includingChars, {Character+} char
             if (!boolFun(first in chars)) {
                 return consumer.abort();
             } else {
-                return ParseResult({ first });
+                return ParseSuccess({ first });
             }
         }
     }

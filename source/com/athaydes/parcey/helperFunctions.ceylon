@@ -19,14 +19,14 @@ shared Parser<To> mapValueParser<out From, out To>(
         => object satisfies Parser<To> {
     name => parser.name;
     
-    shared actual ParseOutcome<To> doParse(
+    shared actual ParseResult<To> doParse(
         CharacterConsumer consumer) {
         switch(result = parser.doParse(consumer))
         case (is String) {
             return result;
         }
         else {
-            return ParseResult(converter(result.result));
+            return ParseSuccess(converter(result.result));
         }
     }
     

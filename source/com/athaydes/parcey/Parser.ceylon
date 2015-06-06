@@ -144,10 +144,14 @@ shared class CharacterConsumer(Iterator<Character> input) {
 "[Row, Column] of the input that has been parsed."
 shared alias ParsedLocation => [Integer, Integer];
 
-shared alias ParseOutcome<out Parsed>
-        => ParseResult<Parsed>|String;
+"An error message."
+shared alias ErrorMessage => String;
 
-"Result of parsing an invalid input."
+"The result of parsing some input, which may or may not be successful."
+shared alias ParseResult<out Parsed>
+        => ParseSuccess<Parsed>|ErrorMessage;
+
+"Result of parsing some invalid input."
 shared final class ParseError(
     shared String message,
     shared ParsedLocation location) {
@@ -155,10 +159,10 @@ shared final class ParseError(
 }
 
 "Result of successfully parsing some input."
-shared final class ParseResult<out Result>(
+shared final class ParseSuccess<out Result>(
     "Result of parsing the input."
     shared Result result) {
-    string => "ParseResult { result=``result else "null"`` }";
+    string => "ParseSuccess { result=``result else "null"`` }";
 }
 
 "A Parser which can parse a stream of Characters."
@@ -169,7 +173,7 @@ shared interface Parser<out Parsed> {
     
     "Parse the given input. The input is only traversed once by using its iterator."
     see (`function seq`)
-    shared default ParseResult<Parsed>|ParseError parse({Character*} input) {
+    shared default ParseSuccess<Parsed>|ParseError parse({Character*} input) {
         value consumer = CharacterConsumer(input.iterator());
         value result = doParse(consumer);
         switch(result)
@@ -181,7 +185,7 @@ shared interface Parser<out Parsed> {
     }
     
     "Parses the contents given by the iterator."
-    shared formal ParseOutcome<Parsed> doParse(
+    shared formal ParseResult<Parsed> doParse(
         CharacterConsumer consumer);
 
 }

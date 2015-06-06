@@ -8,7 +8,7 @@ import com.athaydes.parcey {
     strParser,
     mapParser,
     coalescedParser,
-    ParseResult,
+    ParseSuccess,
     spaces
 }
 import com.athaydes.parcey.combinator {
@@ -26,16 +26,16 @@ test shared void coalescedParserTest() {
     
     value intParser = coalescedParser(maybeIntParser);
     
-    expect(intParser.parse(""), void(ParseResult<{Integer*}> result) {
+    expect(intParser.parse(""), void(ParseSuccess<{Integer*}> result) {
         assertEquals(result.result.sequence(), []);
     });
-    expect(intParser.parse("x"), void(ParseResult<{Integer*}> result) {
+    expect(intParser.parse("x"), void(ParseSuccess<{Integer*}> result) {
         assertEquals(result.result.sequence(), []);
     });
-    expect(intParser.parse("1"), void(ParseResult<{Integer*}> result) {
+    expect(intParser.parse("1"), void(ParseSuccess<{Integer*}> result) {
         assertEquals(result.result.sequence(), [1]);
     });
-    expect(intParser.parse("1 2 10 w z"), void(ParseResult<{Integer*}> result) {
+    expect(intParser.parse("1 2 10 w z"), void(ParseSuccess<{Integer*}> result) {
         assertEquals(result.result.sequence(), [1, 2, 10]);
     });
 }

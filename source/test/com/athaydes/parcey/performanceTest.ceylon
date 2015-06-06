@@ -7,7 +7,7 @@ import ceylon.test {
 import com.athaydes.parcey {
     integer,
     spaces,
-    ParseResult
+    ParseSuccess
 }
 import com.athaydes.parcey.combinator {
     sepBy
@@ -30,7 +30,7 @@ shared test void performanceTest() {
         //value result = builder.string.split().collect(parseInteger).coalesced;
         value result = parser.parse(builder.string);
         //print(result);
-        assert(is ParseResult<Anything> result);
+        assert(is ParseSuccess<Anything> result);
         assertEquals(int + 1, result.result.size);
     }
     //print("Done! Enter to exit");
