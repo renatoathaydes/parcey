@@ -172,11 +172,11 @@ shared Parser<{Integer+}> integer(String name_ = "") {
     return object satisfies Parser<{Integer+}> {
         name = chooseName(name_, () => "integer");
         
-        function validFirst(Character c)
-                => c.digit || c in ['+', '-'];
+        function validDigit(Character c)
+                => '0' <= c <= '9';
         
-        function asInteger(Character c, Boolean negative)
-                => (negative then -1 else 1) * (c.integer - 48);
+        function asInteger(Character? c, Boolean negative)
+                => (negative then -1 else 1) * ((c?.integer else '0'.integer) - 48);
         
         shared actual ParseOutcome<{Integer+}> doParse(
             CharacterConsumer consumer) {
@@ -184,10 +184,15 @@ shared Parser<{Integer+}> integer(String name_ = "") {
             value first = consumer.next();
             Boolean hasSign;
             Boolean negative;
+            value digits = StringBuilder();
             if (is Character first) {
-                if (validFirst(first)) {
-                    hasSign = !first.digit;
-                    negative = hasSign && first == '-';
+                value digit = validDigit(first);
+                hasSign = first in ['+', '-'];
+                if (digit || hasSign) {
+                    negative = (first == '-');
+                    if (!hasSign) {
+                        digits.appendCharacter(first);
+                    }
                 } else {
                     return consumer.abort();
                 }
@@ -197,29 +202,32 @@ shared Parser<{Integer+}> integer(String name_ = "") {
             value maxConsumeLength = runtime.maxIntegerValue.string.size +
                     (hasSign then 1 else 0);
             for (next in asIterable(consumer)) {
-                if ('0' <= next <= '9') {
-                    if (consumer.consumedByLatestParser > maxConsumeLength) {
+                if (validDigit(next)) {
+                    if (digits.size >= maxConsumeLength) {
                         return consumer.abort();
                     }
+                    digits.appendCharacter(next);
                 } else {
                     consumer.takeBack(1);
                     break;
                 }
             }
-            value consuming = consumer.latestConsumed().sequence();
-            value digits = hasSign then consuming.rest else consuming;
             if (digits.empty) {
                 return consumer.abort();
             }
             variable Integer result = 0;
             value overflowGuard = negative
-            then Integer.largerThan else Integer.smallerThan;
-            for (exponent->next in digits.reversed.indexed) {
+                then Integer.largerThan
+                else Integer.smallerThan;
+            while (!digits.empty) {
                 value current = result;
-                result += asInteger(next, negative) * 10^exponent;
+                value exponent = digits.size - 1;
+                result += asInteger(digits.first, negative)
+                        * 10^exponent;
                 if (overflowGuard(result)(current)) {
                     return consumer.abort();
                 }
+                digits.deleteInitial(1);
             }
             return ParseResult({ result });
         }
