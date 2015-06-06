@@ -62,12 +62,13 @@ value parser2 = seq {
     integer(), spaces(), integer(), spaces(), integer()
 };
 
-> spaces() parses white-spaces, including new lines and tabs, discarding the results
-
 value contents2 = parser2.parse("10  20 30 40  50");
 assert(is ParseSuccess<{Integer*}> contents2);
 assert(contents2.result.sequence() == [10, 20, 30]);
 ```
+
+> spaces() parses white-spaces, including new lines and tabs, discarding the results.
+
 
 Notice that only the 3 first Integers are parsed, because once all the parsers are satisfied, they have no reason to continue parsing the input!
 
