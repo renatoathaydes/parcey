@@ -3,7 +3,8 @@ import com.athaydes.parcey {
     ParseSuccess,
     ParseError,
     CharacterConsumer,
-    ParseResult
+    ParseResult,
+    ErrorMessage
 }
 import com.athaydes.parcey.internal {
     chooseName,
@@ -33,7 +34,7 @@ shared Parser<{Item*}> seq<Item>({Parser<{Item*}>+} parsers, String name_ = "")
         }
         value results = expand({ 
             for (p in parsers)
-            if (!is String outcome = p.doParse(consumer))
+            if (!is ErrorMessage outcome = p.doParse(consumer))
             then outcome.result else setBadParser(p)
         }.takeWhile((result) => result exists)
                 .coalesced).sequence();
@@ -64,7 +65,7 @@ shared Parser<{Item+}> seq1<Item>({Parser<{Item*}>+} parsers, String name_ = "")
             if (is ParseSuccess<Anything> result,
                 exists first = result.result.first) {
                 return ParseSuccess({ first }.chain(result.result.rest));
-            } else if (is ParseError result) {
+            } else if (is ErrorMessage result) {
                 return result;
             } else { // not even one result found
                 consumer.moveBackTo(startLocation);
@@ -87,7 +88,7 @@ shared Parser<Item> either<Item>({Parser<Item>+} parsers, String name_ = "") {
             CharacterConsumer consumer) {
             value result = {
                 for (p in parsers)
-                if (!is String outcome = p.doParse(consumer))
+                if (!is ErrorMessage outcome = p.doParse(consumer))
                 then outcome else null
             }.filter((item) => item exists).first;
             if (exists result) {
@@ -123,7 +124,7 @@ shared Parser<{Item*}> many<Item>(Parser<{Item*}> parser, Integer minOccurrences
             value results = {
                 for (p in parsers) p.doParse(consumer)
              }.takeWhile((result) {
-                 return if (!is String result, !result.result.empty)
+                 return if (!is ErrorMessage result, !result.result.empty)
                  then true else false;
              }).sequence();
              if (results.size < minOccurrences) {
@@ -132,7 +133,7 @@ shared Parser<{Item*}> many<Item>(Parser<{Item*}> parser, Integer minOccurrences
              } else {
                  consumer.clearError();
                  return ParseSuccess(expand {
-                     for (r in results) if (!is String r) r.result
+                     for (r in results) if (!is ErrorMessage r) r.result
                  });
              }
         }
@@ -151,7 +152,7 @@ shared Parser<{Item*}> option<Item>(Parser<{Item*}> parser) {
             value startLocation = consumer.currentlyParsed();
             value result = parser.doParse(consumer);
             switch (result)
-            case (is String) {
+            case (is ErrorMessage) {
                 consumer.moveBackTo(startLocation);
                 consumer.clearError();
                 return ParseSuccess({});
@@ -250,7 +251,7 @@ shared Parser<[]> skip(Parser<Anything> parser, String name_ = "") {
             CharacterConsumer consumer) {
             value result = parser.doParse(consumer);
             switch (result)
-            case (is String) {
+            case (is ErrorMessage) {
                 return result;
             }
             else {
