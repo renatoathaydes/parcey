@@ -30,7 +30,8 @@ import com.athaydes.parcey {
     mapParser,
     strParser,
     integer,
-    CharacterConsumer
+    CharacterConsumer,
+    predicate
 }
 import com.athaydes.parcey.combinator {
     ...
@@ -84,6 +85,23 @@ shared void testLetter() {
     for (item in ['\t', ' ', '?', '!', '%', '^', '&', '*']) {
         expect(letter().parse({ item }), error);
     }
+}
+
+test
+shared void testPredicate() {
+    value parser = seq { str("1"), predicate((Character c) => c.letter) };
+    
+    expect(parser.parse("1a"), void(ParseSuccess<{Anything*}> result) {
+        assertEquals(result.result.sequence(), ["1", 'a']);
+    });
+    expect(parser.parse("1Z"), void(ParseSuccess<{Anything*}> result) {
+        assertEquals(result.result.sequence(), ["1", 'Z']);
+    });
+    expect(parser.parse("1ä"), void(ParseSuccess<{Anything*}> result) {
+        assertEquals(result.result.sequence(), ["1", 'ä']);
+    });
+    expect(parser.parse("11"), error);
+    expect(parser.parse("1@"), error);
 }
 
 test

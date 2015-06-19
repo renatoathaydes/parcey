@@ -58,6 +58,24 @@ shared Parser<[]> spaces(Integer minOccurrences = 0, String name = "")
 shared Parser<{Character+}> letter(String name = "")
         => oneOf(('A'..'Z').chain('a'..'z'), chooseName(name, () => "letter"));
 
+"Parses a Character if it satisfies the given predicate.
+ 
+ It fails if the input is empty."
+shared Parser<{Character+}> predicate(Boolean(Character) predicate, String name_ = "")
+        => object satisfies Parser<{Character+}> {
+    name = chooseName(name_, () => "predicate");
+    
+    shared actual ParseResult<{Character+}> doParse(CharacterConsumer consumer) {
+        consumer.startParser(name);
+        if (is Character next = consumer.next(), predicate(next)) {
+            return ParseSuccess({ next });
+        } else {
+            return consumer.abort();
+        }
+    }
+    
+};
+
 "Parser for one of the given characters.
  
  It fails if the input is empty."

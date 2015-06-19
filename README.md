@@ -148,6 +148,7 @@ Here's a full list of the available **parsers**:
 * `oneOf`: parses one of the given characters.
 * `noneOf`: parses anything but the given characters.
 * `eof`: parses the empty String, ie. end of input.
+* `predicate`: parses a Character that satisfies the given predicate.
 
 ### Parser combinators
 
