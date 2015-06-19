@@ -31,7 +31,7 @@ import com.athaydes.parcey {
     strParser,
     integer,
     CharacterConsumer,
-    predicate
+    satisfy
 }
 import com.athaydes.parcey.combinator {
     ...
@@ -88,8 +88,8 @@ shared void testLetter() {
 }
 
 test
-shared void testPredicate() {
-    value parser = seq { str("1"), predicate((Character c) => c.letter) };
+shared void testSatisfy() {
+    value parser = seq { str("1"), satisfy((Character c) => c.letter) };
     
     expect(parser.parse("1a"), void(ParseSuccess<{Anything*}> result) {
         assertEquals(result.result.sequence(), ["1", 'a']);

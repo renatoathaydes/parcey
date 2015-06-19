@@ -61,7 +61,7 @@ shared Parser<{Character+}> letter(String name = "")
 "Parses a Character if it satisfies the given predicate.
  
  It fails if the input is empty."
-shared Parser<{Character+}> predicate(Boolean(Character) predicate, String name_ = "")
+shared Parser<{Character+}> satisfy(Boolean(Character) predicate, String name_ = "")
         => object satisfies Parser<{Character+}> {
     name = chooseName(name_, () => "predicate");
     
