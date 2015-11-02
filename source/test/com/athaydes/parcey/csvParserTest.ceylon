@@ -1,17 +1,17 @@
 import com.athaydes.parcey {
     noneOf,
-    char,
+    character,
     strParser,
-    eof,
+    endOfInput,
     ParseError,
-    str,
+    text,
     mapValueParser
 }
 import com.athaydes.parcey.combinator {
     either,
     many,
-    seq,
-    sepBy,
+    sequenceOf,
+    separatedBy,
     skip
 }
 
@@ -54,25 +54,25 @@ shared void csvParserTest() {
     object csvParser {
         
         value quotedChar => either {
-            noneOf { '"' }, seq { char('\\'), char('"') }
+            noneOf { '"' }, sequenceOf { character('\\'), character('"') }
         };
         
-        value quotedCell => seq {
-            char('"'), many(quotedChar), char('"')
+        value quotedCell => sequenceOf {
+            character('"'), many(quotedChar), character('"')
         };
         
         value eol => skip(either {
-            str("\n\r"), str("\r\n"), char('\n')
+            text("\n\r"), text("\r\n"), character('\n')
         });
         
         value cell => strParser(either {
             quotedCell, many(noneOf { ',', '\n', '\r' })
         });
         
-        value line => mapValueParser(sepBy(char(','), cell),
+        value line => mapValueParser(separatedBy(character(','), cell),
                 ({String*} cells) => [cells]);
         
-        value csvFile = seq { sepBy(eol, line), eof() };
+        value csvFile = sequenceOf { separatedBy(eol, line), endOfInput() };
         
         shared void parse(String input) {
             value outcome = csvFile.parse(input);

@@ -10,12 +10,12 @@ import com.athaydes.parcey {
     ParseSuccess
 }
 import com.athaydes.parcey.combinator {
-    sepBy
+    separatedBy
 }
 
 //ignore
 shared test void performanceTest() {
-    value parser = sepBy(spaces(), integer());
+    value parser = separatedBy(spaces(), integer());
     value builder = StringBuilder();
     //print("Enter to continue");
     //process.readLine();

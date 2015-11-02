@@ -1,6 +1,6 @@
 import com.athaydes.parcey.combinator {
-    seq,
-    seq1
+    sequenceOf,
+    nonEmptySequenceOf
 }
 import com.athaydes.parcey.internal {
     chooseName
@@ -40,12 +40,12 @@ shared Parser<To> mapValueParser<out From, out To>(
  
  This function is convenient when using chain parsers. For single-value parsers,
  prefer to use [[mapValueParser]]."
-see (`function mapValueParser`, `function seq1`)
+see (`function mapValueParser`, `function nonEmptySequenceOf`)
 shared Parser<{To*}> mapParser<out From,out To>(Parser<{From*}> parser, To(From) converter)
         => mapValueParser(parser, ({From*} from) => from.map(converter));
 
 "Given several parsers *(ps)* and a function `To({From*})` *(f)*, return a new parser which delegates the parsing
- to a [[seq]] of *ps*, using *f* to convert the results from type [[{From*}]] to [[{To*}]].
+ to a [[sequenceOf]] of *ps*, using *f* to convert the results from type [[{From*}]] to [[{To*}]].
  
  If [[converter]] throws a [[Throwable]], it is caught and converted into a [[ParseError]], which is then
  returned as the result of parsing the input.
@@ -68,7 +68,7 @@ shared Parser<{To*}> mapParsers<in From,out To>(
     To({From*}) converter,
     String name_ = "")
         => object satisfies Parser<{To*}> {
-    value parser = chainParser(mapValueParser(seq(parsers), converter));
+    value parser = chainParser(mapValueParser(sequenceOf(parsers), converter));
     name = chooseName(name_, () => parser.name);
     doParse = parser.doParse;
 };
@@ -79,14 +79,14 @@ shared Parser<{To*}> mapParsers<in From,out To>(
  If the result of parsing with the given [[parser|parser]] is an empty Iterable
  or parsing fails, the resulting parser returns a [[ParseError]]."
 shared Parser<Item> first<out Item>(Parser<{Item*}> parser)
-        => mapValueParser(seq1 { parser }, ({Item+} items) => items.first);
+        => mapValueParser(nonEmptySequenceOf { parser }, ({Item+} items) => items.first);
 
 "Converts an [[Item]] parser to a [[{Item+}]] parser which can be
  chained to other multi-value parsers.
  
  The result of parsing some input, if successful, contains an Iterable
  with the single value returned by the given parser."
-see (`function seq`, `function seq1`)
+see (`function sequenceOf`, `function nonEmptySequenceOf`)
 shared Parser<{Item+}> chainParser<out Item>(Parser<Item> parser)
         => mapValueParser(parser, (Item result) => { result });
 
@@ -98,7 +98,7 @@ shared Parser<{String+}> strParser(Parser<{Character*}> parser)
         => chainParser(mapValueParser(parser, String));
 
 "Converts a Parser which may generate null values to one which will not."
-see(`function seq1`)
+see(`function nonEmptySequenceOf`)
 shared Parser<{Value*}> coalescedParser<out Value>(
     Parser<{Value?*}> parser,
     String name_ = "")

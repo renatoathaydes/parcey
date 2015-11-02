@@ -18,8 +18,8 @@ import com.athaydes.parcey.internal {
  is returned immediately.
  
  This is a very commonly-used Parser, hence its short name which stands for *sequence of Parsers*."
-see(`function seq1`)
-shared Parser<{Item*}> seq<Item>({Parser<{Item*}>+} parsers, String name_ = "")
+see(`function nonEmptySequenceOf`)
+shared Parser<{Item*}> sequenceOf<Item>({Parser<{Item*}>+} parsers, String name_ = "")
         => object satisfies Parser<{Item*}> {
     
     name = chooseName(name_, computeParserName(parsers, "->"));
@@ -53,10 +53,10 @@ shared Parser<{Item*}> seq<Item>({Parser<{Item*}>+} parsers, String name_ = "")
  
  If any of the parsers fails, the chain is broken and a [[com.athaydes.parcey::ParseError]]
  is returned immediately."
-see(`function seq`)
-shared Parser<{Item+}> seq1<Item>({Parser<{Item*}>+} parsers, String name_ = "")
+see(`function sequenceOf`)
+shared Parser<{Item+}> nonEmptySequenceOf<Item>({Parser<{Item*}>+} parsers, String name_ = "")
         => object satisfies Parser<{Item+}> {
-    value delegate = seq(parsers);
+    value delegate = sequenceOf(parsers);
     name = chooseName(name_, () => delegate.name);
     shared actual ParseResult<{Item+}> doParse(
         CharacterConsumer consumer) {
@@ -165,12 +165,12 @@ shared Parser<{Item*}> option<Item>(Parser<{Item*}> parser) {
 }
 
 "Creates a Parser that applies the given parser multiple times, using the *skipped* separator parser
- in between applications, as many times as possible.
+ in between applications, as many times as possible, discarding the separator.
  
  For example, the following Parser will parse zero or more Integers separated by a comma
  and optional spaces:
  
-     sepBy(around(spaces(), char(',')), integer());
+     separatedBy(around(spaces(), char(',')), integer());
      
  The [[minOcurrences|minOccurrences]] argument may specify the minimum number of times the given
  parser must succeed.
@@ -180,14 +180,14 @@ shared Parser<{Item*}> option<Item>(Parser<{Item*}> parser) {
  
  For example, given the following Parser:
  
-     sepBy(char(':'), anyChar(), 1);
+     separatedBy(char(':'), anyChar(), 1);
      
  The following are valid inputs:
  
  * a
  * b:c:d"
-see(`function sepWith`)
-shared Parser<{Item*}> sepBy<Item>(
+see(`function separatedWith`)
+shared Parser<{Item*}> separatedBy<Item>(
     Parser<Anything> separator,
     Parser<{Item*}> parser,
     Integer minOccurrences = 0,
@@ -195,20 +195,20 @@ shared Parser<{Item*}> sepBy<Item>(
     function optionalIf(Boolean condition)
             => condition then option<Item> else identity<Parser<{Item*}>>;
     
-    return optionalIf(minOccurrences <= 0)(seq({
+    return optionalIf(minOccurrences <= 0)(sequenceOf({
         parser,
         optionalIf(minOccurrences == 1)(
-            many(seq { skip(separator), parser }, minOccurrences - 1))
+            many(sequenceOf { skip(separator), parser }, minOccurrences - 1))
     }, name));
 }
 
 "Creates a Parser that applies the given parser multiple times, using the separator parser
- in between applications, as many times as possible.
+ in between applications, as many times as possible, keeping the separator in the result.
  
  For example, the following Parser will parse zero or more Integers separated by a comma
  and optional spaces:
  
-     sepBy(around(spaces(), char(',')), integer());
+     separatedWith(around(spaces(), char(',')), integer());
      
  The [[minOcurrences|minOccurrences]] argument may specify the minimum number of times the given
  parser must succeed.
@@ -218,14 +218,14 @@ shared Parser<{Item*}> sepBy<Item>(
  
  For example, given the following Parser:
  
-     sepBy(char(':'), anyChar(), 1);
+     separatedWith(char(':'), anyChar(), 1);
      
  The following are valid inputs:
  
  * a
  * b:c:d"
-see(`function sepBy`)
-shared Parser<{Item|Sep*}> sepWith<Item, Sep>(
+see(`function separatedBy`)
+shared Parser<{Item|Sep*}> separatedWith<Item, Sep>(
     Parser<{Sep*}> separator,
     Parser<{Item*}> parser,
     Integer minOccurrences = 0,
@@ -234,10 +234,10 @@ shared Parser<{Item|Sep*}> sepWith<Item, Sep>(
     function optionalIf(Boolean condition) {
         return condition then option<Val> else identity<Parser<{Val*}>>;
     }
-    return optionalIf(minOccurrences <= 0)(seq({
+    return optionalIf(minOccurrences <= 0)(sequenceOf({
         parser,
         optionalIf(minOccurrences == 1)(
-            many(seq { separator, parser }, minOccurrences - 1))
+            many(sequenceOf { separator, parser }, minOccurrences - 1))
     }, name));
 }
 
@@ -265,7 +265,7 @@ shared Parser<[]> skip(Parser<Anything> parser, String name_ = "") {
  
  Example of Parser that parses words separated by commas and optional spaces:
  
-     sepBy(around(spaces(), char(',')), word());"
-see(`function sepBy`)
+     separatedBy(around(spaces(), char(',')), word());"
+see(`function separatedBy`)
 shared Parser<{Item*}> around<Item>(Parser<{Item*}> surrounding, Parser<{Item*}> parser)
-        => seq { surrounding, parser, surrounding };
+        => sequenceOf { surrounding, parser, surrounding };

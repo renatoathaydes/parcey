@@ -1,5 +1,5 @@
 import com.athaydes.parcey.combinator {
-    seq
+    sequenceOf
 }
 import com.athaydes.parcey.internal {
     parseError
@@ -40,7 +40,7 @@ shared interface Parser<out Parsed> {
     shared formal String name;
     
     "Parse the given input. The input is only traversed once by using its iterator."
-    see (`function seq`)
+    see (`function sequenceOf`)
     shared default ParseSuccess<Parsed>|ParseError parse({Character*} input) {
         value consumer = CharacterConsumer(input.iterator());
         value result = doParse(consumer);

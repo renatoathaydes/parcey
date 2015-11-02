@@ -1,5 +1,5 @@
 import com.athaydes.parcey.combinator {
-    seq1,
+    nonEmptySequenceOf,
     many,
     skip
 }
@@ -13,14 +13,14 @@ import com.athaydes.parcey.internal {
 "Parser that expects an empty stream.
  
  It only succeeds if the input is empty."
-shared Parser<[]> eof(String name = "")
-        => mapValueParser(str("", chooseName(name, () => "EOF")),
+shared Parser<[]> endOfInput(String name = "")
+        => mapValueParser(text("", chooseName(name, () => "EOF")),
     ({String+} _) => []);
 
 "Parser for a single Character.
  
  It fails if the input is empty."
-shared Parser<{Character+}> anyChar(String name_ = "")
+shared Parser<{Character+}> anyCharacter(String name_ = "")
         => object satisfies Parser<{Character+}> {
     name = chooseName(name_, () => "any character");
     shared actual ParseResult<{Character+}> doParse(
@@ -85,7 +85,7 @@ shared Parser<{Character+}> oneOf({Character+} chars, String name = "")
 "Parser for a single character.
  
  It fails if the input is empty."
-shared Parser<{Character+}> char(Character char, String name_ = "")
+shared Parser<{Character+}> character(Character char, String name_ = "")
         => object satisfies Parser<{Character+}> {
             name = chooseName(name_, () => char.string);
             
@@ -104,11 +104,11 @@ shared Parser<{Character+}> char(Character char, String name_ = "")
 
 "Parser for a sequence of characters.
  
- This parser is similar to the [[str]] parser, but returns a sequence
+ This parser is similar to the [[text]] parser, but returns a sequence
  of Characters instead of a String and does not accept empty Strings."
-see(`function char`, `function str`)
-shared Parser<{Character+}> chars({Character+} characters, String name = "")
-        => seq1(characters.map(char));
+see(`function character`, `function text`)
+shared Parser<{Character+}> characters({Character+} characters, String name = "")
+        => nonEmptySequenceOf(characters.map(character));
 
 "Parser for none of the given characters. It fails if the input is one of the given characters.
  
@@ -142,11 +142,11 @@ shared Parser<{String+}> word(String name = "")
 "A String parser. A String is defined as a possibly empty stream of Characters
  without any spaces between them."
 see (`value spaceChars`)
-shared Parser<{String+}> anyStr(String name = "")
+shared Parser<{String+}> anyString(String name = "")
         => strParser(many(noneOf(spaceChars), 0, chooseName(name, () => "any String")));
 
-"A String parser which parses only the given string."
-shared Parser<{String+}> str(String text, String name_ = "")
+"A String parser which parses only the given text."
+shared Parser<{String+}> text(String text, String name_ = "")
         => object satisfies Parser<{String+}> {
     name = chooseName(name_, () => "string ``quote(text)``");
     

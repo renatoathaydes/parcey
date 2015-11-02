@@ -11,22 +11,22 @@ import ceylon.test {
 }
 
 import com.athaydes.parcey {
-    anyChar,
+    anyCharacter,
     ParseSuccess,
     letter,
     ParseError,
     oneOf,
     noneOf,
-    eof,
+    endOfInput,
     space,
     spaceChars,
-    anyStr,
-    str,
-    char,
+    anyString,
+    text,
+    character,
     digit,
     word,
     spaces,
-    chars,
+    characters,
     mapParser,
     strParser,
     integer,
@@ -45,28 +45,28 @@ shared Type<ParseError> error = typeLiteral<ParseError>();
 
 test
 shared void testEof() {
-    expect(eof().parse("")).assignableTo(`ParseSuccess<[]>`).with((result) {
+    expect(endOfInput().parse("")).assignableTo(`ParseSuccess<[]>`).with((result) {
         assertEquals(result.result.sequence(), []);
     });
     
-    expect(eof().parse("a")).assignableTo(error);
+    expect(endOfInput().parse("a")).assignableTo(error);
 }
 
 test
 shared void testAnyChar() {
-    expect(anyChar().parse("a")).assignableTo(`ParseSuccess<{Character*}>`).with((result) {
+    expect(anyCharacter().parse("a")).assignableTo(`ParseSuccess<{Character*}>`).with((result) {
         assertEquals(result.result.sequence(), ['a']);
     });
-    expect(anyChar().parse("xyz")).assignableTo(`ParseSuccess<{Character*}>`).with((result) {
+    expect(anyCharacter().parse("xyz")).assignableTo(`ParseSuccess<{Character*}>`).with((result) {
         assertEquals(result.result.sequence(), ['x']);
     });
     
-    expect(anyChar().parse("")).assignableTo(error);
+    expect(anyCharacter().parse("")).assignableTo(error);
 }
 
 test
 shared void testChars() {
-    value parser = chars { 'a', 'b', 'c' };
+    value parser = characters { 'a', 'b', 'c' };
     
     expect(parser.parse('a'..'z')).assignableTo(`ParseSuccess<{Character+}>`).with((result) {
         assertEquals(result.result.sequence(), ['a', 'b', 'c']);
@@ -89,7 +89,7 @@ shared void testLetter() {
 
 test
 shared void testSatisfy() {
-    value parser = seq { str("1"), satisfy((Character c) => c.letter) };
+    value parser = sequenceOf { text("1"), satisfy((Character c) => c.letter) };
     
     expect(parser.parse("1a")).assignableTo(`ParseSuccess<{Anything*}>`).with((result) {
         assertEquals(result.result.sequence(), ["1", 'a']);
@@ -119,15 +119,15 @@ shared void testSpace() {
 
 test
 shared void testAnyString() {
-    expect(anyStr().parse("")).assignableTo(`ParseSuccess<{String*}>`).with((result1) {
+    expect(anyString().parse("")).assignableTo(`ParseSuccess<{String*}>`).with((result1) {
             assertEquals(result1.result.sequence(), [""]);
         });
     
-    expect(anyStr().parse("a")).assignableTo(`ParseSuccess<{String*}>`).with((result2) {
+    expect(anyString().parse("a")).assignableTo(`ParseSuccess<{String*}>`).with((result2) {
             assertEquals(result2.result.sequence(), ["a"]);
         });
     
-    expect(anyStr().parse("xyz abc")).assignableTo(`ParseSuccess<{String*}>`).with((result3) {
+    expect(anyString().parse("xyz abc")).assignableTo(`ParseSuccess<{String*}>`).with((result3) {
             assertEquals(result3.result.sequence(), ["xyz"]);
         });
 }
@@ -151,23 +151,23 @@ shared void testWord() {
 
 test
 shared void testStr() {
-    expect(str("").parse("")).assignableTo(`ParseSuccess<{String+}>`).with((result1) {
+    expect(text("").parse("")).assignableTo(`ParseSuccess<{String+}>`).with((result1) {
             assertEquals(result1.result.sequence(), [""]);
         });
     
-    expect(str("a").parse("a")).assignableTo(`ParseSuccess<{String+}>`).with((result2) {
+    expect(text("a").parse("a")).assignableTo(`ParseSuccess<{String+}>`).with((result2) {
             assertEquals(result2.result.sequence(), ["a"]);
         });
     
-    expect(str("xyz").parse("xyz abc")).assignableTo(`ParseSuccess<{String+}>`).with((result3) {
+    expect(text("xyz").parse("xyz abc")).assignableTo(`ParseSuccess<{String+}>`).with((result3) {
             assertEquals(result3.result.sequence(), ["xyz"]);
         });
     
-    expect(str("xyz").parse("xyab")).assignableTo(error);
+    expect(text("xyz").parse("xyab")).assignableTo(error);
     
-    expect(str("xyz").parse("abcxyz")).assignableTo(error);
+    expect(text("xyz").parse("abcxyz")).assignableTo(error);
     
-    expect(str("ab").parse("")).assignableTo(error);
+    expect(text("ab").parse("")).assignableTo(error);
 }
 
 test
@@ -184,7 +184,7 @@ shared void testStringDoesNotOverconsume() {
             }
         }
     };
-    expect(str("xyz").doParse(CharacterConsumer(iterator)))
+    expect(text("xyz").doParse(CharacterConsumer(iterator)))
     	.assignableTo(`ParseSuccess<{String+}>`).with((result) {
             assertEquals(result.result.sequence(), ["xyz"]);
         });
@@ -272,9 +272,9 @@ shared void testInteger() {
 
 test
 shared void canBacktrackAcrossManyParsers() {
-    value parser = seq {
-        option(seq { skip(char('.')), strParser(many(digit(), 1)) }),
-        str(".x")
+    value parser = sequenceOf {
+        option(sequenceOf { skip(character('.')), strParser(many(digit(), 1)) }),
+        text(".x")
     };
     
     expect(parser.parse(".x")).assignableTo(`ParseSuccess<{String*}>`).with((result) {
@@ -285,8 +285,8 @@ shared void canBacktrackAcrossManyParsers() {
 test
 shared void simpleCombinationTest() {
     value lowerCasedLetter = oneOf('a'..'z');
-    value underscore = char('_');
-    value identifier = seq({
+    value underscore = character('_');
+    value identifier = sequenceOf({
             either { lowerCasedLetter, underscore },
             many(either { letter(), underscore })
         }, "identifier");
@@ -325,32 +325,32 @@ shared void complexCombinationTest() {
     
     value capitalLetter = oneOf('A'..'Z');
     value lowerCasedLetter = oneOf('a'..'z');
-    value underscore = char('_');
-    value identifierStr = strParser(seq({
+    value underscore = character('_');
+    value identifierStr = strParser(sequenceOf({
                 either { lowerCasedLetter, underscore },
                 many(either { letter(), underscore })
             }, "identifier"));
     value identifier = mapParser(identifierStr, Identifier);
-    value typeStr = strParser(seq({
+    value typeStr = strParser(sequenceOf({
                 capitalLetter,
                 many(either { letter(), underscore })
             }, "type identifier"));
     value typeIdentifier = mapParser(typeStr, Type);
     value modifier = identifier;
-    value argument = seq({
+    value argument = sequenceOf({
             typeIdentifier,
             spaces(1),
             identifier
         }, "argument");
-    value argumentList = seq({
-            skip(char('(')),
-            sepBy(around(spaces(), char(',')), argument),
-            skip(char(')'))
+    value argumentList = sequenceOf({
+            skip(character('(')),
+            separatedBy(around(spaces(), character(',')), argument),
+            skip(character(')'))
         }, "argument list");
     
-    value ceylonFunctionSignature = seq {
+    value ceylonFunctionSignature = sequenceOf {
         spaces(),
-        many(seq { modifier, spaces(1) }),
+        many(sequenceOf { modifier, spaces(1) }),
         typeIdentifier,
         spaces(1),
         identifier,

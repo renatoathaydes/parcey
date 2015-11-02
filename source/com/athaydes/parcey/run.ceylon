@@ -13,7 +13,7 @@ shared void run() {
     assert(is ParseError error = parser.parse("hello"));
     print(error.message);
     
-    value parser2 = seq {
+    value parser2 = sequenceOf {
         integer(), spaces(), integer(), spaces(), integer()
     };
     
@@ -22,7 +22,7 @@ shared void run() {
     assert(is ParseSuccess<{Integer*}> contents2);
     assert(contents2.result.sequence() == [10, 20, 30]);
     
-    value parser3 = sepBy(spaces(), integer());
+    value parser3 = separatedBy(spaces(), integer());
     
     value contents3 = parser3.parse("10  20 30 40  50");
     assert(is ParseSuccess<{Integer*}> contents3);
@@ -32,7 +32,7 @@ shared void run() {
     assert(is ParseError error2);
     print(error2.message);
     
-    value parser2a = seq {
+    value parser2a = sequenceOf {
         integer("latitude"), spaces(),
         integer("longitude"), spaces(),
         integer("elevation")
@@ -51,7 +51,7 @@ shared void run() {
     assert(mikael.name == "Mikael");
     
     Parser<{Person*}> peopleParser =
-            sepBy(spaces(), chainParser(personParser));
+            separatedBy(spaces(), chainParser(personParser));
     //Parser<{Person*}> peopleParser2 =
     //        mapParser(sepBy(spaces(), word()), Person);
     
@@ -62,8 +62,8 @@ shared void run() {
     assert((people[1]?.name else "") == "John");
 
     // sentence example
-    value sentence = seq {
-        sepBy(char(' '), many(word(), 1)),
+    value sentence = sequenceOf {
+        separatedBy(character(' '), many(word(), 1)),
         skip(oneOf { '.', '!', '?' })
     };
     
@@ -74,7 +74,7 @@ shared void run() {
     
     // arithmetics example
     value operator = oneOf { '+', '-', '*', '/', '^', '%' };
-    value calculation = many(sepWith(around(spaces(), operator), integer(), 2));
+    value calculation = many(separatedWith(around(spaces(), operator), integer(), 2));
     print(calculation.parse("2+4"));
     assert(is ParseSuccess<{Integer|Character*}> contents6 =
         calculation.parse("2 + 4*60 / 2"));
@@ -105,9 +105,9 @@ shared void run() {
     alias JsonElement => JsonValue|JsonArray|JsonObject;
     
     // now we can define the parsers
-    value quote = skip(char('"'));
+    value quote = skip(character('"'));
     function jsonStr()
-            => mapParser(strParser(seq({
+            => mapParser(strParser(sequenceOf({
         quote, many(noneOf { '"' }), quote
     }, "jsonString")), JsonString);
     function jsonInt()
@@ -116,17 +116,17 @@ shared void run() {
             => either { jsonStr(), jsonInt() };
     
     // a recursive definition needs explicit type
-    Parser<{JsonArray*}> jsonArray() => seq({
-        skip(around(spaces(), char('['))),
+    Parser<{JsonArray*}> jsonArray() => sequenceOf({
+        skip(around(spaces(), character('['))),
         chainParser(
             mapValueParser(
-                sepBy(around(spaces(), char(',')), either {
+                separatedBy(around(spaces(), character(',')), either {
                     jsonValue(),
                     jsonArray()
                 }), JsonArray)
         ),
         spaces(),
-        skip(char(']'))
+        skip(character(']'))
     }, "jsonArray");
     
     // Mutually referring parsers must be wrapped in a class or object
@@ -137,7 +137,7 @@ shared void run() {
     
         shared Parser<{JsonEntry*}> jsonEntry() => mapParsers({
             jsonStr(),
-            skip(around(spaces(), char(':'))),
+            skip(around(spaces(), character(':'))),
             jsonElement()
         }, ({JsonElement*} elements) {
                 assert(is JsonString key = elements.first);
@@ -146,10 +146,10 @@ shared void run() {
         }, "jsonEntry");
         
         shared Parser<{JsonObject*}> jsonObject() => mapParsers({
-            skip(around(spaces(), char('{'))),
-            sepBy(around(spaces(), char(',')), jsonEntry()),
+            skip(around(spaces(), character('{'))),
+            separatedBy(around(spaces(), character(',')), jsonEntry()),
             spaces(),
-            skip(char('}'))
+            skip(character('}'))
         }, JsonObject, "jsonObject");
         
     }
@@ -189,7 +189,7 @@ shared void run() {
 shared void runCeylonDocExamples() {
     Parser<{<String->Integer>*}> namedInteger = mapParsers({
         word(),
-        skip(char(':')),
+        skip(character(':')),
         integer()
     }, ({String|Integer*} elements) {
         assert(is String key = elements.first);

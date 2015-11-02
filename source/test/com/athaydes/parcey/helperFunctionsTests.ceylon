@@ -13,7 +13,7 @@ import com.athaydes.parcey {
 }
 import com.athaydes.parcey.combinator {
     many,
-    sepBy
+    separatedBy
 }
 
 import test.com.athaydes.parcey.combinator {
@@ -22,7 +22,7 @@ import test.com.athaydes.parcey.combinator {
 
 test shared void coalescedParserTest() {
     value maybeIntParser = mapParser(
-        sepBy(spaces(), strParser(many(digit(), 1))), parseInteger);
+        separatedBy(spaces(), strParser(many(digit(), 1))), parseInteger);
     
     value intParser = coalescedParser(maybeIntParser);
     
