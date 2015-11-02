@@ -26,16 +26,17 @@ test shared void coalescedParserTest() {
     
     value intParser = coalescedParser(maybeIntParser);
     
-    expect(intParser.parse(""), void(ParseSuccess<{Integer*}> result) {
+    expect(intParser.parse("")).ofType(`ParseSuccess<{Integer*}>`).with((result) {
         assertEquals(result.result.sequence(), []);
     });
-    expect(intParser.parse("x"), void(ParseSuccess<{Integer*}> result) {
+    expect(intParser.parse("x")).ofType(`ParseSuccess<{Integer*}>`).with((result) {
         assertEquals(result.result.sequence(), []);
     });
-    expect(intParser.parse("1"), void(ParseSuccess<{Integer*}> result) {
+    expect(intParser.parse("1")).ofType(`ParseSuccess<{Integer*}>`).with((result) {
         assertEquals(result.result.sequence(), [1]);
     });
-    expect(intParser.parse("1 2 10 w z"), void(ParseSuccess<{Integer*}> result) {
+    expect(intParser.parse("1 2 10 w z")).ofType(`ParseSuccess<{Integer*}>`).with((result) {
         assertEquals(result.result.sequence(), [1, 2, 10]);
     });
 }
+

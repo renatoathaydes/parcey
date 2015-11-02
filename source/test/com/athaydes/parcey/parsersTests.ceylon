@@ -45,45 +45,45 @@ shared Type<ParseError> error = typeLiteral<ParseError>();
 
 test
 shared void testEof() {
-    expect(eof().parse(""), void(ParseSuccess<[]> result) {
-            assertEquals(result.result.sequence(), []);
-        });
+    expect(eof().parse("")).assignableTo(`ParseSuccess<[]>`).with((result) {
+        assertEquals(result.result.sequence(), []);
+    });
     
-    expect(eof().parse("a"), error);
+    expect(eof().parse("a")).assignableTo(error);
 }
 
 test
 shared void testAnyChar() {
-    expect(anyChar().parse("a"), void(ParseSuccess<{Character*}> result) {
-            assertEquals(result.result.sequence(), ['a']);
-        });
-    expect(anyChar().parse("xyz"), void(ParseSuccess<{Character*}> result) {
-            assertEquals(result.result.sequence(), ['x']);
-        });
+    expect(anyChar().parse("a")).assignableTo(`ParseSuccess<{Character*}>`).with((result) {
+        assertEquals(result.result.sequence(), ['a']);
+    });
+    expect(anyChar().parse("xyz")).assignableTo(`ParseSuccess<{Character*}>`).with((result) {
+        assertEquals(result.result.sequence(), ['x']);
+    });
     
-    expect(anyChar().parse(""), error);
+    expect(anyChar().parse("")).assignableTo(error);
 }
 
 test
 shared void testChars() {
     value parser = chars { 'a', 'b', 'c' };
     
-    expect(parser.parse('a'..'z'), void(ParseSuccess<{Character+}> result) {
-            assertEquals(result.result.sequence(), ['a', 'b', 'c']);
-        });
+    expect(parser.parse('a'..'z')).assignableTo(`ParseSuccess<{Character+}>`).with((result) {
+        assertEquals(result.result.sequence(), ['a', 'b', 'c']);
+    });
     
-    expect(parser.parse("abxy"), error);
+    expect(parser.parse("abxy")).assignableTo(error);
 }
 
 test
 shared void testLetter() {
     for (item in ('a'..'z').append('A'..'Z')) {
-        expect(letter().parse({ item }), void(ParseSuccess<{Character*}> result) {
+        expect(letter().parse({ item })).assignableTo(`ParseSuccess<{Character*}>`).with((result) {
                 assertEquals(result.result.sequence(), [item]);
             });
     }
     for (item in ['\t', ' ', '?', '!', '%', '^', '&', '*']) {
-        expect(letter().parse({ item }), error);
+        expect(letter().parse({ item })).assignableTo(error);
     }
 }
 
@@ -91,83 +91,83 @@ test
 shared void testSatisfy() {
     value parser = seq { str("1"), satisfy((Character c) => c.letter) };
     
-    expect(parser.parse("1a"), void(ParseSuccess<{Anything*}> result) {
+    expect(parser.parse("1a")).assignableTo(`ParseSuccess<{Anything*}>`).with((result) {
         assertEquals(result.result.sequence(), ["1", 'a']);
     });
-    expect(parser.parse("1Z"), void(ParseSuccess<{Anything*}> result) {
+    expect(parser.parse("1Z")).assignableTo(`ParseSuccess<{Anything*}>`).with((result) {
         assertEquals(result.result.sequence(), ["1", 'Z']);
     });
-    expect(parser.parse("1ä"), void(ParseSuccess<{Anything*}> result) {
+    expect(parser.parse("1ä")).assignableTo(`ParseSuccess<{Anything*}>`).with((result) {
         assertEquals(result.result.sequence(), ["1", 'ä']);
     });
-    expect(parser.parse("11"), error);
-    expect(parser.parse("1@"), error);
+    expect(parser.parse("11")).assignableTo(error);
+    expect(parser.parse("1@")).assignableTo(error);
 }
 
 test
 shared void testSpace() {
-    expect(space().parse(""), error);
+    expect(space().parse("")).assignableTo(error);
     
     for (item in spaceChars) {
-        expect(space().parse({ item }), void(ParseSuccess<{Character*}> result) {
+        expect(space().parse({ item })).assignableTo(`ParseSuccess<{Character*}>`).with((result) {
                 assertEquals(result.result.sequence(), [item]);
             });
     }
     
-    expect(space().parse("xy"), error);
+    expect(space().parse("xy")).assignableTo(error);
 }
 
 test
 shared void testAnyString() {
-    expect(anyStr().parse(""), void(ParseSuccess<{String*}> result1) {
+    expect(anyStr().parse("")).assignableTo(`ParseSuccess<{String*}>`).with((result1) {
             assertEquals(result1.result.sequence(), [""]);
         });
     
-    expect(anyStr().parse("a"), void(ParseSuccess<{String*}> result2) {
+    expect(anyStr().parse("a")).assignableTo(`ParseSuccess<{String*}>`).with((result2) {
             assertEquals(result2.result.sequence(), ["a"]);
         });
     
-    expect(anyStr().parse("xyz abc"), void(ParseSuccess<{String*}> result3) {
+    expect(anyStr().parse("xyz abc")).assignableTo(`ParseSuccess<{String*}>`).with((result3) {
             assertEquals(result3.result.sequence(), ["xyz"]);
         });
 }
 
 test
 shared void testWord() {
-    expect(word().parse(""), error);
+    expect(word().parse("")).assignableTo(error);
     
-    expect(word().parse("a"), void(ParseSuccess<{String*}> result2) {
+    expect(word().parse("a")).assignableTo(`ParseSuccess<{String*}>`).with((result2) {
             assertEquals(result2.result.sequence(), ["a"]);
         });
     
-    expect(word().parse("xyz abc"), void(ParseSuccess<{String*}> result3) {
+    expect(word().parse("xyz abc")).assignableTo(`ParseSuccess<{String*}>`).with((result3) {
             assertEquals(result3.result.sequence(), ["xyz"]);
         });
     
-    expect(word().parse("abcd123"), void(ParseSuccess<{String*}> result4) {
+    expect(word().parse("abcd123")).assignableTo(`ParseSuccess<{String*}>`).with((result4) {
             assertEquals(result4.result.sequence(), ["abcd"]);
         });
 }
 
 test
 shared void testStr() {
-    expect(str("").parse(""), void(ParseSuccess<{String+}> result1) {
+    expect(str("").parse("")).assignableTo(`ParseSuccess<{String+}>`).with((result1) {
             assertEquals(result1.result.sequence(), [""]);
         });
     
-    expect(str("a").parse("a"), void(ParseSuccess<{String+}> result2) {
+    expect(str("a").parse("a")).assignableTo(`ParseSuccess<{String+}>`).with((result2) {
             assertEquals(result2.result.sequence(), ["a"]);
         });
     
-    expect(str("xyz").parse("xyz abc"), void(ParseSuccess<{String+}> result3) {
+    expect(str("xyz").parse("xyz abc")).assignableTo(`ParseSuccess<{String+}>`).with((result3) {
             assertEquals(result3.result.sequence(), ["xyz"]);
         });
     
-    expect(str("xyz").parse("xyab"), error);
+    expect(str("xyz").parse("xyab")).assignableTo(error);
     
-    expect(str("xyz").parse("abcxyz"), error);
+    expect(str("xyz").parse("abcxyz")).assignableTo(error);
     
-    expect(str("ab").parse(""), error);
+    expect(str("ab").parse("")).assignableTo(error);
 }
 
 test
@@ -184,8 +184,8 @@ shared void testStringDoesNotOverconsume() {
             }
         }
     };
-    expect(str("xyz").doParse(CharacterConsumer(iterator)),
-        void(ParseSuccess<{String+}> result) {
+    expect(str("xyz").doParse(CharacterConsumer(iterator)))
+    	.assignableTo(`ParseSuccess<{String+}>`).with((result) {
             assertEquals(result.result.sequence(), ["xyz"]);
         });
 }
@@ -194,15 +194,15 @@ test
 shared void testOneOf() {
     value parser = oneOf({ 'x', 'a' });
     
-    expect(parser.parse(""), error);
+    expect(parser.parse("")).assignableTo(error);
     
     for (item in ['x', 'a']) {
-        expect(parser.parse({ item }), void(ParseSuccess<{Character*}> result) {
+        expect(parser.parse({ item })).assignableTo(`ParseSuccess<{Character*}>`).with((result) {
                 assertEquals(result.result.sequence(), [item]);
             });
     }
     for (item in ('A'..'Z').append(['\t', ' ', '?', '!', '%', '^', '&', '*'])) {
-        expect(parser.parse({ item }), error);
+        expect(parser.parse({ item })).assignableTo(error);
     }
 }
 
@@ -210,13 +210,13 @@ test
 shared void testNoneOf() {
     value parser = noneOf({ 'x', 'a' });
     
-    expect(parser.parse(""), error);
+    expect(parser.parse("")).assignableTo(error);
     
     for (item in ['x', 'a']) {
-        expect(parser.parse({ item }), error);
+        expect(parser.parse({ item })).assignableTo(error);
     }
     for (item in ('A'..'Z').append(['\t', ' ', '?', '!', '%', '^', '&', '*'])) {
-        expect(parser.parse({ item }), void(ParseSuccess<{Character*}> result) {
+        expect(parser.parse({ item })).assignableTo(`ParseSuccess<{Character*}>`).with((result) {
                 assertEquals(result.result.sequence(), [item]);
             });
     }
@@ -225,44 +225,45 @@ shared void testNoneOf() {
 test
 shared void testDigit() {
     for (input in (0..9).map(Object.string)) {
-        expect(digit().parse(input), void(ParseSuccess<{Character*}> result) {
+        expect(digit().parse(input)).assignableTo(`ParseSuccess<{Character*}>`).with((result) {
                 assertEquals(result.result.sequence(), input.sequence());
             });
     }
     
     for (input in ["a", "b", "z", "#", "%", "~", "@", "hello", "#0", "!22"]) {
-        expect(digit().parse(input), error);
+        expect(digit().parse(input)).assignableTo(error);
     }
     
-    expect(digit().parse(""), error);
+    expect(digit().parse("")).assignableTo(error);
 }
 
 test
 shared void testInteger() {
-    expect(integer().parse(""), typeLiteral<ParseError>());
+    expect(integer().parse("")).assignableTo(error);
+    
     for (input in (0..9).map(Object.string)) {
-        expect(integer().parse(input), void(ParseSuccess<{Integer*}> result) {
+        expect(integer().parse(input)).assignableTo(`ParseSuccess<{Integer*}>`).with((result) {
                 assertEquals(result.result.sequence(), [parseInteger(input)]);
             });
     }
     for (input in (-1 .. -9).map(Object.string)) {
-        expect(integer().parse(input), void(ParseSuccess<{Integer*}> result) {
+        expect(integer().parse(input)).assignableTo(`ParseSuccess<{Integer*}>`).with((result) {
                 assertEquals(result.result.sequence(), [parseInteger(input)]);
             });
     }
-    expect(integer().parse("9876543210"), void(ParseSuccess<{Integer*}> result) {
+    expect(integer().parse("9876543210")).assignableTo(`ParseSuccess<{Integer*}>`).with((result) {
             assertEquals(result.result.sequence(), [9876543210]);
         });
-    expect(integer().parse(runtime.maxIntegerValue.string),
-        typeLiteral<ParseSuccess<{Integer*}>>());
-    expect(integer().parse(runtime.minIntegerValue.string),
-        typeLiteral<ParseSuccess<{Integer*}>>());
-    expect(integer().parse("000450abcd"),
-        void(ParseSuccess<{Integer*}> result) {
+    expect(integer().parse(runtime.maxIntegerValue.string))
+    	.assignableTo(typeLiteral<ParseSuccess<{Integer*}>>());
+    expect(integer().parse(runtime.minIntegerValue.string))
+        .assignableTo(typeLiteral<ParseSuccess<{Integer*}>>());
+    expect(integer().parse("000450abcd"))
+        .assignableTo(`ParseSuccess<{Integer*}>`).with((result) {
             assertEquals(result.result.sequence(), [450]);
         });
-    expect(integer().parse(['9'].cycled.take(100)),
-        void(ParseError error) {
+    expect(integer().parse(['9'].cycled.take(100)))
+    	.assignableTo(`ParseError`).with((error) {
             value location = error.location;
             assertTrue(location.last < 25,
                 "Parsed too many digits before overflowing: ``location``");
@@ -276,7 +277,7 @@ shared void canBacktrackAcrossManyParsers() {
         str(".x")
     };
     
-    expect(parser.parse(".x"), void(ParseSuccess<{String*}> result) {
+    expect(parser.parse(".x")).assignableTo(`ParseSuccess<{String*}>`).with((result) {
         assertEquals(result.result.sequence(), [".x"]);
     });
 }
@@ -291,16 +292,16 @@ shared void simpleCombinationTest() {
         }, "identifier");
     
     for (input in ["a", "_", "_a", "___", "_x_y_z", "abc___", "__xx__"]) {
-        expect(identifier.parse(input), void(ParseSuccess<{Character*}> result) {
+        expect(identifier.parse(input)).assignableTo(`ParseSuccess<{Character*}>`).with((result) {
                 assertEquals(result.result.sequence(), input.sequence());
             });
     }
     
     for (input in ["", " ", "1", "@"]) {
-        expect(identifier.parse(input), error);
+        expect(identifier.parse(input)).assignableTo(error);
     }
     
-    expect(identifier.parse("_abc "), void(ParseSuccess<{Character*}> result1) {
+    expect(identifier.parse("_abc ")).assignableTo(`ParseSuccess<{Character*}>`).with((result1) {
             assertEquals(result1.result.sequence(), ['_', 'a', 'b', 'c']);
         });
 }
@@ -357,8 +358,8 @@ shared void complexCombinationTest() {
         argumentList
     };
     
-    expect(ceylonFunctionSignature.parse(" String hi(Boolean b, Integer i) "),
-        void(ParseSuccess<{CeylonElement*}> result) {
+    expect(ceylonFunctionSignature.parse(" String hi(Boolean b, Integer i) "))
+        .assignableTo(`ParseSuccess<{CeylonElement*}>`).with((result) {
             assertEquals(result.result.sequence(), [
                     Type("String"), Identifier("hi"),
                     Type("Boolean"), Identifier("b"),
@@ -366,3 +367,4 @@ shared void complexCombinationTest() {
                 ]);
         });
 }
+

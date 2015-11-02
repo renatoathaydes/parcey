@@ -8,3 +8,5 @@
 .exploded/*
 .settings/*
 modules/*
+/.exploded/
+/bin/
