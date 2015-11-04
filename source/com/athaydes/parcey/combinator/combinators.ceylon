@@ -170,7 +170,7 @@ shared Parser<{Item*}> option<Item>(Parser<{Item*}> parser) {
  For example, the following Parser will parse zero or more Integers separated by a comma
  and optional spaces:
  
-     separatedBy(around(spaces(), char(',')), integer());
+     separatedBy(around(spaces(), character(',')), integer());
      
  The [[minOcurrences|minOccurrences]] argument may specify the minimum number of times the given
  parser must succeed.
@@ -180,7 +180,7 @@ shared Parser<{Item*}> option<Item>(Parser<{Item*}> parser) {
  
  For example, given the following Parser:
  
-     separatedBy(char(':'), anyChar(), 1);
+     separatedBy(character(':'), anyCharacter(), 1);
      
  The following are valid inputs:
  
@@ -208,7 +208,7 @@ shared Parser<{Item*}> separatedBy<Item>(
  For example, the following Parser will parse zero or more Integers separated by a comma
  and optional spaces:
  
-     separatedWith(around(spaces(), char(',')), integer());
+     separatedWith(around(spaces(), character(',')), integer());
      
  The [[minOcurrences|minOccurrences]] argument may specify the minimum number of times the given
  parser must succeed.
@@ -218,7 +218,7 @@ shared Parser<{Item*}> separatedBy<Item>(
  
  For example, given the following Parser:
  
-     separatedWith(char(':'), anyChar(), 1);
+     separatedWith(character(':'), anyCharacter(), 1);
      
  The following are valid inputs:
  
@@ -261,11 +261,11 @@ shared Parser<[]> skip(Parser<Anything> parser, String name_ = "") {
     };
 }
 
-"Surrounds the given parser with the surrounding parser.
+"Surrounds the given parser with the [[surrounding]] parser.
  
  Example of Parser that parses words separated by commas and optional spaces:
  
-     separatedBy(around(spaces(), char(',')), word());"
+     separatedBy(around(spaces(), character(',')), word());"
 see(`function separatedBy`)
 shared Parser<{Item*}> around<Item>(Parser<{Item*}> surrounding, Parser<{Item*}> parser)
         => sequenceOf { surrounding, parser, surrounding };
