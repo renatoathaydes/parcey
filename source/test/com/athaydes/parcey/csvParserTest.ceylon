@@ -5,7 +5,9 @@ import com.athaydes.parcey {
     endOfInput,
     ParseError,
     text,
-    mapValueParser
+    mapValueParser,
+    ParseResult,
+    ParseSuccess
 }
 import com.athaydes.parcey.combinator {
     either,
@@ -14,7 +16,15 @@ import com.athaydes.parcey.combinator {
     separatedBy,
     skip
 }
+import ceylon.test {
+    test,
+    assertEquals
+}
+import test.com.athaydes.parcey.combinator {
+    expect
+}
 
+test
 shared void csvParserTest() {
     
     /* # EXAMPLE Haskell CSV Parser from http://book.realworldhaskell.org/read/using-parsec.html
@@ -74,15 +84,25 @@ shared void csvParserTest() {
         
         value csvFile = sequenceOf { separatedBy(eol, line), endOfInput() };
         
-        shared void parse(String input) {
+        shared ParseResult<{{String*}*}>|ParseError parse(String input) {
             value outcome = csvFile.parse(input);
             switch(outcome)
             case (is ParseError) { print("Error parsing input ``outcome.message``"); }
             else { print(outcome.result); }
+            return outcome;
         }
         
     }
     
     // test our parser
-    csvParser.parse("ai,bej,cee\nnn,dey,ey,f,renato\n\"one big \ncell\"");
+    value result = csvParser.parse(
+        "ai,bej,cee\nnn,dey,ey,f,renato\n\"one big \ncell\"");
+    
+    expect(result).assignableTo(`ParseSuccess<{{String*}*}>`).with((expected) {
+        assertEquals(expected.result.sequence(), [
+            ["ai", "bej", "cee"],
+            ["nn", "dey", "ey", "f", "renato"],
+            ["\"one big \ncell\""]
+        ]);
+    });
 }
