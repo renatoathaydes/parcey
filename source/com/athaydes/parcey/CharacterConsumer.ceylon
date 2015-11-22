@@ -132,8 +132,9 @@ shared class CharacterConsumer(Iterator<Character> input) {
     }
     
     shared actual String string {
-        value partial = consumed.take(500);
-        value tookAll = (partial.size == 500);
+        value charLimit = 500;
+        value partial = consumed.take(charLimit);
+        value tookAll = (partial.size == charLimit);
         return String(partial.chain(tookAll then "..." else ""));
     }
     
