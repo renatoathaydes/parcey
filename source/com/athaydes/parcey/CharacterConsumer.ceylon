@@ -89,7 +89,7 @@ shared class CharacterConsumer(Iterator<Character> input) {
     }
     
     shared {Character*} peek(Integer startIndex, Integer characterCount) {
-        value characters = consumed.sublist(startIndex, characterCount);
+        value characters = consumed.measure(startIndex, characterCount);
         value remaining = characterCount - characters.size;
         if (remaining > 0) {
             value extraCharacters = [ for (char in (1:remaining)
@@ -109,7 +109,7 @@ shared class CharacterConsumer(Iterator<Character> input) {
     shared {Character*} latestConsumed() {
         value firstIndex = consumed.size - consumedByLatestParser;
         value count = consumedByLatestParser - backtrackCount;
-        return consumed.sublist(firstIndex, count);
+        return consumed.measure(firstIndex, count);
     }
     
     shared Integer currentlyParsed()
@@ -121,7 +121,7 @@ shared class CharacterConsumer(Iterator<Character> input) {
     shared ParsedLocation location(Integer characterCount = consumedAtLatestParserStart) {
         variable Integer row = 1;
         variable Integer col = 1;
-        for (Character char in consumed.sublist(0, characterCount)) {
+        for (char in consumed.measure(0, characterCount)) {
             if (char == '\n') {
                 row++;
                 col = 1;

@@ -20,28 +20,31 @@ shared class CharacterBuffer(Integer maxSize = 1024) {
 	}
 	
 	shared Character? getFromLast(Integer index)
-			=> sublist(currentIndex - index, 1).first;
+			=> measure(currentIndex - index, 1).first;
 	
 	shared Character? getFromFirst(Integer index)
-        => sublist(index, 1).first;
+        => measure(index, 1).first;
 	
 	shared {Character*} take(Integer count)
-			=> sublist(backtrackBy(count), count);
+			=> measure(backtrackBy(count), count);
 	
-	shared {Character*} sublist(Integer from, Integer count) {
+	shared {Character*} measure(Integer from, Integer count) {
 		value backtrackCount = backtrackCountFor(from);
 		
 		if (backtrackCount < 0) {
 			return {};
 		}
 
-		value arrayIndex = backtrackBy(backtrackCount) % maxSize;
+		value length = min { backtrackCount + 1, count };
+		value arrayIndex = currentIndex % maxSize;
+		value firstIndex = arrayIndex - backtrackCount;
 		
-		if (backtrackCount >= maxSize) {
-			value lower = older.sublistFrom(arrayIndex);
-			return lower.chain(newer).take(count);
+		if (firstIndex < 0) {
+			value olderIndex = maxSize + firstIndex;
+			value lower = older[olderIndex...];
+			return lower.chain(newer).take(length);
 		} else {
-			return newer.sublist(arrayIndex, arrayIndex + count - 1);
+			return newer[firstIndex:length];
 		}
 	}
 
@@ -51,6 +54,7 @@ shared class CharacterBuffer(Integer maxSize = 1024) {
 		if (currentIndex > 0, arrayIndex == 0) { // restart
 			newer.copyTo(older);
 		}
+		
 		newer.set(arrayIndex, char);
 	}
 	

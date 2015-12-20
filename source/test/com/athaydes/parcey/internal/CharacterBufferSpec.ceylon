@@ -56,13 +56,13 @@ shared class CharacterBufferSpec() {
 	};
 	
 	test
-	shared Specification canAccessCharacterRanges() => Specification {
+	shared Specification canAccessCharacterRangesWithFullArrays() => Specification {
 		feature {
 			(Integer fromIndex, Integer length, String expected) {
 				value inputString = "01234567890123456789";
 				value buffer = CharacterBuffer { maxSize = 5; };
 				buffer.consumeAll(inputString);
-				value result = buffer.sublist(fromIndex, length).sequence();
+				value result = buffer.measure(fromIndex, length).sequence();
 				return [result, expected.sequence()];
 			};
 			
@@ -76,6 +76,74 @@ shared class CharacterBufferSpec() {
 				[10, 10, "0123456789"],
 				[10, 1k, "0123456789"],
 				[14, 4, "4567"]
+			];
+			
+			(Character[] result, Character[] expected)
+					=> expect(result, sameAs(expected))
+		}
+	};
+
+	test
+	shared Specification canAccessCharacterRangesWithPartiallyFullNewerArray() => Specification {
+		feature {
+			(Integer fromIndex, Integer length, String expected) {
+				value inputString = "012345";
+				value buffer = CharacterBuffer { maxSize = 10; };
+				buffer.consumeAll(inputString);
+				value result = buffer.measure(fromIndex, length).sequence();
+				return [result, expected.sequence()];
+			};
+			
+			examples = [
+				[0, 1, "0"],
+				[0, 0, ""],
+				[0, 2, "01"],
+				[0, 3, "012"],
+				[0, 6, "012345"],
+				[0, 7, "012345"],
+				[1, 1, "1"],
+				[1, 3, "123"],
+				[1, 100, "12345"],
+				[1, 3, "123"],
+				[4, 4, "45"],
+				[5, 1, "5"],
+				[6, 2, ""],
+				[10, 3, ""]
+			];
+			
+			(Character[] result, Character[] expected)
+					=> expect(result, sameAs(expected))
+		}
+	};
+
+	test
+	shared Specification canAccessCharacterRangesWithPartiallyFullOlderArray() => Specification {
+		feature {
+			(Integer fromIndex, Integer length, String expected) {
+				value inputString = "0123456";
+				value buffer = CharacterBuffer { maxSize = 5; };
+				buffer.consumeAll(inputString);
+				value result = buffer.measure(fromIndex, length).sequence();
+				return [result, expected.sequence()];
+			};
+			
+			examples = [
+				[0, 1, "0"],
+				[0, 0, ""],
+				[0, 2, "01"],
+				[0, 3, "012"],
+				[0, 7, "0123456"],
+				[0, 8, "0123456"],
+				[1, 1, "1"],
+				[1, 3, "123"],
+				[1, 100, "123456"],
+				[1, 3, "123"],
+				[4, 4, "456"],
+				[5, 2, "56"],
+				[6, 1, "6"],
+				[6, 2, "6"],
+				[7, 2, ""],
+				[10, 3, ""]
 			];
 			
 			(Character[] result, Character[] expected)
