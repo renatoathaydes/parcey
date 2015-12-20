@@ -74,7 +74,8 @@ shared class CharacterBufferSpec() {
 				[18, 10, "89"],
 				[10, 5, "01234"],
 				[10, 10, "0123456789"],
-				[10, 1k, "0123456789"]
+				[10, 1k, "0123456789"],
+				[14, 4, "4567"]
 			];
 			
 			(Character[] result, Character[] expected)

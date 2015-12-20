@@ -34,9 +34,10 @@ shared class CharacterBuffer(Integer maxSize = 1024) {
 		if (backtrackCount < 0) {
 			return {};
 		}
+
 		value arrayIndex = backtrackBy(backtrackCount) % maxSize;
 		
-		if (backtrackCount > maxSize) {
+		if (backtrackCount >= maxSize) {
 			value lower = older.sublistFrom(arrayIndex);
 			return lower.chain(newer).take(count);
 		} else {
