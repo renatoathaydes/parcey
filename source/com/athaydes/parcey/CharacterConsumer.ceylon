@@ -121,14 +121,14 @@ shared class CharacterConsumer(Iterator<Character> input) {
     shared ParsedLocation location(Integer characterCount = consumedAtLatestParserStart) {
         variable Integer row = 1;
         variable Integer col = 1;
-        for (char in consumed.measure(0, characterCount)) {
+        consumed.measure(0, characterCount).each((Character char) {
             if (char == '\n') {
                 row++;
                 col = 1;
             } else {
                 col++;
             }
-        }
+        });
         return [row, col];
     }
     
