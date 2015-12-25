@@ -42,10 +42,15 @@ shared interface Parser<out Parsed> {
     "Parse the given input. The input is only traversed once by using its iterator."
     see (`function sequenceOf`)
     shared default ParseSuccess<Parsed>|ParseError parse({Character*} input) {
-        value consumer = CharacterConsumer(input.iterator());
+        value consumer = input is List<Anything>
+        	then CharacterConsumer(input.iterator(),
+            		if (input.size > 512M) then 256M else
+            		if (input.size > 10) then input.size / 2 else input.size)
+        	else CharacterConsumer(input.iterator());
+        
         value result = doParse(consumer);
         switch(result)
-        case (is String) {
+        case (is ErrorMessage) {
             return parseError(consumer, result);
         } else {
             return result;

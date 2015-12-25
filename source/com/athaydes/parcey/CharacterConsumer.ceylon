@@ -5,7 +5,8 @@
  state related to parsing input can be kept outside of Parsers themselves.
  
  It also allows Parsers to backtrack on errors."
-shared class CharacterConsumer(Iterator<Character> input) {
+shared class CharacterConsumer(Iterator<Character> input,
+							   Integer maxBufferSize = 1024) {
     
     object errorManager {
         variable String? prevDeepestError = null;
@@ -33,7 +34,7 @@ shared class CharacterConsumer(Iterator<Character> input) {
         
     }
     
-    value consumed = CharacterBuffer();
+    value consumed = CharacterBuffer(maxBufferSize);
     
     variable Integer backtrackCount = -1;
     
