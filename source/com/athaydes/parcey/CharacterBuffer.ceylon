@@ -1,3 +1,11 @@
+"Buffer of [[Character]]s that stores parsed input into an array of Characters
+ which can be efficiently used for backtracking.
+ 
+ The given [[maxSize]] refers to the size of the array used directly for writing.
+ As a second array of the same size is used for buffering older input (which allows
+ for backtracking to always be possible for at least [[maxSize]] Characters), the
+ actual buffer ends up being 2 * [[maxSize]] (ie. at any given time, it is guaranteed
+ that the parser can backtrack between [[maxSize]] and 2 * [[maxSize]] Characters)."
 shared class CharacterBuffer(Integer maxSize = 1024) {
 	
 	value newer = Array<Character>.ofSize(maxSize, '0');
