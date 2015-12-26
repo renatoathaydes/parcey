@@ -187,15 +187,13 @@ shared void run() {
 }
 
 shared void runCeylonDocExamples() {
-    Parser<{<String->Integer>*}> namedInteger = mapParsers({
-        word(),
-        skip(character(':')),
-        integer()
-    }, ({String|Integer*} elements) {
-        assert(is String key = elements.first);
-        assert(is Integer element = elements.last);
-        return key->element;
-    }, "namedInteger");
+    Parser<String->Integer> namedInteger = mapValueParser(tupleOf(
+        first(word()),
+        tupleOf(skip(character(':')),
+        	first(integer()))
+    ), ([String, [[], Integer]] elements) {
+        return elements[0] -> elements[1][1];
+    });
     
     print(namedInteger.parse("hello:10"));
 }

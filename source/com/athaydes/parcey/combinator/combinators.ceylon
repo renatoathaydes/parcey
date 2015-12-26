@@ -1,24 +1,21 @@
 import com.athaydes.parcey {
-    Parser,
-    ParseSuccess,
-    ParseError,
-    CharacterConsumer,
-    ParseResult,
-    ErrorMessage
+	Parser,
+	ParseSuccess,
+	CharacterConsumer,
+	ParseResult,
+	ErrorMessage
 }
 import com.athaydes.parcey.internal {
-    chooseName,
-    simplePlural,
-    computeParserName
+	chooseName,
+	simplePlural,
+	computeParserName
 }
 
 "Creates a Parser that applies each of the given parsers in sequence.
  
  If any of the parsers fails, the chain is broken and a [[com.athaydes.parcey::ParseError]]
- is returned immediately.
- 
- This is a very commonly-used Parser, hence its short name which stands for *sequence of Parsers*."
-see(`function nonEmptySequenceOf`)
+ is returned immediately."
+see(`function nonEmptySequenceOf`, `function tupleOf`)
 shared Parser<{Item*}> sequenceOf<Item>({Parser<{Item*}>+} parsers, String name_ = "")
         => object satisfies Parser<{Item*}> {
     
@@ -46,6 +43,25 @@ shared Parser<{Item*}> sequenceOf<Item>({Parser<{Item*}>+} parsers, String name_
         }
     }
     
+};
+
+"Creates a Parser that combines the given parsers into a single one whose successful result is a
+ Tuple of the results of the original parsers.
+ 
+ If any of the parsers fails, the chain is broken and a [[com.athaydes.parcey::ParseError]]
+ is returned immediately."
+see(`function sequenceOf`)
+shared Parser<[First, Rest]> tupleOf<First, Rest>(
+	Parser<First> first, Parser<Rest> rest, String name_ = "")
+		=> object satisfies Parser<[First, Rest]> {
+	name = chooseName(name_, () => "[``first.name``, ``rest.name``]");
+	shared actual ParseResult<[First, Rest]> doParse(
+		CharacterConsumer consumer) 
+		    => switch(firstOutcome = first.doParse(consumer))
+				case (is ErrorMessage) firstOutcome
+				else (switch(secondOutcome = rest.doParse(consumer))
+					case (is ErrorMessage) secondOutcome
+					else ParseSuccess([firstOutcome.result, secondOutcome.result]));
 };
 
 "Creates a Parser that applies each of the given parsers in sequence, ensuring at least

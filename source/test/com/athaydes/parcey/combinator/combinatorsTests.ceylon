@@ -19,7 +19,9 @@ import com.athaydes.parcey {
 	coalescedParser,
 	word,
 	endOfInput,
-	CharacterConsumer
+	CharacterConsumer,
+	Parser,
+	first
 }
 import com.athaydes.parcey.combinator {
 	either,
@@ -29,7 +31,8 @@ import com.athaydes.parcey.combinator {
 	skip,
 	separatedBy,
 	around,
-	nonEmptySequenceOf
+	nonEmptySequenceOf,
+	tupleOf
 }
 
 import test.com.athaydes.parcey {
@@ -509,4 +512,16 @@ test shared void errorMessageShouldComeFromDeepestParserAttempted() {
         assertTrue(error.message.contains("Unexpected 'Fghijk'"));
         assertEquals(error.location, [1, 2]);
     });
+}
+
+test shared void testTupleOf() {
+	Parser<[String, [Integer, Character]]> parser = tupleOf(first(word()),
+		tupleOf(first(integer()), first(character('!'))));
+	
+	expect(parser.parse("hi1!")).ofType(`ParseSuccess<[String, [Integer, Character]]>`)
+			.with(void (ParseSuccess<[String, [Integer, Character]]> expected) {
+		assertEquals(expected.result[0], "hi");
+		assertEquals(expected.result[1][0], 1);
+		assertEquals(expected.result[1][1], '!');
+	});
 }
