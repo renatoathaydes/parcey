@@ -1,10 +1,12 @@
+
 "A Consumer of Characters.
  
  It keeps track of parser errors, parsing location etc. so that all
  state related to parsing input can be kept outside of Parsers themselves.
  
  It also allows Parsers to backtrack on errors."
-shared class CharacterConsumer(Iterator<Character> input) {
+shared class CharacterConsumer(Iterator<Character> input,
+							   Integer maxBufferSize = 1024) {
     
     object errorManager {
         variable String? prevDeepestError = null;
@@ -32,7 +34,7 @@ shared class CharacterConsumer(Iterator<Character> input) {
         
     }
     
-    value consumed = StringBuilder();
+    value consumed = CharacterBuffer(maxBufferSize);
     
     variable Integer backtrackCount = -1;
     
@@ -56,7 +58,7 @@ shared class CharacterConsumer(Iterator<Character> input) {
         } else {
             char = input.next();
             if (is Character char) {
-                consumed.appendCharacter(char);
+                consumed.consume(char);
                 consumedByLatestParser++;
             }
         }
@@ -88,12 +90,12 @@ shared class CharacterConsumer(Iterator<Character> input) {
     }
     
     shared {Character*} peek(Integer startIndex, Integer characterCount) {
-        value characters = consumed[startIndex:characterCount];
+        value characters = consumed.measure(startIndex, characterCount);
         value remaining = characterCount - characters.size;
         if (remaining > 0) {
             value extraCharacters = [ for (char in (1:remaining)
                 .map((_) => input.next())) if (is Character char) char ];
-            consumed.append(String(extraCharacters));
+            consumed.consumeAll(extraCharacters);
             backtrackCount += extraCharacters.size;
             return characters.chain(extraCharacters);
         } else {
@@ -107,8 +109,8 @@ shared class CharacterConsumer(Iterator<Character> input) {
     
     shared {Character*} latestConsumed() {
         value firstIndex = consumed.size - consumedByLatestParser;
-        value lastIndex = firstIndex + consumedByLatestParser - (backtrackCount + 2);
-        return consumed[firstIndex..lastIndex];
+        value count = consumedByLatestParser - backtrackCount;
+        return consumed.measure(firstIndex, count);
     }
     
     shared Integer currentlyParsed()
@@ -120,21 +122,21 @@ shared class CharacterConsumer(Iterator<Character> input) {
     shared ParsedLocation location(Integer characterCount = consumedAtLatestParserStart) {
         variable Integer row = 1;
         variable Integer col = 1;
-        for (Character char in consumed[0:characterCount]) {
+        consumed.measure(0, characterCount).each((Character char) {
             if (char == '\n') {
                 row++;
                 col = 1;
             } else {
                 col++;
             }
-        }
+        });
         return [row, col];
     }
     
     shared actual String string {
         value partial = consumed.take(500);
         value tookAll = (partial.size == 500);
-        return String(partial.chain(tookAll then "..." else ""));
+        return String((tookAll then "..." else "").chain(partial));
     }
     
 }

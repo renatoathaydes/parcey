@@ -10,7 +10,7 @@ Add this line to your `module.ceylon` file:
 > Note: Project not yet on Herd! Will upload once it is a little bit more battle tested and Ceylon 1.2 is released (as this uses some new features already).
 
 ```ceylon
-import com.athaydes.parcey "0.0.1";
+import com.athaydes.parcey "0.3.0";
 ```
 
 ## Using Parcey
