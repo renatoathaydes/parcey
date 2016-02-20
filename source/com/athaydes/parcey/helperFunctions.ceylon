@@ -26,7 +26,13 @@ shared Parser<To> mapValueParser<out From, out To>(
             return result;
         }
         else {
-            return ParseSuccess(converter(result.result));
+            try {
+                return ParseSuccess(converter(result.result));
+            }
+            catch(Throwable e) {
+                return consumer.abort();
+                // if I get it right, this also backtracks to correct place?
+            }
         }
     }
     
