@@ -56,7 +56,7 @@ shared Parser<[]> spaces(Integer minOccurrences = 0, String name = "")
      value swedishLetter = either(letter, oneOf('ö', 'ä', 'å', 'Ö', 'Ä', 'Å'));
  "
 shared Parser<{Character+}> letter(String name = "")
-        => oneOf(('A'..'Z').chain('a'..'z'), chooseName(name, () => "letter"));
+        => satisfy((c) => c in 'A'..'Z' || c in 'a'..'z', chooseName(name, () => "letter"));
 
 "Parses a Character if it satisfies the given predicate.
  
