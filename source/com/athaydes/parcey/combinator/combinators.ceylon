@@ -269,3 +269,17 @@ shared Parser<[]> skip(Parser<Anything> parser, String name_ = "") {
 see(`function separatedBy`)
 shared Parser<{Item*}> around<Item>(Parser<{Item*}> surrounding, Parser<{Item*}> parser)
         => sequenceOf { surrounding, parser, surrounding };
+
+"Surrounds the given parser with [[leftBracket]] and [[rightBracket]] parsers,
+ discarding their results.
+ 
+ This example parses word enclosed in parentheses, returning the word only:
+ 
+     bracket(word(), character('('), character(')'))"
+see(`function around`)
+see(`function separatedBy`)
+shared Parser<{Item*}> bracket<Item>(
+	Parser<{Item*}> parser,
+	Parser<{Item*}> leftBracket,
+	Parser<{Item*}> rightBracket)
+		=> sequenceOf { skip(leftBracket), parser, skip(rightBracket) };
