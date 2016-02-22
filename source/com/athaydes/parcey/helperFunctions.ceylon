@@ -31,7 +31,6 @@ shared Parser<To> mapValueParser<out From, out To>(
             }
             catch(Throwable e) {
                 return consumer.abort();
-                // if I get it right, this also backtracks to correct place?
             }
         }
     }
