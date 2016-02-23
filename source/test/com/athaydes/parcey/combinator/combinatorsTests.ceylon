@@ -29,6 +29,7 @@ import com.athaydes.parcey.combinator {
 	skip,
 	separatedBy,
 	around,
+	between,
 	nonEmptySequenceOf
 }
 
@@ -354,6 +355,16 @@ test shared void aroundTest() {
     });
     expect(parser.parse("  c   !!")).assignableTo(`ParseSuccess<[Character*]>`).with((result) {
         assertEquals(result.result.sequence(), ['c']);
+    });
+}
+
+test shared void betweenTest() {
+    value parser = between(character('a'), character('b'), character('c'));
+    expect(parser.parse("bac")).assignableTo(`ParseSuccess<[Character*]>`).with((result) {
+        assertEquals(result.result.sequence(), ['a']);
+    });
+    expect(parser.parse("baca")).assignableTo(`ParseSuccess<[Character*]>`).with((result) {
+        assertEquals(result.result.sequence(), ['a']);
     });
 }
 

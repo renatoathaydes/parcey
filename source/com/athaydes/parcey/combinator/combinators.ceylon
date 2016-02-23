@@ -266,11 +266,12 @@ shared Parser<[]> skip(Parser<Anything> parser, String name_ = "") {
  Example of Parser that parses words separated by commas and optional spaces:
  
      separatedBy(around(spaces(), character(',')), word());"
+see(`function between`)
 see(`function separatedBy`)
 shared Parser<{Item*}> around<Item>(Parser<{Item*}> surrounding, Parser<{Item*}> parser)
         => sequenceOf { surrounding, parser, surrounding };
 
-"Surrounds the given parser with [[leftBracket]] and [[rightBracket]] parsers,
+"Surrounds the given parser with [[left]] and [[right]] parsers,
  discarding their results.
  
  This example parses word enclosed in parentheses, returning the word only:
@@ -278,8 +279,8 @@ shared Parser<{Item*}> around<Item>(Parser<{Item*}> surrounding, Parser<{Item*}>
      bracket(word(), character('('), character(')'))"
 see(`function around`)
 see(`function separatedBy`)
-shared Parser<{Item*}> bracket<Item>(
+shared Parser<{Item*}> between<Item>(
 	Parser<{Item*}> parser,
-	Parser<{Item*}> leftBracket,
-	Parser<{Item*}> rightBracket)
-		=> sequenceOf { skip(leftBracket), parser, skip(rightBracket) };
+	Parser<{Item*}> left,
+	Parser<{Item*}> right)
+		=> sequenceOf { skip(left), parser, skip(right) };

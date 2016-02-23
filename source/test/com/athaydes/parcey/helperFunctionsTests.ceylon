@@ -9,7 +9,8 @@ import com.athaydes.parcey {
     mapParser,
     coalescedParser,
     ParseSuccess,
-    spaces
+    spaces,
+    anyCharacter
 }
 import com.athaydes.parcey.combinator {
     many,
@@ -40,3 +41,14 @@ test shared void coalescedParserTest() {
     });
 }
 
+test shared void testMapParserWithThrowingConverter() {
+    function filteringConverter(Character c) {
+        assert (c in '1'..'9');
+        return c.predecessor;
+    }
+    value parser = mapParser(many(anyCharacter()), filteringConverter);
+    expect(parser.parse("456")).ofType(`ParseSuccess<{Character*}>`).with((result) {
+        assertEquals(result.result.sequence(), "345".sequence());
+    });
+    expect(parser.parse("a2")).assignableTo(error);
+}
