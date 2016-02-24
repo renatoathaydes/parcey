@@ -163,6 +163,10 @@ shared void testStr() {
             assertEquals(result3.result.sequence(), ["xyz"]);
         });
     
+    expect(text("").parse("abc")).assignableTo(`ParseSuccess<{String+}>`).with((result) {
+            assertEquals(result.result.sequence(), [""]);
+        });
+    
     expect(text("xyz").parse("xyab")).assignableTo(error);
     
     expect(text("xyz").parse("abcxyz")).assignableTo(error);

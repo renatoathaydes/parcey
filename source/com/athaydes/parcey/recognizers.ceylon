@@ -13,9 +13,20 @@ import com.athaydes.parcey.internal {
 "Parser that expects an empty stream.
  
  It only succeeds if the input is empty."
-shared Parser<[]> endOfInput(String name = "")
-        => mapValueParser(text("", chooseName(name, () => "EOF")),
-    ({String+} _) => []);
+shared Parser<[]> endOfInput(String name_ = "")
+        => object satisfies Parser<[]> {
+    name = chooseName(name_, () => "EOF");
+    
+    shared actual ParseResult<[]> doParse(
+        CharacterConsumer consumer) {
+        consumer.startParser(name);
+        if (is Character next = consumer.next()) {
+            return consumer.abort();
+        } else {
+            return ParseSuccess([]);
+        }
+    }    
+};
 
 "Parser for a single Character.
  
@@ -56,7 +67,7 @@ shared Parser<[]> spaces(Integer minOccurrences = 0, String name = "")
      value swedishLetter = either(letter, oneOf('ö', 'ä', 'å', 'Ö', 'Ä', 'Å'));
  "
 shared Parser<{Character+}> letter(String name = "")
-        => oneOf(('A'..'Z').chain('a'..'z'), chooseName(name, () => "letter"));
+        => satisfy((c) => c in 'A'..'Z' || c in 'a'..'z', chooseName(name, () => "letter"));
 
 "Parses a Character if it satisfies the given predicate.
  
@@ -155,23 +166,15 @@ shared Parser<{String+}> text(String text, String name_ = "")
     shared actual ParseResult<{String+}> doParse(
         CharacterConsumer consumer) {
         consumer.startParser(name);
-        if (text.empty) {
-            if (is Character next = consumer.next()) {
+        for (expected->actual in zipEntries(text, asIterable(consumer))) {
+            if (actual != expected) {
                 return consumer.abort();
-            } else {
-                return goodResult;
             }
+        }
+        if (consumer.consumedByLatestParser < text.size) {
+            return consumer.abort();
         } else {
-            for (expected->actual in zipEntries(text, asIterable(consumer))) {
-                if (actual != expected) {
-                    return consumer.abort();
-                }
-            }
-            if (consumer.consumedByLatestParser < text.size) {
-                return consumer.abort();
-            } else {
-                return goodResult;
-            }
+            return goodResult;
         }
     }
     
