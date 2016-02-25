@@ -47,7 +47,7 @@ shared Parser<To> mapValueParser<out From, out To>(
  prefer to use [[mapValueParser]]."
 see (`function mapValueParser`, `function nonEmptySequenceOf`)
 shared Parser<{To*}> mapParser<out From,out To>(Parser<{From*}> parser, To(From) converter)
-        => mapValueParser(parser, ({From*} from) => from.map(converter));
+        => mapValueParser(parser, ({From*} from) => from.collect(converter));
 
 "Given several parsers *(ps)* and a function `To({From*})` *(f)*, return a new parser which delegates the parsing
  to a [[sequenceOf]] of *ps*, using *f* to convert the results from type [[{From*}]] to [[{To*}]].

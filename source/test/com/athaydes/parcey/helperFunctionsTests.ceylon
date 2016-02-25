@@ -24,9 +24,9 @@ import test.com.athaydes.parcey.combinator {
 test shared void coalescedParserTest() {
     value maybeIntParser = mapParser(
         separatedBy(spaces(), strParser(many(digit(), 1))), parseInteger);
-    
-    value intParser = coalescedParser(maybeIntParser);
-    
+
+     value intParser = coalescedParser(maybeIntParser);
+
     expect(intParser.parse("")).ofType(`ParseSuccess<{Integer*}>`).with((result) {
         assertEquals(result.result.sequence(), []);
     });
@@ -46,9 +46,12 @@ test shared void testMapParserWithThrowingConverter() {
         assert (c in '1'..'9');
         return c.predecessor;
     }
+
     value parser = mapParser(many(anyCharacter()), filteringConverter);
-    expect(parser.parse("456")).ofType(`ParseSuccess<{Character*}>`).with((result) {
+
+    expect(parser.parse("456")).assignableTo(`ParseSuccess<{Character*}>`).with((result) {
         assertEquals(result.result.sequence(), "345".sequence());
     });
+
     expect(parser.parse("a2")).assignableTo(error);
 }
