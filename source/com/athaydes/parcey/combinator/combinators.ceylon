@@ -89,8 +89,8 @@ shared Parser<Item> either<Item>({Parser<Item>+} parsers, String name_ = "") {
             value result = {
                 for (p in parsers)
                 if (!is ErrorMessage outcome = p.doParse(consumer))
-                then outcome else null
-            }.filter((item) => item exists).first;
+                outcome
+            }.first;
             if (exists result) {
                 consumer.clearError();
                 return result;
