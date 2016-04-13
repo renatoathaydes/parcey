@@ -19,15 +19,19 @@ String inBrackets(String text)
 shared String chooseName(String name, String() default)
         => inBrackets(name.empty then default() else name);
 
+Integer numberOfCharactersToDisplayInErrorMessage = 11;
+
 String unexpected(CharacterConsumer consumer) {
-    value next = consumer.peek(consumer.consumedAtDeepestParserStart, 11);
-    return next.size == 11
+    value next = consumer.peek(consumer.consumedAtDeepestError(),
+        numberOfCharactersToDisplayInErrorMessage);
+
+    return next.size == numberOfCharactersToDisplayInErrorMessage
     then quote(String(next.exceptLast.chain("...")))
     else quote(String(next));
 }
 
 shared ParseError parseError(CharacterConsumer consumer, String errorName) {
-    value location = consumer.deepestParserStartLocation();
+    value location = consumer.deepestErrorLocation();
     value message = "(``readableLocation(location)``)
                      Unexpected ``unexpected(consumer)``
                      Expecting ``consumer.deepestError else errorName``";

@@ -27,4 +27,6 @@
      assert(contents.result.sequence() == [123]);
 
  For more information, see the [Github page](https://github.com/renatoathaydes/parcey)."
-module com.athaydes.parcey "0.4.0" {}
+module com.athaydes.parcey "0.4.0" {
+    import ceylon.collection "1.2.2";
+}
