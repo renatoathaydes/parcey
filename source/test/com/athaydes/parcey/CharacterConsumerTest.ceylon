@@ -119,6 +119,50 @@ shared class CharacterConsumerTest() {
         assertEquals(consumer.location(), [3, 2]);
     }
 
+    test shared void canReportAndForgetErrors() {
+        value consumer = CharacterConsumer("a\nbc\nde".iterator());
+
+        consumer.startParser("A");
+        assertEquals(consumer.next(), 'a');
+        assertEquals(consumer.next(), '\n');
+        assertEquals(consumer.next(), 'b');
+
+        consumer.startParser("B");
+        assertEquals(consumer.next(), 'c');
+        assertEquals(consumer.next(), '\n');
+        assertEquals(consumer.next(), 'd');
+
+        consumer.abort();
+        assertEquals(consumer.deepestError, "B");
+        assertEquals(consumer.deepestErrorLocation(), [2, 2]);
+        assertEquals(consumer.currentlyParsed(), 3);
+
+        consumer.startParser("C");
+        assertEquals(consumer.next(), 'c');
+
+        consumer.startParser("D");
+        assertEquals(consumer.next(), '\n');
+
+        consumer.abort();
+        assertEquals(consumer.deepestError, "D");
+        assertEquals(consumer.deepestErrorLocation(), [2, 3]);
+        assertEquals(consumer.currentlyParsed(), 4);
+
+        // previous error occured at 4, so this should NOT clean it
+        consumer.cleanErrorsDeeperThan(4);
+
+        assertEquals(consumer.deepestError, "D");
+        assertEquals(consumer.deepestErrorLocation(), [2, 3]);
+        assertEquals(consumer.currentlyParsed(), 4);
+
+        // previous error occured at 4, cleaning errors deeper than 3 should clean it
+        consumer.cleanErrorsDeeperThan(3);
+
+        assertEquals(consumer.deepestError, "B");
+        assertEquals(consumer.deepestErrorLocation(), [2, 2]);
+        assertEquals(consumer.currentlyParsed(), 4);
+    }
+
     test shared void knowsHowToMoveBack() {
         value consumer = CharacterConsumer("abcdefghijklmnopqrstuvxz".iterator());
         consumer.startParser("");

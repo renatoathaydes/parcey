@@ -23,8 +23,12 @@ shared class CharacterConsumer(Iterator<Character> input,
             errorByPosition.put(currentPosition, error);
         }
 
-        shared void forgetUpTo(Integer position) {
-            errorByPosition.filterKeys(position.smallerThan).each(void (entry) {
+        shared void forgetDeeperThan(Integer position) {
+            function notDeeperThanPosition(Entry<Integer, ErrorMessage> entry) {
+                value errorPosition = entry.key;
+                return errorPosition <= position;
+            }
+            errorByPosition.skipWhile(notDeeperThanPosition).each(void (entry) {
                 errorByPosition.remove(entry.key);
             });
         }
@@ -87,11 +91,6 @@ shared class CharacterConsumer(Iterator<Character> input,
         return currentParser;
     }
 
-    void startFromBeginning() {
-        backtrackCount = consumed.size - 1;
-        errorManager.forgetUpTo(0);
-    }
-
     "Take back the given number of characters, pretending they were never consumed.
 
      If [[characterCount]] is 0 or negative, this call has no effect.
@@ -99,12 +98,7 @@ shared class CharacterConsumer(Iterator<Character> input,
      Normally, Combinators call this method to allow the next parser to start again from a previous
      position of the input."
     shared void takeBack(Integer characterCount) {
-        if (characterCount > currentlyParsed()) {
-            startFromBeginning();
-        } else if (characterCount > 0) {
-            backtrackCount += characterCount;
-            errorManager.forgetUpTo(currentlyParsed());
-        }
+        moveBackTo(currentlyParsed() - characterCount);
     }
 
     "Move back to the position where the number of characters consumed was equal to the given amount.
@@ -116,14 +110,19 @@ shared class CharacterConsumer(Iterator<Character> input,
      position of the input."
     shared void moveBackTo(Integer charactersConsumed) {
         if (charactersConsumed <= 0) {
-            startFromBeginning();
+            backtrackCount = consumed.size - 1;
         } else {
             value currentIndex = currentlyParsed();
             if (charactersConsumed < currentIndex) {
                 backtrackCount = consumed.size - charactersConsumed - 1;
-                errorManager.forgetUpTo(currentlyParsed());
             }
         }
+        errorManager.forgetDeeperThan(currentlyParsed());
+    }
+
+    "Clean any errors that occurred at a position deeper than [[startPosition]]."
+    shared void cleanErrorsDeeperThan(Integer startPosition) {
+        errorManager.forgetDeeperThan(startPosition);
     }
 
     "Peek the characters starting at [[startIndex]] without removing them (for the purposes of parsing)
@@ -160,6 +159,10 @@ shared class CharacterConsumer(Iterator<Character> input,
     shared Integer currentlyParsed()
             => consumed.size - (backtrackCount + 1);
 
+    "Returns the location of the deepest error that has occurred with this [[CharacterConsumer]].
+
+     Note: Parsers may clear errors deeper than at a certain location with
+     [[CharacterConsumer.cleanErrorsDeeperThan]]"
     shared ParsedLocation deepestErrorLocation()
             => location(errorManager.deepestErrorPosition());
 
