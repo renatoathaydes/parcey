@@ -1,5 +1,7 @@
 import ceylon.collection {
-    TreeMap
+    TreeMap,
+    MutableList,
+    ArrayList
 }
 
 "A Consumer of Characters.
@@ -13,18 +15,26 @@ shared class CharacterConsumer(Iterator<Character> input,
 
     object errorManager {
 
-        value errorByPosition = TreeMap<Integer, ErrorMessage>(increasing);
+        value errorByPosition = TreeMap<Integer, MutableList<ErrorMessage>>(increasing);
 
-        shared String? deepestError() => errorByPosition.last?.item;
+        shared String[] deepestErrors()
+                => errorByPosition.last?.item?.sequence() else [];
 
         shared Integer deepestErrorPosition() => errorByPosition.last?.key else 0;
 
         shared void setError(Integer currentPosition, String error) {
-            errorByPosition.put(currentPosition, error);
+            value currentValue = errorByPosition[currentPosition];
+            if (exists currentValue) {
+                currentValue.add(error);
+            } else {
+                value newEntry = ArrayList<ErrorMessage>(4);
+                newEntry.add(error);
+                errorByPosition.put(currentPosition, newEntry);
+            }
         }
 
         shared void forgetDeeperThan(Integer position) {
-            function notDeeperThanPosition(Entry<Integer, ErrorMessage> entry) {
+            function notDeeperThanPosition(Entry<Integer, MutableList<ErrorMessage>> entry) {
                 value errorPosition = entry.key;
                 return errorPosition <= position;
             }
@@ -48,7 +58,7 @@ shared class CharacterConsumer(Iterator<Character> input,
 
     variable String? latestParserStarted = null;
 
-    shared String? deepestError => errorManager.deepestError();
+    shared [String*] deepestErrors => errorManager.deepestErrors();
 
     shared Character|Finished next() {
         "Tried to consume input without starting a parser"

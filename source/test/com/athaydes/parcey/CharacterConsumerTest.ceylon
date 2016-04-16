@@ -35,7 +35,7 @@ shared class CharacterConsumerTest() {
         assertEquals(consumer.next(), 'c');
         consumer.abort();
         assertEquals(consumer.consumedAtDeepestError(), 1);
-        assertEquals(consumer.deepestError, "B");
+        assertEquals(consumer.deepestErrors, ["B"]);
         assertEquals(consumer.currentlyParsed(), 1);
 
         consumer.startParser("C");
@@ -45,12 +45,12 @@ shared class CharacterConsumerTest() {
         assertEquals(consumer.latestConsumed().sequence(), ['b', 'c', 'd']);
         assertEquals(consumer.consumedByLatestParser, 3);
         assertEquals(consumer.consumedAtDeepestError(), 1);
-        assertEquals(consumer.deepestError, "B");
+        assertEquals(consumer.deepestErrors, ["B"]);
         assertEquals(consumer.currentlyParsed(), 4);
 
         consumer.abort();
         assertEquals(consumer.consumedAtDeepestError(), 1);
-        assertEquals(consumer.deepestError, "C");
+        assertEquals(consumer.deepestErrors, ["B", "C"]);
         assertEquals(consumer.currentlyParsed(), 1);
     }
 
@@ -133,7 +133,7 @@ shared class CharacterConsumerTest() {
         assertEquals(consumer.next(), 'd');
 
         consumer.abort();
-        assertEquals(consumer.deepestError, "B");
+        assertEquals(consumer.deepestErrors, ["B"]);
         assertEquals(consumer.deepestErrorLocation(), [2, 2]);
         assertEquals(consumer.currentlyParsed(), 3);
 
@@ -144,21 +144,21 @@ shared class CharacterConsumerTest() {
         assertEquals(consumer.next(), '\n');
 
         consumer.abort();
-        assertEquals(consumer.deepestError, "D");
+        assertEquals(consumer.deepestErrors, ["D"]);
         assertEquals(consumer.deepestErrorLocation(), [2, 3]);
         assertEquals(consumer.currentlyParsed(), 4);
 
         // previous error occured at 4, so this should NOT clean it
         consumer.cleanErrorsDeeperThan(4);
 
-        assertEquals(consumer.deepestError, "D");
+        assertEquals(consumer.deepestErrors, ["D"]);
         assertEquals(consumer.deepestErrorLocation(), [2, 3]);
         assertEquals(consumer.currentlyParsed(), 4);
 
         // previous error occured at 4, cleaning errors deeper than 3 should clean it
         consumer.cleanErrorsDeeperThan(3);
 
-        assertEquals(consumer.deepestError, "B");
+        assertEquals(consumer.deepestErrors, ["B"]);
         assertEquals(consumer.deepestErrorLocation(), [2, 2]);
         assertEquals(consumer.currentlyParsed(), 4);
     }

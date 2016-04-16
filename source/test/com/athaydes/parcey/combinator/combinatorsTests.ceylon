@@ -126,6 +126,14 @@ shared void eitherCombinatorCanParseAllAlternatives() {
     expect(parser.parse(" ")).assignableTo(`ParseSuccess<{Character*}>`).with((result3) {
         assertEquals(result3.result.sequence(), [' ']);
     });
+
+    expect(parser.parse("xy")).assignableTo(error).with((error) {
+        assertEquals(expectThat(error.message, to(
+                containSubsection(*"Unexpected 'xy'"),
+                containSubsection(*"Expecting 'a' or 'b' or 'h' or 'space'"))),
+            success);
+        assertEquals(error.location, [1, 1]);
+    });
 }
 
 test
@@ -188,7 +196,7 @@ shared void eitherCombinatorProducesExpectedErrorMessage() {
         character('a'), character('b')
     };
 
-    expect(parser.parse("c")).assignableTo(`ParseError`).with((error) {
+    expect(parser.parse("c")).assignableTo(error).with((error) {
         assertEquals(expectThat(error.message, to(containSubsection(*"Unexpected 'c'"))), success);
         assertEquals(error.location, [1, 1]);
     });

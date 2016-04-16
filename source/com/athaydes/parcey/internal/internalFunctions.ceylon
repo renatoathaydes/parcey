@@ -29,11 +29,25 @@ String unexpected(CharacterConsumer consumer) {
     else quote(String(next));
 }
 
+String expecting(CharacterConsumer consumer, String errorName) {
+    String expecting;
+    if (consumer.deepestErrors.empty) {
+        expecting = errorName;
+    } else {
+        expecting = consumer.deepestErrors
+                .map(inSinleQuotes)
+                .interpose(" or ")
+                .fold("")(plus);
+    }
+    return expecting;
+}
+
 shared ParseError parseError(CharacterConsumer consumer, String errorName) {
     value location = consumer.deepestErrorLocation();
+
     value message = "(``readableLocation(location)``)
                      Unexpected ``unexpected(consumer)``
-                     Expecting ``consumer.deepestError else errorName``";
+                     Expecting ``expecting(consumer, errorName)``";
     return ParseError(message, location);
 }
 
