@@ -11,12 +11,12 @@ shared {Character*} asIterable(CharacterConsumer consumer)
     };
 };
 
-String inBrackets(String text)
-        => if (text.startsWith("(") &&
-    text.endsWith(")")) then text else "(``text``)";
+String inSinleQuotes(String text)
+        => if (text.startsWith("'") &&
+               text.endsWith("'")) then text else "'``text``'";
 
 shared String chooseName(String name, String() default)
-        => inBrackets(name.empty then default() else name);
+        => inSinleQuotes(name.empty then default() else name);
 
 Integer numberOfCharactersToDisplayInErrorMessage = 11;
 
