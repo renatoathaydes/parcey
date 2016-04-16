@@ -25,6 +25,7 @@ shared Parser<To> mapValueParser<out From, out To>(
 
     shared actual ParseResult<To> doParse(
         CharacterConsumer consumer) {
+        value startPosition = consumer.currentlyParsed();
         switch (result = parser.doParse(consumer))
         case (is ErrorMessage) {
             return name else result;
@@ -34,7 +35,11 @@ shared Parser<To> mapValueParser<out From, out To>(
                 return ParseSuccess(converter(result.result));
             }
             catch (Throwable e) {
-                return (name else "") + e.string;
+                value error = if (exists name)
+                    then "``name``[``e.message``]"
+                    else e.message;
+                consumer.setError(startPosition, error);
+                return error;
             }
         }
     }

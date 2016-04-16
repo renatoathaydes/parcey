@@ -91,6 +91,17 @@ shared class CharacterConsumer(Iterator<Character> input,
         return currentParser;
     }
 
+    "Set an error at [[position]], removing any errors that might have occurred in a
+     later position."
+    shared void setError(
+        "The position of the error"
+        Integer position,
+        "The error to set"
+        ErrorMessage error) {
+        moveBackTo(position);
+        errorManager.setError(position, error);
+    }
+
     "Take back the given number of characters, pretending they were never consumed.
 
      If [[characterCount]] is 0 or negative, this call has no effect.
