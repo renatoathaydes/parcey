@@ -8,7 +8,7 @@ Inspired by Haskell's [Parsec](http://hackage.haskell.org/package/parsec) librar
 Add this line to your `module.ceylon` file:
 
 ```ceylon
-import com.athaydes.parcey "0.4.0";
+import com.athaydes.parcey "0.5.0";
 ```
 
 ## Using Parcey
