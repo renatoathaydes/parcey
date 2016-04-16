@@ -1,44 +1,44 @@
 import ceylon.language.meta {
-	type
+    type
 }
 import ceylon.language.meta.model {
-	Type
+    Type
 }
 import ceylon.test {
-	assertEquals
+    assertEquals
 }
 
 shared class TypeAssertion<out Expected>(
-	Anything instance, 
+	Anything instance,
 	Type<Expected> expectedType,
 	Boolean exactMatch = false) {
-	
+
 	// gives a good  error message
 	if (exactMatch) {
 		assertEquals(type(instance), `Expected`,
-			"Result does not have the expected type");
+			"Result does not have the expected type: ``instance else "<null>"``");
 	} else {
 		if (!type(instance).subtypeOf(`Expected`)) {
 			throw AssertionError("Result is not a subtype of `` `Expected` ``: \
-			                      ``type(instance)``");
+			                      ``type(instance)``: ``instance else "<null>"``");
 		}
 	}
 	// narrow the type
 	assert (is Expected instance);
-	
+
 	shared void with(void assertions(Expected expected)) {
 		assertions(instance);
 	}
 }
 
 shared class AssertionMaker(Anything instance) {
-	
+
 	shared TypeAssertion<Expected> ofType<Expected>(Type<Expected> expectedType)
 		=> TypeAssertion(instance, expectedType, true);
-	
+
 	shared TypeAssertion<Expected> assignableTo<Expected>(Type<Expected> expectedType)
 		=> TypeAssertion(instance, expectedType, false);
-	
+
 }
 
 shared AssertionMaker expect(Anything actual) => AssertionMaker(actual);
