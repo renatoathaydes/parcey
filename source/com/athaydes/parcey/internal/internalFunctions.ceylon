@@ -1,8 +1,7 @@
 import com.athaydes.parcey {
     ParsedLocation,
     CharacterConsumer,
-    ParseError,
-    Parser
+    ParseError
 }
 
 shared {Character*} asIterable(CharacterConsumer consumer)
@@ -50,9 +49,3 @@ shared String readableLocation(ParsedLocation parsedLocation)
 
 shared String simplePlural(String word, Integer count)
         => word + (count != 1 then "s" else "");
-
-shared String computeParserName({Parser<Anything>*} parsers, String separator)() {
-    return parsers.map(Parser.name)
-            .interpose(separator)
-            .fold("")(plus);
-}

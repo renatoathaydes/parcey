@@ -10,13 +10,15 @@ import com.athaydes.parcey.internal {
     negate
 }
 
+abstract class Recognizer<Anything>(
+    shared String name)
+        satisfies Parser<Anything> {}
+
 "Parser that expects an empty stream.
 
  It only succeeds if the input is empty."
 shared Parser<[]> endOfInput(String name_ = "")
-        => object satisfies Parser<[]> {
-    name = chooseName(name_, () => "EOF");
-
+        => object extends Recognizer<[]>(chooseName(name_, () => "EOF")) {
     shared actual ParseResult<[]> doParse(
         CharacterConsumer consumer) {
         consumer.startParser(name);
@@ -32,8 +34,7 @@ shared Parser<[]> endOfInput(String name_ = "")
 
  It fails if the input is empty."
 shared Parser<{Character+}> anyCharacter(String name_ = "")
-        => object satisfies Parser<{Character+}> {
-    name = chooseName(name_, () => "any character");
+        => object extends Recognizer<{Character+}>(chooseName(name_, () => "any character")) {
     shared actual ParseResult<{Character+}> doParse(
         CharacterConsumer consumer) {
         consumer.startParser(name);
@@ -73,9 +74,7 @@ shared Parser<{Character+}> letter(String name = "")
 
  It fails if the input is empty."
 shared Parser<{Character+}> satisfy(Boolean(Character) predicate, String name_ = "")
-        => object satisfies Parser<{Character+}> {
-    name = chooseName(name_, () => "predicate");
-
+        => object extends Recognizer<{Character+}>(chooseName(name_, () => "predicate")) {
     shared actual ParseResult<{Character+}> doParse(CharacterConsumer consumer) {
         consumer.startParser(name);
         if (is Character next = consumer.next(), predicate(next)) {
@@ -97,9 +96,7 @@ shared Parser<{Character+}> oneOf({Character+} chars, String name = "")
 
  It fails if the input is empty."
 shared Parser<{Character+}> character(Character char, String name_ = "")
-        => object satisfies Parser<{Character+}> {
-            name = chooseName(name_, () => char.string);
-
+        => object extends Recognizer<{Character+}>(chooseName(name_, () => char.string)) {
             value goodResult = ParseSuccess({ char });
 
             shared actual ParseResult<{Character+}> doParse(CharacterConsumer consumer) {
@@ -131,9 +128,7 @@ shared Parser<{Character+}> noneOf({Character+} chars, String name = "")
 
  It fails if the input is empty."
 shared Parser<{Character+}> digit(String name_ = "")
-        => object satisfies Parser<{Character+}> {
-    name = chooseName(name_, () => "digit");
-
+        => object extends Recognizer<{Character+}>(chooseName(name_, () => "digit")) {
     shared actual ParseResult<{Character+}> doParse(CharacterConsumer consumer) {
         consumer.startParser(name);
         if (is Character next = consumer.next(), next.digit) {
@@ -158,9 +153,7 @@ shared Parser<{String+}> anyString(String name = "")
 
 "A String parser which parses only the given text."
 shared Parser<{String+}> text(String text, String name_ = "")
-        => object satisfies Parser<{String+}> {
-    name = chooseName(name_, () => "string ``quote(text)``");
-
+        => object extends Recognizer<{String+}>(chooseName(name_, () => "string ``quote(text)``")) {
     value goodResult = ParseSuccess({ text });
 
     shared actual ParseResult<{String+}> doParse(
@@ -190,9 +183,7 @@ shared Parser<{String+}> text(String text, String name_ = "")
  * if the sequence of digits cannot be represented as a Ceylon Integer due to overflow."
 see (`function mapValueParser`)
 shared Parser<{Integer+}> integer(String name_ = "") {
-    return object satisfies Parser<{Integer+}> {
-        name = chooseName(name_, () => "integer");
-
+    return object extends Recognizer<{Integer+}>(chooseName(name_, () => "integer")) {
         function validDigit(Character c)
                 => '0' <= c <= '9';
 
@@ -255,8 +246,8 @@ shared Parser<{Integer+}> integer(String name_ = "") {
     };
 }
 
-class OneOf(shared actual String name, Boolean includingChars, {Character+} chars)
-        satisfies Parser<{Character+}> {
+class OneOf(String name, Boolean includingChars, {Character+} chars)
+        extends Recognizer<{Character+}>(name) {
 
     Category<Character> charsSet;
 

@@ -30,15 +30,12 @@ shared final class ParseSuccess<out Result>(
 }
 
 "A Parser which can parse a stream of Characters.
- 
+
  Parsers are stateless, hence can be safely shared even between different Threads.
  All state is kept in [[CharacterConsumer]], which
  can be passed in from a previous parsing process with the [[Parser.doParse]] method."
 shared interface Parser<out Parsed> {
-    
-    "The name of this Parser. This is used to improve error messages but may be empty."
-    shared formal String name;
-    
+
     "Parse the given input. The input is only traversed once by using its iterator."
     see (`function sequenceOf`)
     shared default ParseSuccess<Parsed>|ParseError parse({Character*} input) {
@@ -47,7 +44,7 @@ shared interface Parser<out Parsed> {
             		if (input.size > 512M) then 256M else
             		if (input.size > 10) then input.size / 2 else input.size)
         	else CharacterConsumer(input.iterator());
-        
+
         value result = doParse(consumer);
         switch(result)
         case (is ErrorMessage) {
@@ -56,7 +53,7 @@ shared interface Parser<out Parsed> {
             return result;
         }
     }
-    
+
     "Parses the input provided by the [[consumer|consumer]]."
     shared formal ParseResult<Parsed> doParse(
         "A consumer of Characters which provides Parsers with input, keeping
