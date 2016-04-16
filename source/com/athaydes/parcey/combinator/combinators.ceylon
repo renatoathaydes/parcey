@@ -336,14 +336,14 @@ shared Parser<{Item*}> around<Item>(
 
  This example parses a word enclosed in parentheses, returning the word only:
 
-     between(word(), character('('), character(')'))"
+     between(character('('), character(')'), word())"
 see(`function around`)
 see(`function separatedBy`)
 shared Parser<{Item*}> between<Item>(
-    "The parser that should appear between [[left]] and [[right]]"
-	Parser<{Item*}> parser,
     "The parser to the left of [[parser]]. Its result is discarded."
-	Parser<{Item*}> left,
+	Parser<Anything> left,
     "The parser to the right of [[parser]]. Its result is discarded."
-	Parser<{Item*}> right)
+	Parser<Anything> right,
+    "The parser that should appear between [[left]] and [[right]]"
+    Parser<{Item*}> parser)
 		=> sequenceOf { skip(left), parser, skip(right) };

@@ -432,12 +432,29 @@ test shared void aroundTest() {
 }
 
 test shared void betweenTest() {
-    value parser = between(character('a'), character('b'), character('c'));
+    value parser = between(character('b'), character('c'), character('a'));
     expect(parser.parse("bac")).assignableTo(`ParseSuccess<{Character*}>`).with((result) {
         assertEquals(result.result.sequence(), ['a']);
     });
     expect(parser.parse("baca")).assignableTo(`ParseSuccess<{Character*}>`).with((result) {
         assertEquals(result.result.sequence(), ['a']);
+    });
+}
+
+test shared void betweenErrorTest() {
+    value parser = between(character('['), character(']'), text("hello"));
+    expect(parser.parse("[hello]")).assignableTo(`ParseSuccess<{String*}>`).with((result) {
+        assertEquals(result.result.sequence(), ["hello"]);
+    });
+    expect(parser.parse("hello")).assignableTo(error).with((error) {
+        assertEquals(expectThat(error.message, to(containSubsection(*"Unexpected 'hello'"))), success);
+        assertEquals(expectThat(error.message, to(containSubsection(*"Expecting '['"))), success);
+        assertEquals(error.location, [1, 1]);
+    });
+    expect(parser.parse("[hello")).assignableTo(error).with((error) {
+        assertEquals(expectThat(error.message, to(containSubsection(*"Unexpected ''"))), success);
+        assertEquals(expectThat(error.message, to(containSubsection(*"Expecting ']'"))), success);
+        assertEquals(error.location, [1, 7]);
     });
 }
 
