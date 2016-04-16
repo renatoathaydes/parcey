@@ -51,7 +51,7 @@ shared class CharacterConsumer(Iterator<Character> input,
 
     shared variable Integer consumedByLatestParser = 0;
 
-    shared Integer consumedAtDeepestError()
+    shared Integer consumedAtDeepestError
             => errorManager.deepestErrorPosition();
 
     variable Integer consumedAtLatestParserStart = 0;
@@ -84,7 +84,7 @@ shared class CharacterConsumer(Iterator<Character> input,
      Only recognizers should call this method, not combinators or helper functions."
     shared void startParser(String name) {
         consumedByLatestParser = 0;
-        consumedAtLatestParserStart = currentlyParsed();
+        consumedAtLatestParserStart = currentlyParsed;
         latestParserStarted = name;
     }
 
@@ -119,7 +119,7 @@ shared class CharacterConsumer(Iterator<Character> input,
      Normally, Combinators call this method to allow the next parser to start again from a previous
      position of the input."
     shared void takeBack(Integer characterCount) {
-        moveBackTo(currentlyParsed() - characterCount);
+        moveBackTo(currentlyParsed - characterCount);
     }
 
     "Move back to the position where the number of characters consumed was equal to the given amount.
@@ -133,12 +133,12 @@ shared class CharacterConsumer(Iterator<Character> input,
         if (charactersConsumed <= 0) {
             backtrackCount = consumed.size - 1;
         } else {
-            value currentIndex = currentlyParsed();
+            value currentIndex = currentlyParsed;
             if (charactersConsumed < currentIndex) {
                 backtrackCount = consumed.size - charactersConsumed - 1;
             }
         }
-        errorManager.forgetDeeperThan(currentlyParsed());
+        errorManager.forgetDeeperThan(currentlyParsed);
     }
 
     "Clean any errors that occurred at a position deeper than [[startPosition]]."
@@ -166,7 +166,7 @@ shared class CharacterConsumer(Iterator<Character> input,
     }
 
     "Returns the characters consumed by the latest Parser."
-    shared {Character*} latestConsumed() {
+    shared {Character*} latestConsumed {
         value firstIndex = consumed.size - consumedByLatestParser;
         value count = consumedByLatestParser - backtrackCount;
         return consumed.measure(firstIndex, count);
@@ -177,14 +177,14 @@ shared class CharacterConsumer(Iterator<Character> input,
      If [[CharacterConsumer.moveBackTo]] or [[CharacterConsumer.takeBack]] are called, then this
      method will return a value that is different from the number of characters actually consumed from the
      input."
-    shared Integer currentlyParsed()
+    shared Integer currentlyParsed
             => consumed.size - (backtrackCount + 1);
 
     "Returns the location of the deepest error that has occurred with this [[CharacterConsumer]].
 
      Note: Parsers may clear errors deeper than at a certain location with
      [[CharacterConsumer.cleanErrorsDeeperThan]]"
-    shared ParsedLocation deepestErrorLocation()
+    shared ParsedLocation deepestErrorLocation
             => location(errorManager.deepestErrorPosition());
 
     "Location as [row, col] at the given character count.
@@ -192,7 +192,7 @@ shared class CharacterConsumer(Iterator<Character> input,
      This is an expensive operation because every character consumed up to the [[characterCount]]
      must be checked, so avoid calling this method directly (it should only be called when an error is
      displayed for the user, normally)."
-    shared ParsedLocation location(Integer characterCount = currentlyParsed()) {
+    shared ParsedLocation location(Integer characterCount = currentlyParsed) {
         variable Integer row = 1;
         variable Integer col = 1;
         consumed.measure(0, characterCount).each((Character char) {

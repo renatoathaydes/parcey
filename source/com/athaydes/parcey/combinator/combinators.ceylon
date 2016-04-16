@@ -26,7 +26,7 @@ shared Parser<{Item*}> sequenceOf<Item>(
 
     shared actual ParseResult<{Item*}> doParse(
         CharacterConsumer consumer) {
-        value startPosition = consumer.currentlyParsed();
+        value startPosition = consumer.currentlyParsed;
         variable {Item*} results = {};
 
         for (parser in parsers) {
@@ -67,7 +67,7 @@ shared Parser<{Item+}> nonEmptySequenceOf<Item>(
 
     shared actual ParseResult<{Item+}> doParse(
         CharacterConsumer consumer) {
-            value startLocation = consumer.currentlyParsed();
+            value startLocation = consumer.currentlyParsed;
             value result = delegate.doParse(consumer);
             if (is ParseSuccess<Anything> result,
                 exists first = result.result.first) {
@@ -98,7 +98,7 @@ shared Parser<Item> either<Item>(
 
         shared actual ParseResult<Item> doParse(
             CharacterConsumer consumer) {
-            value startPosition = consumer.currentlyParsed();
+            value startPosition = consumer.currentlyParsed;
             value result = {
                 for (p in parsers)
                 if (!is ErrorMessage outcome = p.doParse(consumer))
@@ -140,11 +140,11 @@ shared Parser<{Item*}> many<Item>(
 
         shared actual ParseResult<{Item*}> doParse(
             CharacterConsumer consumer) {
-            variable Integer startPosition = consumer.currentlyParsed();
+            variable Integer startPosition = consumer.currentlyParsed;
 
             Anything() updatePosition = if (exists name)
                     then (() => startPosition)
-                    else (() { consumer.currentlyParsed(); });
+                    else (() => consumer.currentlyParsed);
 
             value results = {
                 for (p in parsers)
@@ -185,7 +185,7 @@ shared Parser<{Item*}> option<Item>(
     return object satisfies Parser<{Item*}> {
         shared actual ParseResult<{Item*}> doParse(
             CharacterConsumer consumer) {
-            value startLocation = consumer.currentlyParsed();
+            value startLocation = consumer.currentlyParsed;
             value result = parser.doParse(consumer);
             switch (result)
             case (is ErrorMessage) {

@@ -15,13 +15,13 @@ shared class CharacterConsumerTest() {
 
         consumer.startParser("");
         assertEquals(consumer.next(), 'a');
-        assertEquals(consumer.latestConsumed().sequence(), ['a']);
+        assertEquals(consumer.latestConsumed.sequence(), ['a']);
 
         consumer.startParser("");
-        assertEquals(consumer.latestConsumed().sequence(), []);
+        assertEquals(consumer.latestConsumed.sequence(), []);
         assertEquals(consumer.next(), 'b');
         assertEquals(consumer.next(), 'c');
-        assertEquals(consumer.latestConsumed().sequence(), ['b', 'c']);
+        assertEquals(consumer.latestConsumed.sequence(), ['b', 'c']);
     }
 
     test shared void knowsHowToAbortAndRestartParserAfterwards() {
@@ -34,24 +34,24 @@ shared class CharacterConsumerTest() {
         assertEquals(consumer.next(), 'b');
         assertEquals(consumer.next(), 'c');
         consumer.abort();
-        assertEquals(consumer.consumedAtDeepestError(), 1);
+        assertEquals(consumer.consumedAtDeepestError, 1);
         assertEquals(consumer.deepestErrors, ["B"]);
-        assertEquals(consumer.currentlyParsed(), 1);
+        assertEquals(consumer.currentlyParsed, 1);
 
         consumer.startParser("C");
         assertEquals(consumer.next(), 'b');
         assertEquals(consumer.next(), 'c');
         assertEquals(consumer.next(), 'd');
-        assertEquals(consumer.latestConsumed().sequence(), ['b', 'c', 'd']);
+        assertEquals(consumer.latestConsumed.sequence(), ['b', 'c', 'd']);
         assertEquals(consumer.consumedByLatestParser, 3);
-        assertEquals(consumer.consumedAtDeepestError(), 1);
+        assertEquals(consumer.consumedAtDeepestError, 1);
         assertEquals(consumer.deepestErrors, ["B"]);
-        assertEquals(consumer.currentlyParsed(), 4);
+        assertEquals(consumer.currentlyParsed, 4);
 
         consumer.abort();
-        assertEquals(consumer.consumedAtDeepestError(), 1);
+        assertEquals(consumer.consumedAtDeepestError, 1);
         assertEquals(consumer.deepestErrors, ["B", "C"]);
-        assertEquals(consumer.currentlyParsed(), 1);
+        assertEquals(consumer.currentlyParsed, 1);
     }
 
     test shared void knowsHowToTakeBackInput() {
@@ -105,7 +105,7 @@ shared class CharacterConsumerTest() {
         assertEquals(consumer.next(), 'b');
         consumer.abort();
 
-        assertEquals(consumer.currentlyParsed(), 0);
+        assertEquals(consumer.currentlyParsed, 0);
         assertEquals(consumer.location(), [1, 1]);
 
         consumer.startParser("B");
@@ -134,8 +134,8 @@ shared class CharacterConsumerTest() {
 
         consumer.abort();
         assertEquals(consumer.deepestErrors, ["B"]);
-        assertEquals(consumer.deepestErrorLocation(), [2, 2]);
-        assertEquals(consumer.currentlyParsed(), 3);
+        assertEquals(consumer.deepestErrorLocation, [2, 2]);
+        assertEquals(consumer.currentlyParsed, 3);
 
         consumer.startParser("C");
         assertEquals(consumer.next(), 'c');
@@ -145,22 +145,22 @@ shared class CharacterConsumerTest() {
 
         consumer.abort();
         assertEquals(consumer.deepestErrors, ["D"]);
-        assertEquals(consumer.deepestErrorLocation(), [2, 3]);
-        assertEquals(consumer.currentlyParsed(), 4);
+        assertEquals(consumer.deepestErrorLocation, [2, 3]);
+        assertEquals(consumer.currentlyParsed, 4);
 
         // previous error occured at 4, so this should NOT clean it
         consumer.cleanErrorsDeeperThan(4);
 
         assertEquals(consumer.deepestErrors, ["D"]);
-        assertEquals(consumer.deepestErrorLocation(), [2, 3]);
-        assertEquals(consumer.currentlyParsed(), 4);
+        assertEquals(consumer.deepestErrorLocation, [2, 3]);
+        assertEquals(consumer.currentlyParsed, 4);
 
         // previous error occured at 4, cleaning errors deeper than 3 should clean it
         consumer.cleanErrorsDeeperThan(3);
 
         assertEquals(consumer.deepestErrors, ["B"]);
-        assertEquals(consumer.deepestErrorLocation(), [2, 2]);
-        assertEquals(consumer.currentlyParsed(), 4);
+        assertEquals(consumer.deepestErrorLocation, [2, 2]);
+        assertEquals(consumer.currentlyParsed, 4);
     }
 
     test shared void knowsHowToMoveBack() {

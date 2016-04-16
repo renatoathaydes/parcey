@@ -21,7 +21,7 @@ shared String chooseName(String name, String() default)
 Integer numberOfCharactersToDisplayInErrorMessage = 11;
 
 String unexpected(CharacterConsumer consumer) {
-    value next = consumer.peek(consumer.consumedAtDeepestError(),
+    value next = consumer.peek(consumer.consumedAtDeepestError,
         numberOfCharactersToDisplayInErrorMessage);
 
     return next.size == numberOfCharactersToDisplayInErrorMessage
@@ -43,7 +43,7 @@ String expecting(CharacterConsumer consumer, String errorName) {
 }
 
 shared ParseError parseError(CharacterConsumer consumer, String errorName) {
-    value location = consumer.deepestErrorLocation();
+    value location = consumer.deepestErrorLocation;
 
     value message = "(``readableLocation(location)``)
                      Unexpected ``unexpected(consumer)``

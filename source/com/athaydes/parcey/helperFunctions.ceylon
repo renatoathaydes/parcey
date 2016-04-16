@@ -25,7 +25,7 @@ shared Parser<To> mapValueParser<out From, out To>(
 
     shared actual ParseResult<To> doParse(
         CharacterConsumer consumer) {
-        value startPosition = consumer.currentlyParsed();
+        value startPosition = consumer.currentlyParsed;
         switch (result = parser.doParse(consumer))
         case (is ErrorMessage) {
             return name else result;
