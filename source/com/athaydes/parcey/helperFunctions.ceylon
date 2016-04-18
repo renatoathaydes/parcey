@@ -38,7 +38,7 @@ shared Parser<To> mapValueParser<out From, out To>(
                 value error = if (exists name)
                     then "``name``[``e.message``]"
                     else e.message;
-                consumer.setError(startPosition, error);
+                consumer.addErrorAt(startPosition, error);
                 return error;
             }
         }

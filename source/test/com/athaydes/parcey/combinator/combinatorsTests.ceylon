@@ -2,7 +2,8 @@ import ceylon.test {
     test,
     assertEquals,
     fail,
-    assertTrue
+    assertTrue,
+    testExecutor
 }
 
 import com.athaydes.parcey {
@@ -19,7 +20,8 @@ import com.athaydes.parcey {
     coalescedParser,
     word,
     endOfInput,
-    CharacterConsumer
+    CharacterConsumer,
+    Parser
 }
 import com.athaydes.parcey.combinator {
     either,
@@ -33,7 +35,10 @@ import com.athaydes.parcey.combinator {
     nonEmptySequenceOf
 }
 import com.athaydes.specks {
-    success
+    success,
+    Specification,
+    feature,
+    SpecksTestExecutor
 }
 import com.athaydes.specks.assertion {
     expectThat=expect
@@ -608,3 +613,24 @@ test shared void errorMessageShouldComeFromDeepestParserAttempted() {
         assertEquals(error.location, [1, 2]);
     });
 }
+
+shared test
+testExecutor(`class SpecksTestExecutor`)
+Specification namedCombinatorsShouldGiveNameInErrorMessages() => Specification {
+    feature {
+        when = function(Parser<Anything> parser, String name, String input) {
+            value result = parser.parse(input);
+            assert(is ParseError result);
+            return [result, name];
+        };
+
+        examples = [
+            [many(character('a'), 1, "As"), "As", ""],
+            [sequenceOf({ character('a') }, "As"), "As", ""],
+            [nonEmptySequenceOf({ character('a') }, "As"), "As", ""]
+        ];
+
+        (ParseError result, String parserName)
+            => expectThat(result.message, containSubsection(*"Expecting '``parserName``'"))
+    }
+};

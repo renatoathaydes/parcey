@@ -33,7 +33,7 @@ shared Parser<{Item*}> sequenceOf<Item>(
             value outcome = parser.doParse(consumer);
             if (is ErrorMessage outcome) {
                 if (exists overrideError = name) {
-                    consumer.moveBackTo(startPosition);
+                    consumer.setErrorAt(startPosition, overrideError);
                     return overrideError;
                 } else {
                     return outcome;
@@ -161,9 +161,14 @@ shared Parser<{Item*}> many<Item>(
               .sequence();
 
             if (results.size < minOccurrences) { // failure
-                return name else computeName("parsers");
+                if (exists name) {
+                    consumer.setErrorAt(startPosition, name);
+                    return name;
+                } else {
+                    return computeName("parsers");
+                }
             } else { // success
-                consumer.cleanErrorsDeeperThan(startPosition);
+                consumer.cleanErrorsDeeperThan(startPosition - 1);
                 return ParseSuccess(expand {
                     for (r in results) if (!is ErrorMessage r) r
                 });

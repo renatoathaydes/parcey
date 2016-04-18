@@ -11,12 +11,12 @@ shared {Character*} asIterable(CharacterConsumer consumer)
     };
 };
 
-String inSinleQuotes(String text)
+String inSingleQuotes(String text)
         => if (text.startsWith("'") &&
                text.endsWith("'")) then text else "'``text``'";
 
 shared String chooseName(String name, String() default)
-        => inSinleQuotes(name.empty then default() else name);
+        => inSingleQuotes(name.empty then default() else name);
 
 Integer numberOfCharactersToDisplayInErrorMessage = 11;
 
@@ -32,10 +32,10 @@ String unexpected(CharacterConsumer consumer) {
 String expecting(CharacterConsumer consumer, String errorName) {
     String expecting;
     if (consumer.deepestErrors.empty) {
-        expecting = errorName;
+        expecting = inSingleQuotes(errorName);
     } else {
         expecting = consumer.deepestErrors
-                .map(inSinleQuotes)
+                .map(inSingleQuotes)
                 .interpose(" or ")
                 .fold("")(plus);
     }
