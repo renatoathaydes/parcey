@@ -10,3 +10,5 @@
 modules/*
 /.exploded/
 /bin/
+/build/
+/.gradle/
