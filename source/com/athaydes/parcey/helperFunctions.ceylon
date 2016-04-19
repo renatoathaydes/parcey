@@ -28,7 +28,12 @@ shared Parser<To> mapValueParser<out From, out To>(
         value startPosition = consumer.currentlyParsed;
         switch (result = parser.doParse(consumer))
         case (is ErrorMessage) {
-            return name else result;
+            if (exists name) {
+                consumer.setErrorAt(startPosition, name);
+                return name;
+            } else {
+                return result;
+            }
         }
         else {
             try {

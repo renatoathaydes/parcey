@@ -75,8 +75,9 @@ shared Parser<{Item+}> nonEmptySequenceOf<Item>(
             } else if (is ErrorMessage result) {
                 return result;
             } else { // not even one result found
-                consumer.moveBackTo(startLocation);
-                return name else "nonEmptySequenceOf(result was empty)";
+                value error = name else "nonEmptySequenceOf";
+                consumer.setErrorAt(startLocation, error);
+                return error;
             }
         }
     };
@@ -108,7 +109,12 @@ shared Parser<Item> either<Item>(
                 consumer.cleanErrorsDeeperThan(startPosition);
                 return result;
             } else { // failure
-                return name else "either(all options failed)";
+                if (exists name) {
+                    consumer.setErrorAt(startPosition, name);
+                    return name;
+                } else {
+                    return "either";
+                }
             }
         }
     };
@@ -310,10 +316,16 @@ shared Parser<[]> skip(
     return object satisfies Parser<[]> {
         shared actual ParseResult<[]> doParse(
             CharacterConsumer consumer) {
+            value startPosition = consumer.currentlyParsed;
             value result = parser.doParse(consumer);
             switch (result)
             case (is ErrorMessage) {
-                return name else result;
+                if (exists name) {
+                    consumer.setErrorAt(startPosition, name);
+                    return name;
+                } else {
+                    return result;
+                }
             }
             else {
                 return ParseSuccess([]);

@@ -32,7 +32,8 @@ import com.athaydes.parcey.combinator {
     separatedBy,
     around,
     between,
-    nonEmptySequenceOf
+    nonEmptySequenceOf,
+    separatedWith
 }
 import com.athaydes.specks {
     success,
@@ -627,7 +628,11 @@ Specification namedCombinatorsShouldGiveNameInErrorMessages() => Specification {
         examples = [
             [many(character('a'), 1, "As"), "As", ""],
             [sequenceOf({ character('a') }, "As"), "As", ""],
-            [nonEmptySequenceOf({ character('a') }, "As"), "As", ""]
+            [nonEmptySequenceOf({ character('a') }, "As"), "As", ""],
+            [either({ character('a') }, "As"), "As", ""],
+            [skip(character('a'), "As"), "As", ""],
+            [separatedBy(character(','), character('a'), 1, "As"), "As", ""],
+            [separatedWith(character(','), character('a'), 1, "As"), "As", ""]
         ];
 
         (ParseError result, String parserName)
