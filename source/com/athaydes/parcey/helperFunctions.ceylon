@@ -1,6 +1,7 @@
 import com.athaydes.parcey.combinator {
     sequenceOf,
-    nonEmptySequenceOf
+    nonEmptySequenceOf,
+    option
 }
 import com.athaydes.parcey.internal {
     chooseName
@@ -109,3 +110,19 @@ shared Parser<{Value*}> coalescedParser<out Value>(
     String name_ = "")
         given Value satisfies Object
         => mapValueParser<{Value?*},{Value*}>(parser, Iterable.coalesced);
+
+"Creates a Parser that applies the given [[parser]] and,
+ if it produces no results, returns [[default]] value instead."
+see(`function option`)
+Parser<{Item+}|[Other]> nonemptyOr<Item, Other>(
+	"Parser that could return empty result"
+	Parser<{Item*}> parser,
+	"Default value"
+	Other default) =>
+		mapValueParser {
+	parser;
+	converter({Item*} parsed) =>
+			if (exists parsed_ = sequence(parsed))
+			then parsed_
+			else [default];
+};
