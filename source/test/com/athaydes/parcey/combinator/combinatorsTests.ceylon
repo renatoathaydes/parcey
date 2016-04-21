@@ -30,7 +30,8 @@ import com.athaydes.parcey.combinator {
     separatedBy,
     around,
     between,
-    nonEmptySequenceOf
+    nonEmptySequenceOf,
+    optionDefault
 }
 import com.athaydes.specks {
     success
@@ -413,6 +414,32 @@ test shared void optionMultivalueTest() {
     } else {
         fail("Result was ```result3``");
     }
+}
+
+test
+shared void optionDefaultTest() {
+	value parser = optionDefault(many(text("foo"), 1), "moo");
+	
+	value result1 = parser.parse("foo");
+	if (is ParseSuccess<{String+}> result1) {
+		assertEquals(result1.result.sequence(), ["foo"]);
+	} else {
+		fail("Result was ```result1``");
+	}
+	
+	value result2 = parser.parse("foofoo");
+	if (is ParseSuccess<{String+}> result2) {
+		assertEquals(result2.result.sequence(), ["foo", "foo"]);
+	} else {
+		fail("Result was ```result2``");
+	}
+	
+	value result3 = parser.parse("bar");
+	if (is ParseSuccess<{String+}> result3) {
+		assertEquals(result3.result.sequence(), ["moo"]);
+	} else {
+		fail("Result was ```result3``");
+	}
 }
 
 test
