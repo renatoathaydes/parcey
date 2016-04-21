@@ -4,7 +4,8 @@ import com.athaydes.parcey {
     ParseError,
     CharacterConsumer,
     ParseResult,
-    ErrorMessage
+    ErrorMessage,
+    mapValueParser
 }
 import com.athaydes.parcey.internal {
     chooseName,
@@ -284,3 +285,22 @@ shared Parser<{Item*}> between<Item>(
 	Parser<{Item*}> left,
 	Parser<{Item*}> right)
 		=> sequenceOf { skip(left), parser, skip(right) };
+
+"Creates a Parser that applies the given [[parser]] only if it succeeds.
+ 
+ In case of failure, this Parser backtracks and returns [[default]] value.
+ 
+ Notice that this Parser never fails."
+see(`function option`)
+shared Parser<{Item+}|[Other]> optionDefault<Item, Other>(
+	"The optional parser"
+	Parser<{Item*}> parser,
+	"Default value"
+	Other default) =>
+		mapValueParser {
+	option(parser);
+	converter({Item*} parsed) =>
+			if (exists parsed_ = sequence(parsed))
+			then parsed_
+			else [default];
+};
