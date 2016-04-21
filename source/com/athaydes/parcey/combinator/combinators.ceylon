@@ -292,7 +292,7 @@ shared Parser<{Item*}> between<Item>(
  
  Notice that this Parser never fails."
 see(`function option`)
-Parser<{Item+}|[Other]> optionDef<Item, Other>(
+Parser<{Item+}|[Other]> optionDefault<Item, Other>(
 	"The optional parser"
 	Parser<{Item*}> parser,
 	"Default value"
